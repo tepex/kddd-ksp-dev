@@ -1,0 +1,42 @@
+[versions]
+# plugins
+kotlin = "2.0.21"
+ksp = "2.0.21-1.0.25"
+
+# libs
+kotlinx-coroutines = "1.9.0"
+ktlint = "0.50.0"
+serialization-json = "1.7.3"
+toml = "1.1.1"
+
+# test
+junit = "4.13.2"
+kover = "0.8.3"
+kotest = "5.9.1"
+test-report = "1.4"
+
+[libraries]
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.6.1" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
+
+javax-inject = { module = "javax.inject:javax.inject", version = "1" }
+
+ddd = { module = "ru.it-arch:ddd", version = "6.5.3" }
+
+# test
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotest = { group = "io.kotest", name = "kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotest" }
+kotest-datatest = { group = "io.kotest", name = "kotest-framework-datatest", version.ref = "kotest" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+
+# https://github.com/monnage/gradle-test-report
+test-report = { id = "com.monnage.test-report", version.ref = "test-report" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+
+versions = { id = "com.github.ben-manes.versions", version = "0.51.0" }
