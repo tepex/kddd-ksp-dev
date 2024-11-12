@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    //alias(libs.plugins.ksp)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -20,4 +20,5 @@ kotlin {
 
 dependencies {
     implementation(libs.ddd)
+    implementation(libs.ksp.api)
 }
