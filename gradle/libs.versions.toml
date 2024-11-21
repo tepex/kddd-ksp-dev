@@ -19,10 +19,13 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version = "0.6.1" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
 ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+auto-service = { module = "com.google.auto.service:auto-service", version="1.1.1" }
 
 javax-inject = { module = "javax.inject:javax.inject", version = "1" }
 
-ddd = { module = "ru.it-arch:ddd", version = "6.5.3" }
+ddd = { module = "ru.it-arch:ddd", version = "6.5.4" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version = "2.0.0" }
+kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version = "2.0.0" }
 
 # test
 junit = { group = "junit", name = "junit", version.ref = "junit" }

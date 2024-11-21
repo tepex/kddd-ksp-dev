@@ -2,13 +2,14 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    //alias(libs.plugins.ksp)
+    alias(libs.plugins.ksp)
 }
 
 kotlin {
     jvmToolchain(17)
     compilerOptions {
-        apiVersion.set(KotlinVersion.KOTLIN_2_0)
+        //apiVersion.set(KotlinVersion.KOTLIN_2_0)
+        //languageVersion.set(KotlinVersion.KOTLIN_2_0)
     }
     /*
     sourceSets.all {
@@ -20,4 +21,5 @@ kotlin {
 
 dependencies {
     implementation(libs.ddd)
+    ksp(project(":ksp"))
 }
