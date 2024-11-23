@@ -9,18 +9,21 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSVisitorVoid
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.TypeSpecHolder
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
+import ru.it_arch.clean_ddd.ksp.interop.VO_TYPE
+import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
+import ru.it_arch.clean_ddd.ksp.interop.toTypeSpecBuilder
+import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
 public class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -41,31 +44,32 @@ public class DddProcessor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .forEach { declaration ->
-                    declaration.takeIf { it.isValueObject() }?.also {
-                        val fileBuilder = FileSpec.builder(
-                            "${declaration.packageName.asString()}.intern",
-                            declaration.toClassNameImpl()
-                        )
-
-                        logger.warn("process: $declaration")
-                        val rootClass = declaration.toTypeSpecBuilder()
-                        it.accept(ValueObjectVisitor(), rootClass).also(fileBuilder::addType)
-
-                        fileBuilder.build().writeTo(
-                            codeGenerator,
-                            Dependencies(false, file)
-                        )
-                    }
+                    processDeclaration(file, declaration)
                 }
         }
 
-        /* for compiled
         resolver.getDeclarationsFromPackage("ru.it_arch.ddd")
-            .find { it.simpleName.asString() == "Validatable" }?.also { it.accept(testVisitor, Unit) }
+            .filterIsInstance<KSClassDeclaration>()
+            .find { it.simpleName.asString() == "TestStruct" }
+            ?.also { processDeclaration(null, it) }
 
-         */
 
         return symbols.filterNot { it.validate() }.toList()
+    }
+
+    private fun processDeclaration(file: KSFile?, declaration: KSClassDeclaration) {
+        declaration.takeIf { it.toValueObjectType(logger) == VO_TYPE.VALUE_OBJECT }?.also {
+            val fileBuilder = FileSpec.builder(
+                "${declaration.packageName.asString()}.intern",
+                declaration.toClassNameImpl()
+            )
+
+            logger.warn("process: $declaration")
+            val rootClass = declaration.toTypeSpecBuilder(logger, VO_TYPE.VALUE_OBJECT)
+            it.accept(ValueObjectVisitor(), rootClass).also(fileBuilder::addType)
+
+            file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, it)) }
+        }
     }
 
     private inner class ValueObjectVisitor() : KSDefaultVisitor<TypeSpec.Builder, TypeSpec>() {
@@ -77,7 +81,15 @@ public class DddProcessor(
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { declaration ->
                     logger.warn("inner decl: $declaration, typeName: ${declaration.asType(emptyList()).toTypeName()}")
-                    declaration.accept(this, declaration.toTypeSpecBuilder()).also(data::addType)
+                    declaration.toValueObjectType(logger)
+                        ?.also { voType ->
+                            declaration.accept(
+                                this,
+                                declaration.toTypeSpecBuilder(logger, voType)
+                            ).also(data::addType)
+                        }
+                        ?: logger.error("Unsupported type declaration", declaration)
+
                 }
             return data.build()
         }
@@ -97,26 +109,5 @@ public class DddProcessor(
         override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {
             logger.warn("func: $function")
         }
-    }
-
-    private companion object {
-        private const val VALUE_OBJECT = "ru.it_arch.ddd.ValueObject"
-
-        private fun KSClassDeclaration.isValueObject(): Boolean {
-            superTypes.forEach { parent ->
-                val fullName = parent.resolve().declaration.let { "${it.packageName.asString()}.${it.simpleName.asString()}" }
-                if (fullName == VALUE_OBJECT) return true
-            }
-            return false
-        }
-
-        private fun KSClassDeclaration.toClassNameImpl(): String =
-            "${simpleName.asString()}Impl"
-
-        private fun KSClassDeclaration.toTypeSpecBuilder(): TypeSpec.Builder =
-            TypeSpec.classBuilder(toClassNameImpl())
-                .addModifiers(KModifier.INTERNAL)
-                .addModifiers(KModifier.DATA)
-                .addSuperinterface(asType(emptyList()).toTypeName())
     }
 }

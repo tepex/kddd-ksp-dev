@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.ddd.Parsable
 import ru.it_arch.ddd.ValueObject
 import ru.it_arch.ddd.ValueObjectSingle
 import java.net.URI
@@ -8,7 +9,7 @@ public interface MyStruct : ValueObject {
     public val name: Name
     public val optName: Name?
     public val count: Count
-    //public val uri: Uri
+    public val uri: Uri
     public val names: List<Name>
     public val indexes: Set<Index>
     //public val myMap: Map<Index, Name?>
@@ -34,16 +35,13 @@ public interface MyStruct : ValueObject {
         }
     }
 
-    /*
-    public interface Uri : ValueObjectSingle<URI> {
+    public interface Uri : ValueObjectSingle<URI>, Parsable<URI> {
 
         override fun validate() {}
 
-        public companion object : Parsable<URI> {
-            override fun parse(str: String): URI =
-                URI.create(str)
-        }
-    }*/
+        override fun parse(str: String): URI =
+            URI.create(str)
+    }
 
     public interface Inner : ValueObject {
         public val innerLong: InnerLong
