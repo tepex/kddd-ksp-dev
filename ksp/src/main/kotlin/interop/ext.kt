@@ -8,44 +8,43 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asTypeName
-import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
-import com.squareup.kotlinpoet.ksp.toTypeParameterResolver
 
 internal fun ConstructorParameter.toParameterSpec() = ParameterSpec(
     name,
     if (isNullable) type.copy(nullable = true) else type
 )
 
-internal fun ConstructorParameter.toPropertySpec() = PropertySpec.builder(
+internal fun ConstructorParameter.toPropertySpec(isInnerBuilder: Boolean = false) = PropertySpec.builder(
     name,
     if (isNullable) type.copy(nullable = true) else type,
     KModifier.OVERRIDE
 ).initializer(name).build()
 
-internal fun KSClassDeclaration.toValueObjectType(logger: KSPLogger): VO_TYPE? {
+internal fun KSClassDeclaration.toValueObjectType(logger: KSPLogger): ValueObjectType? {
     superTypes.forEach { parent ->
-        val ksType = parent.resolve()
-        val fullName = ksType.declaration.let { "${it.packageName.asString()}.${it.simpleName.asString()}" }
-        VO_TYPE.entries.find { it.className == fullName }
-            ?.also {
-                if (it == VO_TYPE.VALUE_OBJECT_SINGLE) {
-                    logger.warn("-- super type: ${ksType}, ${parent.toTypeName()}")
+        val fullName = parent.resolve().declaration.let { "${it.packageName.asString()}.${it.simpleName.asString()}" }
+        when(fullName) {
+            ValueObjectType.ValueObject.CLASSNAME -> ValueObjectType.ValueObject
+            ValueObjectType.ValueObjectSingle.CLASSNAME ->
+                runCatching { ValueObjectType.ValueObjectSingle.create(parent.toTypeName().toString()) }.getOrElse {
+                    logger.warn(it.message ?: "Cant parse parent type $parent")
+                    null
                 }
-                return it
-            }
+            else -> null
+        }?.also { return it }
     }
     return null
 }
 
-internal fun KSClassDeclaration.toClassNameImpl(): String =
+internal fun KSClassDeclaration.asClassNameImplString(): String =
     "${simpleName.asString()}Impl"
 
 internal fun TypeSpec.Builder.createConstructor(parameters: List<ConstructorParameter>) {
     addProperties(parameters.map { it.toPropertySpec() })
     primaryConstructor(
         FunSpec.constructorBuilder()
+            .addModifiers(KModifier.PRIVATE)
             .addParameters(parameters.map { it.toParameterSpec() })
             .addStatement("validate()")
             .build()
@@ -56,24 +55,28 @@ internal fun KSPropertyDeclaration.toConstructorParameter() =
     ConstructorParameter(
         simpleName.asString(),
         type.toTypeName(),
+        null,
         type.resolve().isMarkedNullable
     )
 
-internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: VO_TYPE): TypeSpec.Builder =
-    TypeSpec.classBuilder(toClassNameImpl()).apply {
+internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: ValueObjectType): TypeSpec.Builder =
+    TypeSpec.classBuilder(asClassNameImplString()).apply {
         val superType = asType(emptyList()).toTypeName()
         addModifiers(KModifier.INTERNAL)
         addSuperinterface(superType)
 
         when (voType) {
-            VO_TYPE.VALUE_OBJECT -> {
+            ValueObjectType.ValueObject -> {
                 addModifiers(KModifier.DATA)
                 getAllProperties().map { it.toConstructorParameter() }.toList().also(::createConstructor)
+
+                TypeSpec.classBuilder("Builder").also { innerBuilder ->
+
+                }
             }
-            VO_TYPE.VALUE_OBJECT_SINGLE -> {
+            is ValueObjectType.ValueObjectSingle -> {
                 addModifiers(KModifier.VALUE)
                 addAnnotation(JvmInline::class)
-                this@toTypeSpecBuilder.typeParameters.forEach { logger.warn("--- type param: $it") }
 
                 FunSpec.builder("toString")
                     .addModifiers(KModifier.OVERRIDE)
@@ -82,12 +85,13 @@ internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: VO_
                     .build()
                     .also(::addFunction)
 
-                createConstructor(listOf(ConstructorParameter("value", String::class.asTypeName())))
-                FunSpec.builder(simpleName.asString().lowercase())
+                // value class constructor
+                createConstructor(listOf(ConstructorParameter("value", voType.boxedType, null)))
+                FunSpec.builder(simpleName.asString().replaceFirstChar { it.lowercase() })
                     .addModifiers(KModifier.INTERNAL)
-                    .addParameter("value", String::class)
+                    .addParameter("value", voType.boxedType)
                     .returns(superType)
-                    .addStatement("return ${toClassNameImpl()}(value)")
+                    .addStatement("return ${asClassNameImplString()}(value)")
                     .build()
                     .let { func ->
                         TypeSpec.companionObjectBuilder()
