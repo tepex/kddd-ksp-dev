@@ -12,7 +12,7 @@ public interface MyStruct : ValueObject {
     public val uri: Uri
     public val names: List<Name>
     public val indexes: Set<Index>
-    //public val myMap: Map<Index, Name?>
+    public val myMap: Map<Index, Name?>
     public val inner: Inner
 
     override fun validate() {

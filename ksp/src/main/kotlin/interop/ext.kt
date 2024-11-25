@@ -1,6 +1,5 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
-import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.squareup.kotlinpoet.FunSpec
@@ -10,37 +9,22 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 
-internal fun ConstructorParameter.toParameterSpec() = ParameterSpec(
+internal fun IKDParameter.toParameterSpec() = ParameterSpec(
     name,
-    if (isNullable) type.copy(nullable = true) else type
+    if (this is KDParameter && isNullable) type.copy(nullable = true) else type
 )
 
-internal fun ConstructorParameter.toPropertySpec(isInnerBuilder: Boolean = false) = PropertySpec.builder(
+internal fun IKDParameter.toPropertySpec() = PropertySpec.builder(
     name,
-    if (isNullable) type.copy(nullable = true) else type,
+    if (this is KDParameter && isNullable) type.copy(nullable = true) else type,
     KModifier.OVERRIDE
 ).initializer(name).build()
 
-internal fun KSClassDeclaration.toValueObjectType(logger: KSPLogger): ValueObjectType? {
-    superTypes.forEach { parent ->
-        val fullName = parent.resolve().declaration.let { "${it.packageName.asString()}.${it.simpleName.asString()}" }
-        when(fullName) {
-            ValueObjectType.ValueObject.CLASSNAME -> ValueObjectType.ValueObject
-            ValueObjectType.ValueObjectSingle.CLASSNAME ->
-                runCatching { ValueObjectType.ValueObjectSingle.create(parent.toTypeName().toString()) }.getOrElse {
-                    logger.warn(it.message ?: "Cant parse parent type $parent")
-                    null
-                }
-            else -> null
-        }?.also { return it }
-    }
-    return null
-}
 
 internal fun KSClassDeclaration.asClassNameImplString(): String =
     "${simpleName.asString()}Impl"
 
-internal fun TypeSpec.Builder.createConstructor(parameters: List<ConstructorParameter>) {
+internal fun TypeSpec.Builder.createConstructor(parameters: Set<IKDParameter>) {
     addProperties(parameters.map { it.toPropertySpec() })
     primaryConstructor(
         FunSpec.constructorBuilder()
@@ -52,41 +36,33 @@ internal fun TypeSpec.Builder.createConstructor(parameters: List<ConstructorPara
 }
 
 internal fun KSPropertyDeclaration.toConstructorParameter() =
-    ConstructorParameter(
-        simpleName.asString(),
-        type.toTypeName(),
-        null,
-        type.resolve().isMarkedNullable
-    )
+    KDParameter.create(simpleName.asString(), type.toTypeName(), type.resolve().isMarkedNullable)
 
-internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: ValueObjectType): TypeSpec.Builder =
-    TypeSpec.classBuilder(asClassNameImplString()).apply {
+internal fun KSClassDeclaration.toTypeSpecBuilder(voType: KDValueObjectType) =
+    TypeSpec.classBuilder(asClassNameImplString()).let { builder ->
         val superType = asType(emptyList()).toTypeName()
-        addModifiers(KModifier.INTERNAL)
-        addSuperinterface(superType)
+        builder.addModifiers(KModifier.INTERNAL)
+        builder.addSuperinterface(superType)
 
         when (voType) {
-            ValueObjectType.ValueObject -> {
-                addModifiers(KModifier.DATA)
-                getAllProperties().map { it.toConstructorParameter() }.toList().also(::createConstructor)
-
-                TypeSpec.classBuilder("Builder").also { innerBuilder ->
-
-                }
+            KDValueObjectType.KDValueObject -> {
+                builder.addModifiers(KModifier.DATA)
+                getAllProperties().map { it.toConstructorParameter() }.toSet().also(builder::createConstructor)
             }
-            is ValueObjectType.ValueObjectSingle -> {
-                addModifiers(KModifier.VALUE)
-                addAnnotation(JvmInline::class)
+
+            is KDValueObjectType.KDValueObjectSingle -> {
+                builder.addModifiers(KModifier.VALUE)
+                builder.addAnnotation(JvmInline::class)
 
                 FunSpec.builder("toString")
                     .addModifiers(KModifier.OVERRIDE)
                     .returns(String::class)
                     .addStatement("return value.toString()")
                     .build()
-                    .also(::addFunction)
+                    .also(builder::addFunction)
 
                 // value class constructor
-                createConstructor(listOf(ConstructorParameter("value", voType.boxedType, null)))
+                builder.createConstructor(setOf(KDParameterBase("value", voType.boxedType)))
                 FunSpec.builder(simpleName.asString().replaceFirstChar { it.lowercase() })
                     .addModifiers(KModifier.INTERNAL)
                     .addParameter("value", voType.boxedType)
@@ -98,8 +74,10 @@ internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: Val
                             .addModifiers(KModifier.INTERNAL)
                             .addFunction(func)
                             .build()
-                    }.also(::addType)
+                    }.also(builder::addType)
+                //voType.boxedType
+                emptySet()
             }
-        }
-
+            else -> emptySet()
+        }.let { TypeSpecWrapper(builder, it) }
     }
