@@ -106,7 +106,7 @@ public class DddProcessor(
 
                         if (voType is KDValueObjectType.KDValueObjectSingle) {
                             data.parameters.find { it.base.type == declarationTypeName }?.also {
-                                //logger.warn("    found boxed: ${voType.boxedType}")
+                                logger.warn("    found boxed: ${voType.boxedType}")
                                 it.addBoxedType(voType.boxedType)
                             }
                         }

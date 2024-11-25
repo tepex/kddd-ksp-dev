@@ -15,6 +15,10 @@ internal class KDParameter private constructor(
         _boxedTypes.add(typeName)
     }
 
+    fun getClassParameters(): List<TypeName> {
+        return emptyList()
+    }
+
     override fun toString(): String =
         "{$base, boxed types: $boxedTypes}"
 

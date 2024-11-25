@@ -2,10 +2,12 @@ package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 
@@ -19,6 +21,12 @@ internal fun IKDParameter.toPropertySpec() = PropertySpec.builder(
     if (this is KDParameter && isNullable) type.copy(nullable = true) else type,
     KModifier.OVERRIDE
 ).initializer(name).build()
+
+
+internal fun String.parseClassParameters(): List<TypeName> =
+    """^.+<(.+)>$""".toRegex().find(this)
+        ?.let { it.groupValues[1].split(',').map(ClassName::bestGuess) }
+        ?: emptyList()
 
 
 internal fun KSClassDeclaration.asClassNameImplString(): String =

@@ -1,6 +1,5 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.TypeName
 
 internal interface KDValueObjectType {
@@ -11,11 +10,10 @@ internal interface KDValueObjectType {
     class KDValueObjectSingle private constructor(val boxedType: TypeName) : KDValueObjectType {
         companion object {
             const val CLASSNAME = "ru.it_arch.ddd.ValueObjectSingle"
-            private val RE = """^ru.it_arch.ddd.ValueObjectSingle<(.+)>$""".toRegex()
 
             fun create(superInterfaceName: String): KDValueObjectSingle =
-                RE.find(superInterfaceName)?.let { KDValueObjectSingle(ClassName.bestGuess(it.groupValues[1])) }
-                    ?: throw IllegalArgumentException("Class name `$superInterfaceName` not match RE $RE")
+                superInterfaceName.parseClassParameters().firstOrNull()?.let(::KDValueObjectSingle)
+                    ?: throw IllegalArgumentException("Class name `$superInterfaceName` expected type parameter")
         }
     }
 }
