@@ -1,41 +1,65 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.ksp.toTypeName
 
 internal class KDParameter private constructor(
-    val base: KDParameterBase,
-    val isNullable: Boolean = false
-) : IKDParameter by base {
+    override val name: IKDParameter.Name,
+    type: TypeName
+) : IKDParameter {
 
-    private val _boxedTypes = mutableListOf<TypeName>()
-    val boxedTypes: List<TypeName>
-        get() = _boxedTypes.toList()
+    override var type: TypeName = type
+        private set
 
-    fun addBoxedType(typeName: TypeName) {
-        _boxedTypes.add(typeName)
+    override fun validate() {}
+
+    override fun setType(type: TypeName) {
+        this.type = type.toNullable()
     }
 
-    fun getClassParameters(): List<TypeName> {
-        return emptyList()
+    override fun replaceParametersType(replacements: Map<WrapperType, BoxedType>) {
+        (type as? ParameterizedTypeName)?.also { pt ->
+            pt.typeArguments.toMutableList().apply {
+                forEachIndexed { i, arg ->
+                    replacements.getBoxedType(arg)?.also { this[i] = it.toNullable(arg.isNullable) }
+                }
+                type = pt.copy(typeArguments = this)
+            }
+        }
     }
 
     override fun toString(): String =
-        "{$base, boxed types: $boxedTypes}"
+        "`$name`: $type"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is KDParameter) return false
-
-        if (base != other.base) return false
-
+        if (id != other.id) return false
         return true
     }
 
     override fun hashCode(): Int =
-        base.hashCode()
+        id.hashCode()
+
+
+    @JvmInline
+    private value class NameImpl private constructor(override val value: String) : IKDParameter.Name {
+
+        override fun toString(): String =
+            value
+
+        companion object {
+            fun name(value: String) = NameImpl(value)
+        }
+    }
 
     companion object {
-        fun create(name: String, type: TypeName, isNullable: Boolean) =
-            KDParameter(KDParameterBase(name, type), isNullable)
+        fun create(property: KSPropertyDeclaration) =
+            KDParameter(NameImpl.name(property.simpleName.asString()), property.type.toTypeName())
+
+        fun create(name: String, type: TypeName) =
+            KDParameter(NameImpl.name(name), type)
     }
 }

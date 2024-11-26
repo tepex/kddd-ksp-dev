@@ -9,11 +9,13 @@ internal fun KSClassDeclaration.toValueObjectType(logger: KSPLogger): KDValueObj
         val fullName = parent.resolve().declaration.let { "${it.packageName.asString()}.${it.simpleName.asString()}" }
         when(fullName) {
             KDValueObjectType.KDValueObject.CLASSNAME -> KDValueObjectType.KDValueObject
-            KDValueObjectType.KDValueObjectSingle.CLASSNAME ->
-                runCatching { KDValueObjectType.KDValueObjectSingle.create(parent.toTypeName().toString()) }.getOrElse {
+            KDValueObjectType.KDValueObjectSingle.CLASSNAME -> {
+                //logger.warn(">>> $this, typeName.class: ${typeName::class.simpleName} typeName: $typeName")
+                runCatching { KDValueObjectType.KDValueObjectSingle.create(parent.toTypeName()) }.getOrElse {
                     logger.warn(it.message ?: "Cant parse parent type $parent")
                     null
                 }
+            }
             else -> null
         }?.also { return it }
     }

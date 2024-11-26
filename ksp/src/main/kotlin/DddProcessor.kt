@@ -1,6 +1,5 @@
 package ru.it_arch.clean_ddd.ksp
 
-import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -14,12 +13,16 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
-import ru.it_arch.clean_ddd.ksp.interop.TypeSpecWrapper
+import ru.it_arch.clean_ddd.ksp.interop.BoxedType
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
+import ru.it_arch.clean_ddd.ksp.interop.TypeSpecWrapper
+import ru.it_arch.clean_ddd.ksp.interop.WrapperType
 import ru.it_arch.clean_ddd.ksp.interop.asClassNameImplString
+import ru.it_arch.clean_ddd.ksp.interop.getBoxedType
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toTypeSpecBuilder
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
@@ -31,7 +34,6 @@ public class DddProcessor(
 ) : SymbolProcessor {
 
 
-    @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
         //val symbols = resolver.getAllFiles()
         val symbols = resolver.getNewFiles()
@@ -77,7 +79,7 @@ public class DddProcessor(
     }
 
     private fun KSClassDeclaration.createDomainType(visitor: ValueObjectVisitor, voType: KDValueObjectType): TypeSpec =
-        toTypeSpecBuilder(voType).let { wrapper ->
+        toTypeSpecBuilder(logger, voType).let { wrapper ->
 
             logger.warn("create domain type: ${this}, ${wrapper.parameters}, $voType")
 
@@ -90,10 +92,11 @@ public class DddProcessor(
         }
 
 
-    private inner class ValueObjectVisitor() : KSDefaultVisitor<TypeSpecWrapper, TypeSpec>() {
+    private inner class ValueObjectVisitor : KSDefaultVisitor<TypeSpecWrapper, TypeSpec>() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: TypeSpecWrapper): TypeSpec {
             logger.warn("visit: $classDeclaration, params: ${data.parameters}")
+            val replacements = mutableMapOf<WrapperType, BoxedType>()
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { declaration ->
@@ -103,16 +106,24 @@ public class DddProcessor(
 
                         declaration.createDomainType(this, voType).also(data.builder::addType)
                         //declaration.accept(this, declaration.toTypeSpecBuilder(logger, voType)).also(data::addType)
-
-                        if (voType is KDValueObjectType.KDValueObjectSingle) {
-                            data.parameters.find { it.base.type == declarationTypeName }?.also {
-                                logger.warn("    found boxed: ${voType.boxedType}")
-                                it.addBoxedType(voType.boxedType)
-                            }
-                        }
+                        /*
+                        data.parameters.findParametersWithKDType(declarationTypeName).also {
+                            logger.warn("=== find parameters for $declarationTypeName: $it")
+                        }*/
+                        if (voType is KDValueObjectType.KDValueObjectSingle)
+                            replacements[declarationTypeName] = voType.boxedType
 
                     } ?: logger.error("Unsupported type declaration", declaration)
                 }
+            if (data.parameters.isNotEmpty()) {
+                data.parameters.forEach { param ->
+                    if (param.type is ParameterizedTypeName) {
+                        //logger.warn("   <> ${(param.type as ParameterizedTypeName).typeArguments}")
+                        param.replaceParametersType(replacements)
+                    } else replacements.getBoxedType(param.type)?.let(param::setType)
+                    logger.warn("   new: $param")
+                }
+            }
             return data.builder.build()
         }
 
