@@ -1,7 +1,6 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 
@@ -10,15 +9,17 @@ internal class KDParameter private constructor(
     type: TypeName
 ) : IKDParameter {
 
-    override var type: TypeName = type
+    override var kdType: IKDParameter.KDType = IKDParameter.KDType.create(type)
         private set
 
     override fun validate() {}
 
+    /*
     override fun setType(type: TypeName) {
-        this.type = type.toNullable()
-    }
+        this.type = typeN.toNullable()
+    }*/
 
+    /*
     override fun replaceParametersType(replacements: Map<WrapperType, BoxedType>) {
         (type as? ParameterizedTypeName)?.also { pt ->
             pt.typeArguments.toMutableList().apply {
@@ -28,10 +29,10 @@ internal class KDParameter private constructor(
                 type = pt.copy(typeArguments = this)
             }
         }
-    }
+    }*/
 
     override fun toString(): String =
-        "`$name`: $type"
+        "`$name`: $kdType"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -63,3 +64,4 @@ internal class KDParameter private constructor(
             KDParameter(NameImpl.name(name), type)
     }
 }
+

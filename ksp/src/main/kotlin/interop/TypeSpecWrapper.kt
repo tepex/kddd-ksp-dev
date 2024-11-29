@@ -4,5 +4,6 @@ import com.squareup.kotlinpoet.TypeSpec
 
 internal data class TypeSpecWrapper(
     val builder: TypeSpec.Builder,
-    val parameters: Set<KDParameter>
+    val parameters: Set<KDParameter>,
+    val valueObjectType: KDValueObjectType
 )

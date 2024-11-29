@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.intern.MyStructImpl
 import ru.it_arch.ddd.Parsable
 import ru.it_arch.ddd.ValueObject
 import ru.it_arch.ddd.ValueObjectSingle
@@ -58,3 +59,7 @@ public interface MyStruct : ValueObject {
         }
     }
 }
+/*
+public fun myStruct(block: MyStructImpl.Builder.() -> Unit): MyStructImpl =
+    MyStructImpl.Builder().apply(block).build()
+*/

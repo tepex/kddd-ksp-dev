@@ -13,17 +13,19 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.ParameterizedTypeName
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.BoxedType
+import ru.it_arch.clean_ddd.ksp.interop.IKDParameter
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
 import ru.it_arch.clean_ddd.ksp.interop.TypeSpecWrapper
 import ru.it_arch.clean_ddd.ksp.interop.WrapperType
 import ru.it_arch.clean_ddd.ksp.interop.asClassNameImplString
-import ru.it_arch.clean_ddd.ksp.interop.getBoxedType
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
+import ru.it_arch.clean_ddd.ksp.interop.toBuilderPropertySpec
 import ru.it_arch.clean_ddd.ksp.interop.toTypeSpecBuilder
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
@@ -80,17 +82,9 @@ public class DddProcessor(
 
     private fun KSClassDeclaration.createDomainType(visitor: ValueObjectVisitor, voType: KDValueObjectType): TypeSpec =
         toTypeSpecBuilder(logger, voType).let { wrapper ->
-
             logger.warn("create domain type: ${this}, ${wrapper.parameters}, $voType")
-
-            accept(visitor, wrapper).also {
-                //create builder
-                if (voType.isValueObject) {
-                    logger.warn("   after: ${wrapper.parameters}")
-                }
-            }
+            accept(visitor, wrapper)
         }
-
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<TypeSpecWrapper, TypeSpec>() {
 
@@ -99,31 +93,47 @@ public class DddProcessor(
             val replacements = mutableMapOf<WrapperType, BoxedType>()
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
-                .forEach { declaration ->
-                    val declarationTypeName = declaration.asType(emptyList()).toTypeName()
-                    logger.warn("inner decl: $declaration, typeName: $declarationTypeName")
-                    declaration.toValueObjectType(logger)?.also { voType ->
+                .forEach { nestedDeclaration ->
+                    val nestedTypeName = nestedDeclaration.asType(emptyList()).toTypeName()
+                    logger.warn("inner decl: $nestedDeclaration, typeName: $nestedTypeName")
+                    nestedDeclaration.toValueObjectType(logger)?.also { voType ->
 
-                        declaration.createDomainType(this, voType).also(data.builder::addType)
+                        nestedDeclaration.createDomainType(this, voType).also(data.builder::addType)
                         //declaration.accept(this, declaration.toTypeSpecBuilder(logger, voType)).also(data::addType)
                         /*
                         data.parameters.findParametersWithKDType(declarationTypeName).also {
                             logger.warn("=== find parameters for $declarationTypeName: $it")
                         }*/
                         if (voType is KDValueObjectType.KDValueObjectSingle)
-                            replacements[declarationTypeName] = voType.boxedType
+                            replacements[nestedTypeName] = voType.boxedType
 
-                    } ?: logger.error("Unsupported type declaration", declaration)
+                    } ?: logger.error("Unsupported type declaration", nestedDeclaration)
                 }
-            if (data.parameters.isNotEmpty()) {
+
+
+            if (data.valueObjectType is KDValueObjectType.KDValueObject) {
+                val thisTypeName = classDeclaration.asType(emptyList()).toTypeName()
+                val builder = TypeSpec.classBuilder("Builder")
+                val buildFun = FunSpec.builder("build")
+                    .addModifiers(KModifier.INTERNAL)
+                    .returns(thisTypeName)
+
                 data.parameters.forEach { param ->
-                    if (param.type is ParameterizedTypeName) {
-                        //logger.warn("   <> ${(param.type as ParameterizedTypeName).typeArguments}")
+                    val type = param.kdType
+                    if (type is IKDParameter.KDType.Element && !type.typeName.isNullable) {
+                        buildFun.addStatement("""requireNotNull(${param.name.value}) { "Property '$thisTypeName.${param.name.value}' is not set!" }""")
+                    }
+                    /*
+                    if (type is IKDParameter.Type.Collection) {
                         param.replaceParametersType(replacements)
-                    } else replacements.getBoxedType(param.type)?.let(param::setType)
-                    logger.warn("   new: $param")
+                    } else replacements.getBoxedType(param.type)?.let(param::setType)*/
+                    logger.warn("   new: $param isNullable: ${param.kdType.type.isNullable}")
+                    param.toBuilderPropertySpec(replacements).also(builder::addProperty)
                 }
+                builder.addFunction(buildFun.build())
+                builder.build().also(data.builder::addType)
             }
+
             return data.builder.build()
         }
 
