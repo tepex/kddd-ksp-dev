@@ -89,7 +89,7 @@ public class DddProcessor(
     private inner class ValueObjectVisitor : KSDefaultVisitor<TypeSpecWrapper, TypeSpec>() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: TypeSpecWrapper): TypeSpec {
-            logger.warn("visit: $classDeclaration, params: ${data.parameters}")
+            logger.warn("visit: $classDeclaration, impl: , params: ${data.parameters}")
             val replacements = mutableMapOf<WrapperType, BoxedType>()
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
@@ -97,41 +97,30 @@ public class DddProcessor(
                     val nestedTypeName = nestedDeclaration.asType(emptyList()).toTypeName()
                     logger.warn("inner decl: $nestedDeclaration, typeName: $nestedTypeName")
                     nestedDeclaration.toValueObjectType(logger)?.also { voType ->
-
                         nestedDeclaration.createDomainType(this, voType).also(data.builder::addType)
-                        //declaration.accept(this, declaration.toTypeSpecBuilder(logger, voType)).also(data::addType)
-                        /*
-                        data.parameters.findParametersWithKDType(declarationTypeName).also {
-                            logger.warn("=== find parameters for $declarationTypeName: $it")
-                        }*/
                         if (voType is KDValueObjectType.KDValueObjectSingle)
                             replacements[nestedTypeName] = voType.boxedType
-
                     } ?: logger.error("Unsupported type declaration", nestedDeclaration)
                 }
 
-
+            // KDType.Builder()
             if (data.valueObjectType is KDValueObjectType.KDValueObject) {
-                val thisTypeName = classDeclaration.asType(emptyList()).toTypeName()
-                val builder = TypeSpec.classBuilder("Builder")
-                val buildFun = FunSpec.builder("build")
-                    .addModifiers(KModifier.INTERNAL)
-                    .returns(thisTypeName)
+                TypeSpec.classBuilder("Builder").apply {
+                    val thisTypeName = classDeclaration.asType(emptyList()).toTypeName()
+                    FunSpec.builder("build").also { buildFunBuilder ->
+                        buildFunBuilder.addModifiers(KModifier.INTERNAL).returns(thisTypeName)
 
-                data.parameters.forEach { param ->
-                    val type = param.kdType
-                    if (type is IKDParameter.KDType.Element && !type.typeName.isNullable) {
-                        buildFun.addStatement("""requireNotNull(${param.name.value}) { "Property '$thisTypeName.${param.name.value}' is not set!" }""")
-                    }
-                    /*
-                    if (type is IKDParameter.Type.Collection) {
-                        param.replaceParametersType(replacements)
-                    } else replacements.getBoxedType(param.type)?.let(param::setType)*/
-                    logger.warn("   new: $param isNullable: ${param.kdType.type.isNullable}")
-                    param.toBuilderPropertySpec(replacements).also(builder::addProperty)
+                        data.parameters.forEach { param ->
+                            val type = param.kdType
+                            buildFunBuilder.takeIf { type is IKDParameter.KDType.Element && !type.typeName.isNullable }
+                                ?.addStatement("""requireNotNull(${param.name.value}) { "Property '$thisTypeName.${param.name.value}' is not set!" }""")
+                            param.toBuilderPropertySpec(replacements).also(::addProperty)
+                        }
+
+
+                    }.also { addFunction(it.build()) }
+                    build().also(data.builder::addType)
                 }
-                builder.addFunction(buildFun.build())
-                builder.build().also(data.builder::addType)
             }
 
             return data.builder.build()

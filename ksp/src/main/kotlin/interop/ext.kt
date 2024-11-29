@@ -15,40 +15,23 @@ internal fun IKDParameter.toParameterSpec() =
 
 internal fun IKDParameter.toPropertySpec() =
     PropertySpec.builder(name.value, kdType.type, KModifier.OVERRIDE).initializer(name.value).build()
-/*
-internal fun IKDParameter.toBuilderPropertySpec() =
-    (type.takeIf { it is ParameterizedTypeName }?.let {
-        PropertySpec.builder(name.value, type)
-            .initializer((type as ParameterizedTypeName).rawType.simpleName.toEmptyInitializer())
-    } ?: PropertySpec.builder(name.value, type.toNullable()).initializer("null"))
-        .mutable()
-        .build()*/
 
-internal fun IKDParameter.toBuilderPropertySpec(replacements: Map<WrapperType, BoxedType>): PropertySpec {
-    val parameterType = kdType
-    return when(parameterType) {
-        is IKDParameter.KDType.Collection -> {
-            parameterType.typeName.typeArguments.toMutableList().let { args ->
-                args.forEachIndexed { i, arg ->
-                    replacements.getBoxedType(arg)?.also { args[i] = it.toNullable(arg.isNullable) }
+internal fun IKDParameter.toBuilderPropertySpec(replacements: Map<WrapperType, BoxedType>) =
+    kdType.let { parameterType ->
+        when(parameterType) {
+            is IKDParameter.KDType.Collection -> {
+                parameterType.typeName.typeArguments.toMutableList().let { args ->
+                    args.forEachIndexed { i, arg ->
+                        replacements.getBoxedType(arg)?.also { args[i] = it.toNullable(arg.isNullable) }
+                    }
+                    PropertySpec.builder(name.value, parameterType.typeName.copy(typeArguments = args))
+                        .initializer(parameterType.collectionType.initializer)
                 }
-                PropertySpec.builder(name.value, parameterType.typeName.copy(typeArguments = args))
-                    .initializer(parameterType.collectionType.initializer)
             }
-        }
-        is IKDParameter.KDType.Element ->
-            PropertySpec.builder(name.value, parameterType.typeName.toNullable()).initializer("null")
+            is IKDParameter.KDType.Element ->
+                PropertySpec.builder(name.value, parameterType.typeName.toNullable()).initializer("null")
+        }.mutable().build()
     }
-        .mutable()
-        .build()
-}
-/*
-private fun String.toEmptyInitializer() = when(this) {
-    "List" -> "emptyList()"
-    "Set" -> "emptySet()"
-    "Map" -> "emptyMap()"
-    else -> TODO("Not supported collection type $this")
-}*/
 
 internal typealias WrapperType = TypeName
 internal typealias BoxedType = TypeName

@@ -6,30 +6,13 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 
 internal class KDParameter private constructor(
     override val name: IKDParameter.Name,
-    type: TypeName
+    typeName: TypeName
 ) : IKDParameter {
 
-    override var kdType: IKDParameter.KDType = IKDParameter.KDType.create(type)
+    override var kdType: IKDParameter.KDType = IKDParameter.KDType.create(typeName)
         private set
 
     override fun validate() {}
-
-    /*
-    override fun setType(type: TypeName) {
-        this.type = typeN.toNullable()
-    }*/
-
-    /*
-    override fun replaceParametersType(replacements: Map<WrapperType, BoxedType>) {
-        (type as? ParameterizedTypeName)?.also { pt ->
-            pt.typeArguments.toMutableList().apply {
-                forEachIndexed { i, arg ->
-                    replacements.getBoxedType(arg)?.also { this[i] = it.toNullable(arg.isNullable) }
-                }
-                type = pt.copy(typeArguments = this)
-            }
-        }
-    }*/
 
     override fun toString(): String =
         "`$name`: $kdType"
@@ -60,8 +43,7 @@ internal class KDParameter private constructor(
         fun create(property: KSPropertyDeclaration) =
             KDParameter(NameImpl.name(property.simpleName.asString()), property.type.toTypeName())
 
-        fun create(name: String, type: TypeName) =
-            KDParameter(NameImpl.name(name), type)
+        fun create(name: String, typeName: TypeName) =
+            KDParameter(NameImpl.name(name), typeName)
     }
 }
-
