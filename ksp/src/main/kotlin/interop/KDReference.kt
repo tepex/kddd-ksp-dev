@@ -15,6 +15,9 @@ internal sealed interface KDReference {
 
         override fun validate() {}
 
+        override fun toString(): String =
+            value.toString()
+
         companion object {
             fun create(typeName: TypeName) =
                 Element(typeName)

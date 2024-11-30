@@ -24,6 +24,7 @@ import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.WrapperType
 import ru.it_arch.clean_ddd.ksp.interop.asClassNameImpl
+import ru.it_arch.clean_ddd.ksp.interop.createImplBuilder
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toBuilderPropertySpec
 import ru.it_arch.clean_ddd.ksp.interop.toKDType
@@ -107,36 +108,7 @@ public class DddProcessor(
 
             // KDType.Builder()
             if (data.valueObjectType is KDValueObjectType.KDValueObject) {
-                TypeSpec.classBuilder("Builder").also { builder ->
-                    val thisTypeName = classDeclaration.asType(emptyList()).toTypeName()
-                    FunSpec.builder("build").also { buildFunBuilder ->
-                        buildFunBuilder.addModifiers(KModifier.INTERNAL).returns(thisTypeName)
-
-                        data.parameters.forEach { param ->
-                            val type = param.typeReference
-                            buildFunBuilder.takeIf { type is KDReference.Element && !type.typeName.isNullable }
-                                ?.addStatement("""requireNotNull(${param.name.value}) { "Property '$thisTypeName.${param.name.value}' is not set!" }""")
-                            param.toBuilderPropertySpec(replacements).also(builder::addProperty)
-                        }
-                        buildFunBuilder.addStatement("return ${data.implName.simpleName}(")
-                            data.parameters.forEach { param ->
-                                //buildFunBuilder.addStatement("${}")
-                            }
-                            /*
-                            .addStatement("return ${wrapper.name.simpleName}(")
-                            .addStatement("optName = optName?.let(NameImpl::name),")
-                            .addStatement("count = CountImpl.count(count!!),")
-                            .addStatement("uri = UriImpl.uri(uri!!),")
-                            .addStatement("names = names.map(NameImpl::name),")
-                            .addStatement("indexes = indexes.map(IndexImpl::index).toSet(),")
-                            .addStatement("myMap = myMap.entries.associate { IndexImpl.index(it.key) to it.value?.let(NameImpl::name) },")
-                            .addStatement("inner!!")
-                             */
-                        buildFunBuilder.addStatement(")")
-
-                    }.also { builder.addFunction(it.build()) }
-                    builder.build().also(data.builder::addType)
-                }
+                data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName(), replacements)
             }
             return data.toTypeSpec()
         }

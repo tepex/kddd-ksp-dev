@@ -113,6 +113,38 @@ internal fun KSClassDeclaration.toKDType(logger: KSPLogger, voType: KDValueObjec
                 }
 
                 else -> error("Illegal KDObjectValueType")
-            }.let { KDType(implClassName, builder, it, voType) }
+            }.let { KDType.create(implClassName, builder, it, voType) }
         }
     }
+
+internal fun KDType.createImplBuilder(superTypeName: TypeName, replacements: Map<WrapperType, BoxedType>) {
+    TypeSpec.classBuilder("Builder").also { innerBuilder ->
+        FunSpec.builder("build").also { buildFunBuilder ->
+            buildFunBuilder.addModifiers(KModifier.INTERNAL).returns(superTypeName)
+
+            parameters.forEach { param ->
+                val type = param.typeReference
+                buildFunBuilder.takeIf { type is KDReference.Element && !type.typeName.isNullable }
+                    ?.addStatement("""requireNotNull(${param.name.value}) { "Property '$superTypeName.${param.name.value}' is not set!" }""")
+                param.toBuilderPropertySpec(replacements).also(innerBuilder::addProperty)
+            }
+            buildFunBuilder.addStatement("return ${implName.name}(")
+            parameters.forEach { param ->
+                //buildFunBuilder.addStatement("${}")
+            }
+            /*
+            .addStatement("return ${wrapper.name.simpleName}(")
+            .addStatement("optName = optName?.let(NameImpl::name),")
+            .addStatement("count = CountImpl.count(count!!),")
+            .addStatement("uri = UriImpl.uri(uri!!),")
+            .addStatement("names = names.map(NameImpl::name),")
+            .addStatement("indexes = indexes.map(IndexImpl::index).toSet(),")
+            .addStatement("myMap = myMap.entries.associate { IndexImpl.index(it.key) to it.value?.let(NameImpl::name) },")
+            .addStatement("inner!!")
+             */
+            buildFunBuilder.addStatement(")")
+
+        }.also { innerBuilder.addFunction(it.build()) }
+        innerBuilder.build().also(builder::addType)
+    }
+}
