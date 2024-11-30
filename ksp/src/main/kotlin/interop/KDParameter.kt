@@ -3,19 +3,22 @@ package ru.it_arch.clean_ddd.ksp.interop
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
+import ru.it_arch.ddd.IEntity
+import ru.it_arch.ddd.ValueObject
+import ru.it_arch.ddd.ValueObjectSingle
 
 internal class KDParameter private constructor(
-    override val name: IKDParameter.Name,
-    typeName: TypeName
-) : IKDParameter {
+    val name: Name,
+    val typeReference: KDReference
+) : IEntity {
 
-    override var kdType: IKDParameter.KDType = IKDParameter.KDType.create(typeName)
-        private set
+    override val id: ValueObject
+        get() = name
 
     override fun validate() {}
 
     override fun toString(): String =
-        "`$name`: $kdType"
+        "`$name`: $typeReference"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -27,23 +30,30 @@ internal class KDParameter private constructor(
     override fun hashCode(): Int =
         id.hashCode()
 
-
     @JvmInline
-    private value class NameImpl private constructor(override val value: String) : IKDParameter.Name {
+    value class Name private constructor(override val value: String) : ValueObjectSingle<String> {
+
+        override fun validate() {}
 
         override fun toString(): String =
             value
 
         companion object {
-            fun name(value: String) = NameImpl(value)
+            fun name(value: String) = Name(value)
         }
     }
 
     companion object {
         fun create(property: KSPropertyDeclaration) =
-            KDParameter(NameImpl.name(property.simpleName.asString()), property.type.toTypeName())
+            KDParameter(
+                Name.name(property.simpleName.asString()),
+                KDReference.create(property.type.toTypeName())
+            )
 
         fun create(name: String, typeName: TypeName) =
-            KDParameter(NameImpl.name(name), typeName)
+            KDParameter(
+                Name.name(name),
+                KDReference.create(typeName)
+            )
     }
 }

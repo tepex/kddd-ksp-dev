@@ -19,14 +19,15 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.BoxedType
-import ru.it_arch.clean_ddd.ksp.interop.IKDParameter
+import ru.it_arch.clean_ddd.ksp.interop.KDReference
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
-import ru.it_arch.clean_ddd.ksp.interop.TypeSpecWrapper
+import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.WrapperType
 import ru.it_arch.clean_ddd.ksp.interop.asClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toBuilderPropertySpec
-import ru.it_arch.clean_ddd.ksp.interop.toTypeSpecBuilder
+import ru.it_arch.clean_ddd.ksp.interop.toKDType
+import ru.it_arch.clean_ddd.ksp.interop.toTypeSpec
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
 public class DddProcessor(
@@ -68,27 +69,21 @@ public class DddProcessor(
             FileSpec.builder("${declaration.packageName.asString()}.intern", declaration.asClassNameImpl().simpleName)
                 .also { fileBuilder ->
                     logger.warn("process: $declaration")
-
-                    /*
-                    declaration.toTypeSpecBuilder(logger, ValueObjectType.ValueObject)
-                        .also { accept(ValueObjectVisitor(), it).also(fileBuilder::addType) }*/
-
-                    declaration.createImplementation(ValueObjectVisitor(), KDValueObjectType.KDValueObject).also(fileBuilder::addType)
-
+                    createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).also(fileBuilder::addType)
                     file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
                 }
         }
     }
 
-    private fun KSClassDeclaration.createImplementation(visitor: ValueObjectVisitor, voType: KDValueObjectType): TypeSpec =
-        toTypeSpecBuilder(logger, voType).let { wrapper ->
-            logger.warn("create domain type: ${this}, implName: ${wrapper.implName}, $voType")
-            accept(visitor, wrapper)
+    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType): TypeSpec =
+        declaration.toKDType(logger, voType).let { wrapper ->
+            logger.warn("create KDType: $declaration, implName: ${wrapper.implName}, $voType")
+            declaration.accept(visitor, wrapper)
         }
 
-    private inner class ValueObjectVisitor : KSDefaultVisitor<TypeSpecWrapper, TypeSpec>() {
+    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType, TypeSpec>() {
 
-        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: TypeSpecWrapper): TypeSpec {
+        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType): TypeSpec {
             logger.warn("visit: $classDeclaration, impl: ${data.implName}, params: ${data.parameters}")
             val replacements = mutableMapOf<WrapperType, BoxedType>()
             classDeclaration.declarations
@@ -98,7 +93,7 @@ public class DddProcessor(
                     logger.warn("inner decl: $nestedDeclaration, typeName: $nestedTypeName")
                     nestedDeclaration.toValueObjectType(logger)?.also { voType ->
 
-                        nestedDeclaration.createImplementation(this, voType).also { impl ->
+                        createKDType(this, nestedDeclaration, voType).also { impl ->
                             logger.warn("created: ${impl.name}")
                             data.builder.addType(impl)
                         }
@@ -118,8 +113,8 @@ public class DddProcessor(
                         buildFunBuilder.addModifiers(KModifier.INTERNAL).returns(thisTypeName)
 
                         data.parameters.forEach { param ->
-                            val type = param.kdType
-                            buildFunBuilder.takeIf { type is IKDParameter.KDType.Element && !type.typeName.isNullable }
+                            val type = param.typeReference
+                            buildFunBuilder.takeIf { type is KDReference.Element && !type.typeName.isNullable }
                                 ?.addStatement("""requireNotNull(${param.name.value}) { "Property '$thisTypeName.${param.name.value}' is not set!" }""")
                             param.toBuilderPropertySpec(replacements).also(builder::addProperty)
                         }
@@ -143,11 +138,10 @@ public class DddProcessor(
                     builder.build().also(data.builder::addType)
                 }
             }
-
-            return data.builder.build()
+            return data.toTypeSpec()
         }
 
-        override fun defaultHandler(node: KSNode, data: TypeSpecWrapper): TypeSpec {
+        override fun defaultHandler(node: KSNode, data: KDType): TypeSpec {
             TODO("Not yet implemented")
         }
     }

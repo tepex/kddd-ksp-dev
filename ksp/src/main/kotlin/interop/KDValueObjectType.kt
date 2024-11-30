@@ -8,6 +8,7 @@ internal interface KDValueObjectType {
         const val CLASSNAME = "ru.it_arch.ddd.ValueObject"
     }
 
+    @ConsistentCopyVisibility
     data class KDValueObjectSingle private constructor(val boxedType: TypeName) : KDValueObjectType {
 
         companion object {

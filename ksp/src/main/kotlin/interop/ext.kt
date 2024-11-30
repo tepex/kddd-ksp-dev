@@ -11,26 +11,26 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 
-internal fun IKDParameter.toParameterSpec() =
-    ParameterSpec(name.value, kdType.type)
+internal fun KDParameter.toParameterSpec() =
+    ParameterSpec(name.value, typeReference.typeName)
 
-internal fun IKDParameter.toPropertySpec() =
-    PropertySpec.builder(name.value, kdType.type, KModifier.OVERRIDE).initializer(name.value).build()
+internal fun KDParameter.toPropertySpec() =
+    PropertySpec.builder(name.value, typeReference.typeName, KModifier.OVERRIDE).initializer(name.value).build()
 
-internal fun IKDParameter.toBuilderPropertySpec(replacements: Map<WrapperType, BoxedType>) =
-    kdType.let { parameterType ->
-        when(parameterType) {
-            is IKDParameter.KDType.Collection -> {
-                parameterType.typeName.typeArguments.toMutableList().let { args ->
+internal fun KDParameter.toBuilderPropertySpec(replacements: Map<WrapperType, BoxedType>) =
+    typeReference.let { kdReference ->
+        when(kdReference) {
+            is KDReference.Collection -> {
+                kdReference.parameterizedTypeName.typeArguments.toMutableList().let { args ->
                     args.forEachIndexed { i, arg ->
                         replacements.getBoxedType(arg)?.also { args[i] = it.toNullable(arg.isNullable) }
                     }
-                    PropertySpec.builder(name.value, parameterType.typeName.copy(typeArguments = args))
-                        .initializer(parameterType.collectionType.initializer)
+                    PropertySpec.builder(name.value, kdReference.parameterizedTypeName.copy(typeArguments = args))
+                        .initializer(kdReference.collectionType.initializer)
                 }
             }
-            is IKDParameter.KDType.Element ->
-                (replacements.getBoxedType(parameterType.typeName) ?: parameterType.typeName)
+            is KDReference.Element ->
+                (replacements.getBoxedType(kdReference.typeName) ?: kdReference.typeName)
                     .let { PropertySpec.builder(name.value, it.toNullable()).initializer("null") }
         }.mutable().build()
     }
@@ -48,7 +48,7 @@ internal fun TypeName.toNullable(nullable: Boolean = true) =
     if (isNullable != nullable) copy(nullable = nullable) else this
 
 
-internal fun TypeSpec.Builder.createConstructor(parameters: Set<IKDParameter>) {
+internal fun TypeSpec.Builder.createConstructor(parameters: Set<KDParameter>) {
     addProperties(parameters.map { it.toPropertySpec() })
     primaryConstructor(
         FunSpec.constructorBuilder()
@@ -59,9 +59,12 @@ internal fun TypeSpec.Builder.createConstructor(parameters: Set<IKDParameter>) {
     )
 }
 
-internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: KDValueObjectType) =
-    asClassNameImpl().let { className ->
-        TypeSpec.classBuilder(className).let { builder ->
+internal fun KDType.toTypeSpec() =
+    builder.build()
+
+internal fun KSClassDeclaration.toKDType(logger: KSPLogger, voType: KDValueObjectType) =
+    asClassNameImpl().let { implClassName ->
+        TypeSpec.classBuilder(implClassName).let { builder ->
             val superType = asType(emptyList()).toTypeName()
             builder.addModifiers(KModifier.INTERNAL)
             builder.addSuperinterface(superType)
@@ -69,6 +72,7 @@ internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: KDV
             when (voType) {
                 KDValueObjectType.KDValueObject -> {
                     builder.addModifiers(KModifier.DATA)
+
                     getAllProperties().map {
                         val typeName = it.type.toTypeName()
                         logger.warn(">>> to KDParameter: `${it.simpleName.asString()}`: $typeName ${typeName::class.simpleName}")
@@ -80,21 +84,16 @@ internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: KDV
                     builder.addModifiers(KModifier.VALUE)
                     builder.addAnnotation(JvmInline::class)
 
-                    FunSpec.builder("toString")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .returns(String::class)
-                        .addStatement("return value.toString()")
-                        .build()
-                        .also(builder::addFunction)
-
+                    val parameters = setOf(KDParameter.create("value", voType.boxedType))
                     // value class constructor
-                    builder.createConstructor(setOf(KDParameter.create("value", voType.boxedType)))
+                    builder.createConstructor(parameters)
+
                     val valueParam = ParameterSpec.builder("value", voType.boxedType).build()
                     FunSpec.builder(simpleName.asString().replaceFirstChar { it.lowercase() })
                         .addModifiers(KModifier.INTERNAL)
                         .addParameter(valueParam)
                         .returns(superType)
-                        .addStatement("return %T(%N)", className, valueParam)
+                        .addStatement("return %T(%N)", implClassName, valueParam)
                         .build()
                         .let { func ->
                             TypeSpec.companionObjectBuilder()
@@ -102,10 +101,18 @@ internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: KDV
                                 .addFunction(func)
                                 .build()
                         }.also(builder::addType)
-                    emptySet()
+
+                    FunSpec.builder("toString")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .returns(String::class)
+                        .addStatement("return %N.toString()", valueParam)
+                        .build()
+                        .also(builder::addFunction)
+
+                    parameters
                 }
 
-                else -> emptySet()
-            }.let { TypeSpecWrapper(className, builder, it, voType) }
+                else -> error("Illegal KDObjectValueType")
+            }.let { KDType(implClassName, builder, it, voType) }
         }
     }
