@@ -2,6 +2,7 @@ package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
@@ -29,7 +30,8 @@ internal fun IKDParameter.toBuilderPropertySpec(replacements: Map<WrapperType, B
                 }
             }
             is IKDParameter.KDType.Element ->
-                PropertySpec.builder(name.value, parameterType.typeName.toNullable()).initializer("null")
+                (replacements.getBoxedType(parameterType.typeName) ?: parameterType.typeName)
+                    .let { PropertySpec.builder(name.value, it.toNullable()).initializer("null") }
         }.mutable().build()
     }
 
@@ -39,8 +41,8 @@ internal typealias BoxedType = TypeName
 internal fun Map<WrapperType, BoxedType>.getBoxedType(key: WrapperType): BoxedType? =
     this[key.toNullable(false)]
 
-internal fun KSClassDeclaration.asClassNameImplString(): String =
-    "${simpleName.asString()}Impl"
+internal fun KSClassDeclaration.asClassNameImpl(): ClassName =
+    ClassName.bestGuess("${simpleName.asString()}Impl")
 
 internal fun TypeName.toNullable(nullable: Boolean = true) =
     if (isNullable != nullable) copy(nullable = nullable) else this
@@ -58,48 +60,52 @@ internal fun TypeSpec.Builder.createConstructor(parameters: Set<IKDParameter>) {
 }
 
 internal fun KSClassDeclaration.toTypeSpecBuilder(logger: KSPLogger, voType: KDValueObjectType) =
-    TypeSpec.classBuilder(asClassNameImplString()).let { builder ->
-        val superType = asType(emptyList()).toTypeName()
-        builder.addModifiers(KModifier.INTERNAL)
-        builder.addSuperinterface(superType)
+    asClassNameImpl().let { className ->
+        TypeSpec.classBuilder(className).let { builder ->
+            val superType = asType(emptyList()).toTypeName()
+            builder.addModifiers(KModifier.INTERNAL)
+            builder.addSuperinterface(superType)
 
-        when (voType) {
-            KDValueObjectType.KDValueObject -> {
-                builder.addModifiers(KModifier.DATA)
-                getAllProperties().map {
-                    val typeName = it.type.toTypeName()
-                    logger.warn(">>> to KDParameter: `${it.simpleName.asString()}`: $typeName ${typeName::class.simpleName}")
-                    KDParameter.create(it)
-                }.toSet().also(builder::createConstructor)
-            }
+            when (voType) {
+                KDValueObjectType.KDValueObject -> {
+                    builder.addModifiers(KModifier.DATA)
+                    getAllProperties().map {
+                        val typeName = it.type.toTypeName()
+                        logger.warn(">>> to KDParameter: `${it.simpleName.asString()}`: $typeName ${typeName::class.simpleName}")
+                        KDParameter.create(it)
+                    }.toSet().also(builder::createConstructor)
+                }
 
-            is KDValueObjectType.KDValueObjectSingle -> {
-                builder.addModifiers(KModifier.VALUE)
-                builder.addAnnotation(JvmInline::class)
+                is KDValueObjectType.KDValueObjectSingle -> {
+                    builder.addModifiers(KModifier.VALUE)
+                    builder.addAnnotation(JvmInline::class)
 
-                FunSpec.builder("toString")
-                    .addModifiers(KModifier.OVERRIDE)
-                    .returns(String::class)
-                    .addStatement("return value.toString()")
-                    .build()
-                    .also(builder::addFunction)
+                    FunSpec.builder("toString")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .returns(String::class)
+                        .addStatement("return value.toString()")
+                        .build()
+                        .also(builder::addFunction)
 
-                // value class constructor
-                builder.createConstructor(setOf(KDParameter.create("value", voType.boxedType)))
-                FunSpec.builder(simpleName.asString().replaceFirstChar { it.lowercase() })
-                    .addModifiers(KModifier.INTERNAL)
-                    .addParameter("value", voType.boxedType)
-                    .returns(superType)
-                    .addStatement("return ${asClassNameImplString()}(value)")
-                    .build()
-                    .let { func ->
-                        TypeSpec.companionObjectBuilder()
-                            .addModifiers(KModifier.INTERNAL)
-                            .addFunction(func)
-                            .build()
-                    }.also(builder::addType)
-                emptySet()
-            }
-            else -> emptySet()
-        }.let { TypeSpecWrapper(builder, it, voType) }
+                    // value class constructor
+                    builder.createConstructor(setOf(KDParameter.create("value", voType.boxedType)))
+                    val valueParam = ParameterSpec.builder("value", voType.boxedType).build()
+                    FunSpec.builder(simpleName.asString().replaceFirstChar { it.lowercase() })
+                        .addModifiers(KModifier.INTERNAL)
+                        .addParameter(valueParam)
+                        .returns(superType)
+                        .addStatement("return %T(%N)", className, valueParam)
+                        .build()
+                        .let { func ->
+                            TypeSpec.companionObjectBuilder()
+                                .addModifiers(KModifier.INTERNAL)
+                                .addFunction(func)
+                                .build()
+                        }.also(builder::addType)
+                    emptySet()
+                }
+
+                else -> emptySet()
+            }.let { TypeSpecWrapper(className, builder, it, voType) }
+        }
     }

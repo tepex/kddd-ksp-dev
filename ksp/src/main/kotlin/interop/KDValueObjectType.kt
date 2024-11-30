@@ -8,7 +8,7 @@ internal interface KDValueObjectType {
         const val CLASSNAME = "ru.it_arch.ddd.ValueObject"
     }
 
-    class KDValueObjectSingle private constructor(val boxedType: TypeName) : KDValueObjectType {
+    data class KDValueObjectSingle private constructor(val boxedType: TypeName) : KDValueObjectType {
 
         companion object {
             const val CLASSNAME = "ru.it_arch.ddd.ValueObjectSingle"

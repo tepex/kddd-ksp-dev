@@ -23,7 +23,7 @@ import ru.it_arch.clean_ddd.ksp.interop.IKDParameter
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
 import ru.it_arch.clean_ddd.ksp.interop.TypeSpecWrapper
 import ru.it_arch.clean_ddd.ksp.interop.WrapperType
-import ru.it_arch.clean_ddd.ksp.interop.asClassNameImplString
+import ru.it_arch.clean_ddd.ksp.interop.asClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toBuilderPropertySpec
 import ru.it_arch.clean_ddd.ksp.interop.toTypeSpecBuilder
@@ -65,7 +65,7 @@ public class DddProcessor(
 
     private fun processDeclaration(file: KSFile?, declaration: KSClassDeclaration) {
         declaration.takeIf { it.toValueObjectType(logger).isValueObject }?.apply {
-            FileSpec.builder("${declaration.packageName.asString()}.intern", declaration.asClassNameImplString())
+            FileSpec.builder("${declaration.packageName.asString()}.intern", declaration.asClassNameImpl().simpleName)
                 .also { fileBuilder ->
                     logger.warn("process: $declaration")
 
@@ -73,23 +73,23 @@ public class DddProcessor(
                     declaration.toTypeSpecBuilder(logger, ValueObjectType.ValueObject)
                         .also { accept(ValueObjectVisitor(), it).also(fileBuilder::addType) }*/
 
-                    declaration.createDomainType(ValueObjectVisitor(), KDValueObjectType.KDValueObject).also(fileBuilder::addType)
+                    declaration.createImplementation(ValueObjectVisitor(), KDValueObjectType.KDValueObject).also(fileBuilder::addType)
 
                     file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
                 }
         }
     }
 
-    private fun KSClassDeclaration.createDomainType(visitor: ValueObjectVisitor, voType: KDValueObjectType): TypeSpec =
+    private fun KSClassDeclaration.createImplementation(visitor: ValueObjectVisitor, voType: KDValueObjectType): TypeSpec =
         toTypeSpecBuilder(logger, voType).let { wrapper ->
-            logger.warn("create domain type: ${this}, ${wrapper.parameters}, $voType")
+            logger.warn("create domain type: ${this}, implName: ${wrapper.implName}, $voType")
             accept(visitor, wrapper)
         }
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<TypeSpecWrapper, TypeSpec>() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: TypeSpecWrapper): TypeSpec {
-            logger.warn("visit: $classDeclaration, impl: , params: ${data.parameters}")
+            logger.warn("visit: $classDeclaration, impl: ${data.implName}, params: ${data.parameters}")
             val replacements = mutableMapOf<WrapperType, BoxedType>()
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
@@ -97,15 +97,22 @@ public class DddProcessor(
                     val nestedTypeName = nestedDeclaration.asType(emptyList()).toTypeName()
                     logger.warn("inner decl: $nestedDeclaration, typeName: $nestedTypeName")
                     nestedDeclaration.toValueObjectType(logger)?.also { voType ->
-                        nestedDeclaration.createDomainType(this, voType).also(data.builder::addType)
+
+                        nestedDeclaration.createImplementation(this, voType).also { impl ->
+                            logger.warn("created: ${impl.name}")
+                            data.builder.addType(impl)
+                        }
+
                         if (voType is KDValueObjectType.KDValueObjectSingle)
                             replacements[nestedTypeName] = voType.boxedType
+
+
                     } ?: logger.error("Unsupported type declaration", nestedDeclaration)
                 }
 
             // KDType.Builder()
             if (data.valueObjectType is KDValueObjectType.KDValueObject) {
-                TypeSpec.classBuilder("Builder").apply {
+                TypeSpec.classBuilder("Builder").also { builder ->
                     val thisTypeName = classDeclaration.asType(emptyList()).toTypeName()
                     FunSpec.builder("build").also { buildFunBuilder ->
                         buildFunBuilder.addModifiers(KModifier.INTERNAL).returns(thisTypeName)
@@ -114,12 +121,26 @@ public class DddProcessor(
                             val type = param.kdType
                             buildFunBuilder.takeIf { type is IKDParameter.KDType.Element && !type.typeName.isNullable }
                                 ?.addStatement("""requireNotNull(${param.name.value}) { "Property '$thisTypeName.${param.name.value}' is not set!" }""")
-                            param.toBuilderPropertySpec(replacements).also(::addProperty)
+                            param.toBuilderPropertySpec(replacements).also(builder::addProperty)
                         }
+                        buildFunBuilder.addStatement("return ${data.implName.simpleName}(")
+                            data.parameters.forEach { param ->
+                                //buildFunBuilder.addStatement("${}")
+                            }
+                            /*
+                            .addStatement("return ${wrapper.name.simpleName}(")
+                            .addStatement("optName = optName?.let(NameImpl::name),")
+                            .addStatement("count = CountImpl.count(count!!),")
+                            .addStatement("uri = UriImpl.uri(uri!!),")
+                            .addStatement("names = names.map(NameImpl::name),")
+                            .addStatement("indexes = indexes.map(IndexImpl::index).toSet(),")
+                            .addStatement("myMap = myMap.entries.associate { IndexImpl.index(it.key) to it.value?.let(NameImpl::name) },")
+                            .addStatement("inner!!")
+                             */
+                        buildFunBuilder.addStatement(")")
 
-
-                    }.also { addFunction(it.build()) }
-                    build().also(data.builder::addType)
+                    }.also { builder.addFunction(it.build()) }
+                    builder.build().also(data.builder::addType)
                 }
             }
 

@@ -10,7 +10,6 @@ internal fun KSClassDeclaration.toValueObjectType(logger: KSPLogger): KDValueObj
         when(fullName) {
             KDValueObjectType.KDValueObject.CLASSNAME -> KDValueObjectType.KDValueObject
             KDValueObjectType.KDValueObjectSingle.CLASSNAME -> {
-                //logger.warn(">>> $this, typeName.class: ${typeName::class.simpleName} typeName: $typeName")
                 runCatching { KDValueObjectType.KDValueObjectSingle.create(parent.toTypeName()) }.getOrElse {
                     logger.warn(it.message ?: "Cant parse parent type $parent")
                     null
