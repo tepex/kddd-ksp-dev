@@ -12,6 +12,7 @@ internal class KDType private constructor(
     val parameters: Set<KDParameter>,
     val valueObjectType: KDValueObjectType
 ) : IEntity {
+
     override val id: ValueObject
         get() = implName
 

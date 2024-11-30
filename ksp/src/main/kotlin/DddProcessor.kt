@@ -13,20 +13,16 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.BoxedType
-import ru.it_arch.clean_ddd.ksp.interop.KDReference
-import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
 import ru.it_arch.clean_ddd.ksp.interop.KDType
+import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
 import ru.it_arch.clean_ddd.ksp.interop.WrapperType
 import ru.it_arch.clean_ddd.ksp.interop.asClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.createImplBuilder
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
-import ru.it_arch.clean_ddd.ksp.interop.toBuilderPropertySpec
 import ru.it_arch.clean_ddd.ksp.interop.toKDType
 import ru.it_arch.clean_ddd.ksp.interop.toTypeSpec
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
@@ -70,21 +66,23 @@ public class DddProcessor(
             FileSpec.builder("${declaration.packageName.asString()}.intern", declaration.asClassNameImpl().simpleName)
                 .also { fileBuilder ->
                     logger.warn("process: $declaration")
-                    createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).also(fileBuilder::addType)
+                    createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).toTypeSpec()
+                        .also(fileBuilder::addType)
                     file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
                 }
         }
     }
 
-    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType): TypeSpec =
-        declaration.toKDType(logger, voType).let { wrapper ->
-            logger.warn("create KDType: $declaration, implName: ${wrapper.implName}, $voType")
-            declaration.accept(visitor, wrapper)
+    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType): KDType =
+        declaration.toKDType(logger, voType).let { kdType ->
+            logger.warn("create KDType: $declaration, implName: ${kdType.implName}, $voType")
+            declaration.accept(visitor, kdType)
+            kdType
         }
 
-    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType, TypeSpec>() {
+    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType, Unit>() {
 
-        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType): TypeSpec {
+        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType) {
             logger.warn("visit: $classDeclaration, impl: ${data.implName}, params: ${data.parameters}")
             val replacements = mutableMapOf<WrapperType, BoxedType>()
             classDeclaration.declarations
@@ -95,8 +93,8 @@ public class DddProcessor(
                     nestedDeclaration.toValueObjectType(logger)?.also { voType ->
 
                         createKDType(this, nestedDeclaration, voType).also { impl ->
-                            logger.warn("created: ${impl.name}")
-                            data.builder.addType(impl)
+                            logger.warn("created: ${impl.implName}")
+                            data.builder.addType(impl.toTypeSpec())
                         }
 
                         if (voType is KDValueObjectType.KDValueObjectSingle)
@@ -110,11 +108,8 @@ public class DddProcessor(
             if (data.valueObjectType is KDValueObjectType.KDValueObject) {
                 data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName(), replacements)
             }
-            return data.toTypeSpec()
         }
 
-        override fun defaultHandler(node: KSNode, data: KDType): TypeSpec {
-            TODO("Not yet implemented")
-        }
+        override fun defaultHandler(node: KSNode, data: KDType) {}
     }
 }
