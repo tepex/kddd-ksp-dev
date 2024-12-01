@@ -17,11 +17,10 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
-import ru.it_arch.clean_ddd.ksp.interop.asClassNameImpl
+import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.createImplBuilder
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toKDType
-import ru.it_arch.clean_ddd.ksp.interop.toTypeSpec
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
 public class DddProcessor(
@@ -60,10 +59,10 @@ public class DddProcessor(
 
     private fun processDeclaration(file: KSFile?, declaration: KSClassDeclaration) {
         declaration.takeIf { it.toValueObjectType(logger).isValueObject }?.apply {
-            FileSpec.builder("${declaration.packageName.asString()}.intern", declaration.asClassNameImpl().simpleName)
+            FileSpec.builder("${declaration.packageName.asString()}.intern", declaration.toClassNameImpl().simpleName)
                 .also { fileBuilder ->
                     logger.warn("process: $declaration")
-                    createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).toTypeSpec()
+                    createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).builder.build()
                         .also(fileBuilder::addType)
                     file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
                 }

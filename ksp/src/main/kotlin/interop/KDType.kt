@@ -18,7 +18,7 @@ internal data class KDType private constructor(
 
     fun addInnerType(key: TypeName, type: KDType) {
         _innerTypes[key] = type
-        builder.addType(type.toTypeSpec())
+        builder.addType(type.builder.build())
     }
 
     fun getBoxedTypeOrNull(): TypeName? =

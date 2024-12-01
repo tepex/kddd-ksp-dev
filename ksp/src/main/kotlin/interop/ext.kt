@@ -5,40 +5,34 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 
-internal fun KSClassDeclaration.asClassNameImpl(): ClassName =
+internal fun KSClassDeclaration.toClassNameImpl(): ClassName =
     ClassName.bestGuess("${simpleName.asString()}Impl")
-
-internal fun TypeName.toNullable(nullable: Boolean = true) =
-    if (isNullable != nullable) copy(nullable = nullable) else this
-
-
-internal fun KDType.toTypeSpec() =
-    builder.build()
 
 internal fun KSClassDeclaration.toKDType(logger: KSPLogger, voType: KDValueObjectType): KDType {
     fun TypeSpec.Builder.createConstructor(parameters: List<KDParameter>) {
         parameters.map { param ->
             PropertySpec
-                .builder(param.name.value,param.typeReference.typeName,KModifier.OVERRIDE)
-                .initializer(param.name.value)
+                .builder(param.name.simpleName, param.typeReference.typeName,KModifier.OVERRIDE)
+                .initializer(param.name.simpleName)
                 .build()
         }.also(::addProperties)
 
         FunSpec.constructorBuilder()
             .addModifiers(KModifier.PRIVATE)
-            .addParameters(parameters.map { ParameterSpec(it.name.value, it.typeReference.typeName) })
+            .addParameters(parameters.map { ParameterSpec(it.name.simpleName, it.typeReference.typeName) })
             .addStatement("validate()")
             .build()
             .also(::primaryConstructor)
     }
 
-    return asClassNameImpl().let { implClassName ->
+    return toClassNameImpl().let { implClassName ->
         TypeSpec.classBuilder(implClassName).let { builder ->
             val superType = asType(emptyList()).toTypeName()
             builder.addModifiers(KModifier.INTERNAL)
@@ -52,8 +46,9 @@ internal fun KSClassDeclaration.toKDType(logger: KSPLogger, voType: KDValueObjec
 
                     getAllProperties().map {
                         val typeName = it.type.toTypeName()
-                        logger.warn(">>> to KDParameter: `${it.simpleName.asString()}`: $typeName ${typeName::class.simpleName}")
-                        KDParameter.create(it)
+                        val memb = implClassName.member(it.simpleName.asString())
+                        logger.warn(">>> to KDParameter: `${it.simpleName.asString()}` [$memb]: $typeName ${typeName::class.simpleName}")
+                        KDParameter.create(memb, it)
                     }.toList().also(builder::createConstructor)
                 }
 
@@ -61,7 +56,7 @@ internal fun KSClassDeclaration.toKDType(logger: KSPLogger, voType: KDValueObjec
                     builder.addModifiers(KModifier.VALUE)
                     builder.addAnnotation(JvmInline::class)
 
-                    listOf(KDParameter.create("value", voType.boxedType)).apply {
+                    listOf(KDParameter.create(implClassName.member("value"), voType.boxedType)).apply {
                         // value class constructor
                         builder.createConstructor(this)
 
@@ -102,15 +97,16 @@ internal fun KDType.createImplBuilder(superTypeName: TypeName) {
             parameters.forEach { param ->
                 val type = param.typeReference
                 buildFunBuilder.takeIf { type is KDReference.Element && !type.typeName.isNullable }
-                    ?.addStatement("""requireNotNull(${param.name}) { "Property '$superTypeName.${param.name}' is not set!" }""")
+                    ?.addStatement("""requireNotNull(%N) { "Property '%T.%N' is not set!" }""", param.name, superTypeName, param.name)
                 param.toBuilderPropertySpec(innerTypes).also(innerBuilder::addProperty)
             }
-            buildFunBuilder.addStatement("return ${className.simpleName}(")
+            //buildFunBuilder.addStatement("return ${className.simpleName}(")
+            buildFunBuilder.addStatement("return %T(", className)
             parameters.forEach { param ->
+                // name = NameImpl.name(name!!),
                 //buildFunBuilder.addStatement("${}")
             }
             /*
-            .addStatement("return ${wrapper.name.simpleName}(")
             .addStatement("optName = optName?.let(NameImpl::name),")
             .addStatement("count = CountImpl.count(count!!),")
             .addStatement("uri = UriImpl.uri(uri!!),")
@@ -127,6 +123,9 @@ internal fun KDType.createImplBuilder(superTypeName: TypeName) {
 }
 
 private fun KDParameter.toBuilderPropertySpec(replacements: Map<TypeName, KDType>): PropertySpec {
+    fun TypeName.toNullable(nullable: Boolean = true) =
+        if (isNullable != nullable) copy(nullable = nullable) else this
+
     fun getBoxedTypeOrNull(typeName: TypeName): TypeName? =
         replacements[typeName.toNullable(false)]?.getBoxedTypeOrNull()
 
@@ -137,14 +136,14 @@ private fun KDParameter.toBuilderPropertySpec(replacements: Map<TypeName, KDType
                     args.forEachIndexed { i, arg ->
                         getBoxedTypeOrNull(arg)?.also { args[i] = it.toNullable(arg.isNullable) }
                     }
-                    PropertySpec.builder(name.value, kdReference.parameterizedTypeName.copy(typeArguments = args))
+                    PropertySpec.builder(name.simpleName, kdReference.parameterizedTypeName.copy(typeArguments = args))
                         .initializer(kdReference.collectionType.initializer)
                 }
             }
 
             is KDReference.Element ->
                 (getBoxedTypeOrNull(kdReference.typeName) ?: kdReference.typeName)
-                    .let { PropertySpec.builder(name.value, it.toNullable()).initializer("null") }
+                    .let { PropertySpec.builder(name.simpleName, it.toNullable()).initializer("null") }
         }.mutable().build()
     }
 }

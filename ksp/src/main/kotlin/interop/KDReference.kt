@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.ddd.ValueObjectSingle
@@ -30,13 +31,15 @@ internal sealed interface KDReference {
     ) : KDReference {
         override val typeName: TypeName = parameterizedTypeName
 
-        enum class CollectionType(val initializer: String) {
-            SET("emptySet()"), LIST("emptyList()"), MAP("emptyMap()");
+        enum class CollectionType(val className: ClassName, val initializer: String) {
+            SET(com.squareup.kotlinpoet.SET, "emptySet()"),
+            LIST(com.squareup.kotlinpoet.LIST, "emptyList()"),
+            MAP(com.squareup.kotlinpoet.MAP, "emptyMap()");
         }
 
         companion object {
             fun create(typeName: ParameterizedTypeName) = CollectionType.entries
-                .find { it.name.lowercase().replaceFirstChar { c -> c.titlecaseChar() } == typeName.rawType.simpleName }
+                .find { it.className == typeName.rawType }
                 ?.let { Collection(typeName, it) }
                 ?: error("Not supported collection type $typeName")
         }
