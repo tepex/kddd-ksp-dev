@@ -11,6 +11,9 @@ internal interface KDValueObjectType {
     @ConsistentCopyVisibility
     data class KDValueObjectSingle private constructor(val boxedType: TypeName) : KDValueObjectType {
 
+        override fun toString(): String =
+            "KDValueObjectSingle<$boxedType>"
+
         companion object {
             const val CLASSNAME = "ru.it_arch.ddd.ValueObjectSingle"
 

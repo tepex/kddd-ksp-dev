@@ -13,13 +13,10 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
-import ru.it_arch.clean_ddd.ksp.interop.BoxedType
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
-import ru.it_arch.clean_ddd.ksp.interop.WrapperType
 import ru.it_arch.clean_ddd.ksp.interop.asClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.createImplBuilder
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
@@ -73,40 +70,31 @@ public class DddProcessor(
         }
     }
 
-    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType): KDType =
-        declaration.toKDType(logger, voType).let { kdType ->
-            logger.warn("create KDType: $declaration, implName: ${kdType.implName}, $voType")
+    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType) =
+        declaration.toKDType(logger, voType).also { kdType ->
+            logger.warn("create KDType: $declaration, implName: ${kdType.className.simpleName}, $voType")
             declaration.accept(visitor, kdType)
-            kdType
         }
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<KDType, Unit>() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType) {
-            logger.warn("visit: $classDeclaration, impl: ${data.implName}, params: ${data.parameters}")
-            val replacements = mutableMapOf<WrapperType, BoxedType>()
+            logger.warn("visit: $classDeclaration, impl: ${data.className.simpleName}, params: ${data.parameters}")
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { nestedDeclaration ->
                     val nestedTypeName = nestedDeclaration.asType(emptyList()).toTypeName()
                     logger.warn("inner decl: $nestedDeclaration, typeName: $nestedTypeName")
                     nestedDeclaration.toValueObjectType(logger)?.also { voType ->
-
-                        createKDType(this, nestedDeclaration, voType).also { impl ->
-                            logger.warn("created: ${impl.implName}")
-                            data.builder.addType(impl.toTypeSpec())
-                        }
-
-                        if (voType is KDValueObjectType.KDValueObjectSingle)
-                            replacements[nestedTypeName] = voType.boxedType
-
-
+                        createKDType(this, nestedDeclaration, voType)
+                            .also { data.addInnerType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
                     } ?: logger.error("Unsupported type declaration", nestedDeclaration)
                 }
 
             // KDType.Builder()
             if (data.valueObjectType is KDValueObjectType.KDValueObject) {
-                data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName(), replacements)
+                logger.warn("... Builder $data")
+                data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName())
             }
         }
 
