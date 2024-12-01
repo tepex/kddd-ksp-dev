@@ -13,14 +13,17 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
+import ru.it_arch.clean_ddd.ksp.interop.KDReference
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
 import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.createImplBuilder
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toKDType
+import ru.it_arch.clean_ddd.ksp.interop.toNullable
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
 public class DddProcessor(
@@ -76,7 +79,6 @@ public class DddProcessor(
         }
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<KDType, Unit>() {
-
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType) {
             logger.warn("visit: $classDeclaration, impl: ${data.className.simpleName}, params: ${data.parameters}")
             classDeclaration.declarations
@@ -92,7 +94,19 @@ public class DddProcessor(
 
             // KDType.Builder()
             if (data.valueObjectType is KDValueObjectType.KDValueObject) {
-                logger.warn("... Builder $data")
+                //logger.warn("... Builder ${data.innerTypes.map { "${it.key} -> ${it.value.className} boxed: ${data.getBoxedTypeOrNull(it.key)}" } }")
+
+                data.parameters.forEach { param ->
+                    when (param.typeReference) {
+                        is KDReference.Element -> {
+                            val innerType = data.getInnerType(param.typeReference.typeName)
+                            //logger.warn("  Element innerType: $innerType")
+                        }
+                        is KDReference.Collection -> {}
+                    }
+                }
+
+
                 data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName())
             }
         }

@@ -5,15 +5,20 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 
 internal fun KSClassDeclaration.toClassNameImpl(): ClassName =
     ClassName.bestGuess("${simpleName.asString()}Impl")
+
+internal fun TypeName.toNullable(nullable: Boolean = true) =
+    if (isNullable != nullable) copy(nullable = nullable) else this
 
 internal fun KSClassDeclaration.toKDType(logger: KSPLogger, voType: KDValueObjectType): KDType {
     fun TypeSpec.Builder.createConstructor(parameters: List<KDParameter>) {
@@ -61,7 +66,7 @@ internal fun KSClassDeclaration.toKDType(logger: KSPLogger, voType: KDValueObjec
                         builder.createConstructor(this)
 
                         val valueParam = ParameterSpec.builder("value", voType.boxedType).build()
-                        FunSpec.builder(simpleName.asString().replaceFirstChar { it.lowercase() })
+                        FunSpec.builder("create")
                             .addModifiers(KModifier.INTERNAL)
                             .addParameter(valueParam)
                             .returns(superType)
@@ -98,21 +103,88 @@ internal fun KDType.createImplBuilder(superTypeName: TypeName) {
                 val type = param.typeReference
                 buildFunBuilder.takeIf { type is KDReference.Element && !type.typeName.isNullable }
                     ?.addStatement("""requireNotNull(%N) { "Property '%T.%N' is not set!" }""", param.name, superTypeName, param.name)
-                param.toBuilderPropertySpec(innerTypes).also(innerBuilder::addProperty)
+                param.toBuilderPropertySpec(this).also(innerBuilder::addProperty)
             }
-            //buildFunBuilder.addStatement("return ${className.simpleName}(")
             buildFunBuilder.addStatement("return %T(", className)
             parameters.forEach { param ->
-                // name = NameImpl.name(name!!),
-                //buildFunBuilder.addStatement("${}")
+                when(param.typeReference) {
+                    is KDReference.Element -> {
+                        val innerType = getInnerType(param.typeReference.typeName)
+                        if (innerType.valueObjectType.isValueObject) {
+                            buildFunBuilder.addStatement("\t%N = %N!!,", param.name, param.name)
+
+                            val receiver = ClassName.bestGuess("${innerType.className.simpleName}.Builder")
+                            val lambda = LambdaTypeName.get(
+                                receiver = receiver,
+                                returnType = Unit::class.asTypeName()
+                            )
+                            val blockParam = ParameterSpec.builder("block", lambda).build()
+                            FunSpec.builder(param.name.simpleName)
+                                .addParameter(blockParam)
+                                .addStatement(
+                                    "%N = %T().apply(%N).build()",
+                                    param.name,
+                                    receiver,
+                                    blockParam
+                                )
+                                .build()
+                                .also(innerBuilder::addFunction)
+                        } else {
+                            if (param.typeReference.typeName.isNullable)
+                                buildFunBuilder.addStatement(
+                                    "\t%N = %N?.let(%T::create),",
+                                    param.name,
+                                    param.name,
+                                    innerType.className
+                                )
+                            else
+                                buildFunBuilder.addStatement(
+                                    "\t%N = %T.create(%N!!),",
+                                    param.name,
+                                    innerType.className,
+                                    param.name
+                                )
+                        }
+                    }
+                    is KDReference.Collection -> {
+                        val parametrizedTypes = param.typeReference.parameterizedTypeName.typeArguments
+                            .map { getInnerType(it).className }
+                        // TODO: when parametrized type is ValueObject
+
+                        when(param.typeReference.collectionType) {
+                            KDReference.Collection.CollectionType.LIST -> {
+                                buildFunBuilder.addStatement(
+                                    "\t%N = %N.map(%T::create),",
+                                    param.name,
+                                    param.name,
+                                    parametrizedTypes.first()
+                                )
+                            }
+                            KDReference.Collection.CollectionType.SET -> {
+                                buildFunBuilder.addStatement(
+                                    "\t%N = %N.map(%T::create).toSet(),",
+                                    param.name,
+                                    param.name,
+                                    parametrizedTypes.first()
+                                )
+                            }
+                            KDReference.Collection.CollectionType.MAP -> {
+
+                            }
+                        }
+                    }
+                }
             }
             /*
-            .addStatement("optName = optName?.let(NameImpl::name),")
-            .addStatement("count = CountImpl.count(count!!),")
-            .addStatement("uri = UriImpl.uri(uri!!),")
-            .addStatement("names = names.map(NameImpl::name),")
-            .addStatement("indexes = indexes.map(IndexImpl::index).toSet(),")
-            .addStatement("myMap = myMap.entries.associate { IndexImpl.index(it.key) to it.value?.let(NameImpl::name) },")
+            .addStatement("optName = optName?.let(NameImpl::create),")
+            .addStatement("count = CountImpl.create(count!!),")
+            .addStatement("uri = UriImpl.create(uri!!),")
+
+            .addStatement("names = names.map(NameImpl::create),")
+            .addStatement("names = names.map(it?.let(NameImpl::create),")
+
+            .addStatement("indexes = indexes.map(IndexImpl::create).toSet(),")
+            .addStatement("myMap = myMap.entries.associate { IndexImpl.create(it.key) to it.value?.let(NameImpl::create) },")
             .addStatement("inner!!")
              */
             buildFunBuilder.addStatement(")")
@@ -122,19 +194,13 @@ internal fun KDType.createImplBuilder(superTypeName: TypeName) {
     }
 }
 
-private fun KDParameter.toBuilderPropertySpec(replacements: Map<TypeName, KDType>): PropertySpec {
-    fun TypeName.toNullable(nullable: Boolean = true) =
-        if (isNullable != nullable) copy(nullable = nullable) else this
-
-    fun getBoxedTypeOrNull(typeName: TypeName): TypeName? =
-        replacements[typeName.toNullable(false)]?.getBoxedTypeOrNull()
-
-    return typeReference.let { kdReference ->
+private fun KDParameter.toBuilderPropertySpec(kdType: KDType) =
+    typeReference.let { kdReference ->
         when (kdReference) {
             is KDReference.Collection -> {
                 kdReference.parameterizedTypeName.typeArguments.toMutableList().let { args ->
                     args.forEachIndexed { i, arg ->
-                        getBoxedTypeOrNull(arg)?.also { args[i] = it.toNullable(arg.isNullable) }
+                        kdType.getBoxedTypeOrNull(arg)?.also { args[i] = it.toNullable(arg.isNullable) }
                     }
                     PropertySpec.builder(name.simpleName, kdReference.parameterizedTypeName.copy(typeArguments = args))
                         .initializer(kdReference.collectionType.initializer)
@@ -142,8 +208,7 @@ private fun KDParameter.toBuilderPropertySpec(replacements: Map<TypeName, KDType
             }
 
             is KDReference.Element ->
-                (getBoxedTypeOrNull(kdReference.typeName) ?: kdReference.typeName)
+                (kdType.getBoxedTypeOrNull(kdReference.typeName) ?: kdReference.typeName)
                     .let { PropertySpec.builder(name.simpleName, it.toNullable()).initializer("null") }
         }.mutable().build()
     }
-}
