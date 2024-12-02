@@ -11,6 +11,7 @@ public interface MyStruct : ValueObject {
     public val count: Count
     public val uri: Uri
     public val names: List<Name>
+    public val nullableNames: List<Name?>
     public val indexes: Set<Index>
     public val myMap: Map<Index, Name?>
     public val inner: Inner

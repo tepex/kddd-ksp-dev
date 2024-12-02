@@ -107,7 +107,7 @@ public class DddProcessor(
                 }
 
 
-                data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName())
+                data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName(), logger)
             }
         }
 
