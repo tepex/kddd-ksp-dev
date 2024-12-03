@@ -31,10 +31,10 @@ internal sealed interface KDReference {
     ) : KDReference {
         override val typeName: TypeName = parameterizedTypeName
 
-        enum class CollectionType(val className: ClassName, val initializer: String) {
-            SET(com.squareup.kotlinpoet.SET, "emptySet()"),
-            LIST(com.squareup.kotlinpoet.LIST, "emptyList()"),
-            MAP(com.squareup.kotlinpoet.MAP, "emptyMap()");
+        enum class CollectionType(val className: ClassName, val initializer: String, val mutableInitializer: String) {
+            SET(com.squareup.kotlinpoet.SET, "emptySet()", "mutableSetOf()"),
+            LIST(com.squareup.kotlinpoet.LIST, "emptyList()", "mutableListOf()"),
+            MAP(com.squareup.kotlinpoet.MAP, "emptyMap()", "mutableMapOf()");
         }
 
         companion object {

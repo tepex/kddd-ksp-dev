@@ -15,6 +15,8 @@ public interface MyStruct : ValueObject {
     public val indexes: Set<Index>
     public val myMap: Map<Index, Name?>
     public val inner: Inner
+    public val innerList: List<Inner>
+    //public val str: String
 
     override fun validate() {
         require(names.size > 2) { "names size must be > 2" }

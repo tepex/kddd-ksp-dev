@@ -1,7 +1,7 @@
 [versions]
 # plugins
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
+kotlin = "2.1.0"
+ksp = "2.1.0-1.0.29"
 
 # libs
 kotlinx-coroutines = "1.9.0"

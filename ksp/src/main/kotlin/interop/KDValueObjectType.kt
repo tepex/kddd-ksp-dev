@@ -16,6 +16,8 @@ internal interface KDValueObjectType {
 
         companion object {
             const val CLASSNAME = "ru.it_arch.ddd.ValueObjectSingle"
+            const val PARAM_NAME = "value"
+            const val FABRIC_CREATE_METHOD = "create"
 
             fun create(superInterfaceName: TypeName): KDValueObjectSingle {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {

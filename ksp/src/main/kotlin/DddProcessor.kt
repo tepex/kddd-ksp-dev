@@ -13,17 +13,14 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
-import ru.it_arch.clean_ddd.ksp.interop.KDReference
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
 import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.createImplBuilder
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toKDType
-import ru.it_arch.clean_ddd.ksp.interop.toNullable
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
 public class DddProcessor(
@@ -73,7 +70,7 @@ public class DddProcessor(
     }
 
     private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType) =
-        declaration.toKDType(logger, voType).also { kdType ->
+        declaration.toKDType(voType).also { kdType ->
             logger.warn("create KDType: $declaration, implName: ${kdType.className.simpleName}, $voType")
             declaration.accept(visitor, kdType)
         }
@@ -88,27 +85,13 @@ public class DddProcessor(
                     logger.warn("inner decl: $nestedDeclaration, typeName: $nestedTypeName")
                     nestedDeclaration.toValueObjectType(logger)?.also { voType ->
                         createKDType(this, nestedDeclaration, voType)
-                            .also { data.addInnerType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
+                            .also { data.addNestedType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
                     } ?: logger.error("Unsupported type declaration", nestedDeclaration)
                 }
 
-            // KDType.Builder()
-            if (data.valueObjectType is KDValueObjectType.KDValueObject) {
-                //logger.warn("... Builder ${data.innerTypes.map { "${it.key} -> ${it.value.className} boxed: ${data.getBoxedTypeOrNull(it.key)}" } }")
-
-                data.parameters.forEach { param ->
-                    when (param.typeReference) {
-                        is KDReference.Element -> {
-                            val innerType = data.getInnerType(param.typeReference.typeName)
-                            //logger.warn("  Element innerType: $innerType")
-                        }
-                        is KDReference.Collection -> {}
-                    }
-                }
-
-
+            /* KDType.Builder() */
+            if (data.valueObjectType is KDValueObjectType.KDValueObject)
                 data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName(), logger)
-            }
         }
 
         override fun defaultHandler(node: KSNode, data: KDType) {}

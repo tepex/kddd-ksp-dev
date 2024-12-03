@@ -12,21 +12,20 @@ internal data class KDType private constructor(
     val valueObjectType: KDValueObjectType
 ) {
 
-    val innerTypes = mutableMapOf<TypeName, KDType>()
+    val nestedTypes = mutableMapOf<TypeName, KDType>()
 
-    fun addInnerType(key: TypeName, type: KDType) {
-        innerTypes[key.toNullable(false)] = type
+    fun addNestedType(key: TypeName, type: KDType) {
+        nestedTypes[key.toNullable(false)] = type
         builder.addType(type.builder.build())
     }
 
-    fun getInnerType(typeName: TypeName): KDType =
-        innerTypes[typeName.toNullable(false)] ?: error("Can't find implementation for $typeName in $className")
-
-    fun getBoxedTypeOrNull(typeName: TypeName): TypeName? =
-        innerTypes[typeName.toNullable(false)]
-            ?.let { if (it.valueObjectType is KDValueObjectType.KDValueObjectSingle) it.valueObjectType.boxedType else null }
+    fun getNestedType(typeName: TypeName) =
+        nestedTypes[typeName.toNullable(false)] ?: error("Can't find implementation for $typeName in $className")
 
     companion object {
+        const val BUILDER_CLASS_NAME = "Builder"
+        const val BUILDER_BUILD_METHOD = "build"
+
         fun create(
             className: ClassName,
             builder: TypeSpec.Builder,
