@@ -12,7 +12,12 @@ import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.LambdaTypeName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.KDType
@@ -59,30 +64,44 @@ public class DddProcessor(
 
     private fun processDeclaration(file: KSFile?, declaration: KSClassDeclaration) {
         declaration.takeIf { it.toValueObjectType(logger).isValueObject }?.apply {
-            FileSpec.builder("${declaration.packageName.asString()}.intern", declaration.toClassNameImpl().simpleName)
+            val packageName = "${declaration.packageName.asString()}.impl"
+            val implClassName = declaration.toClassNameImpl()
+            FileSpec.builder(packageName, implClassName.simpleName)
                 .also { fileBuilder ->
                     logger.warn("process: $declaration")
                     createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).builder.build()
                         .also(fileBuilder::addType)
+
+                    /* Root DSL builder */
+                    val receiver = ClassName(packageName, implClassName.simpleName, KDType.BUILDER_CLASS_NAME)
+                    val block = ParameterSpec.builder(
+                        "block",
+                        LambdaTypeName.get(
+                            receiver = receiver,
+                            returnType = Unit::class.asTypeName()
+                        )
+                    ).build()
+                    FunSpec.builder(declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() })
+                        .addParameter(block)
+                        .addStatement("return %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()", receiver, block)
+                        .returns(implClassName)
+                        .build()
+                        .also(fileBuilder::addFunction)
+
                     file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
                 }
         }
     }
 
     private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType) =
-        declaration.toKDType(voType).also { kdType ->
-            logger.warn("create KDType: $declaration, implName: ${kdType.className.simpleName}, $voType")
-            declaration.accept(visitor, kdType)
-        }
+        declaration.toKDType(voType, logger).also { declaration.accept(visitor, it) }
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<KDType, Unit>() {
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType) {
-            logger.warn("visit: $classDeclaration, impl: ${data.className.simpleName}, params: ${data.parameters}")
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { nestedDeclaration ->
                     val nestedTypeName = nestedDeclaration.asType(emptyList()).toTypeName()
-                    logger.warn("inner decl: $nestedDeclaration, typeName: $nestedTypeName")
                     nestedDeclaration.toValueObjectType(logger)?.also { voType ->
                         createKDType(this, nestedDeclaration, voType)
                             .also { data.addNestedType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
@@ -90,8 +109,7 @@ public class DddProcessor(
                 }
 
             /* KDType.Builder() */
-            if (data.valueObjectType is KDValueObjectType.KDValueObject)
-                data.createImplBuilder(classDeclaration.asType(emptyList()).toTypeName(), logger)
+            if (data.valueObjectType is KDValueObjectType.KDValueObject) data.createImplBuilder(data.className, logger)
         }
 
         override fun defaultHandler(node: KSNode, data: KDType) {}

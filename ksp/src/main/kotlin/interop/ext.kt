@@ -25,7 +25,7 @@ internal fun KSClassDeclaration.toClassNameImpl(): ClassName =
 internal fun TypeName.toNullable(nullable: Boolean = true) =
     if (isNullable != nullable) copy(nullable = nullable) else this
 
-internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType): KDType {
+internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType, logger: KSPLogger): KDType {
     fun TypeSpec.Builder.createConstructor(parameters: List<KDParameter>) {
         parameters.map { param ->
             PropertySpec
@@ -45,7 +45,6 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType): KDType {
     return toClassNameImpl().let { implClassName ->
         TypeSpec.classBuilder(implClassName).let { builder ->
             val superType = asType(emptyList()).toTypeName()
-            builder.addModifiers(KModifier.INTERNAL)
             builder.addSuperinterface(superType)
 
             when (voType) {
@@ -60,6 +59,7 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType): KDType {
                 }
 
                 is KDValueObjectType.KDValueObjectSingle -> {
+                    builder.addModifiers(KModifier.PRIVATE)
                     builder.addModifiers(KModifier.VALUE)
                     builder.addAnnotation(JvmInline::class)
 
@@ -80,14 +80,12 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType): KDType {
                         /* ValueObjectSingle companion object */
 
                         FunSpec.builder(KDValueObjectType.KDValueObjectSingle.FABRIC_CREATE_METHOD)
-                            .addModifiers(KModifier.INTERNAL)
                             .addParameter(valueParam)
-                            .returns(superType)
+                            .returns(implClassName)
                             .addStatement("return %T(%N)", implClassName, valueParam)
                             .build()
                             .let { func ->
                                 TypeSpec.companionObjectBuilder()
-                                    .addModifiers(KModifier.INTERNAL)
                                     .addFunction(func)
                                     .build()
                             }.also(builder::addType)
@@ -107,14 +105,14 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType): KDType {
     }
 }
 
-internal fun KDType.createImplBuilder(superTypeName: TypeName, logger: KSPLogger) {
+internal fun KDType.createImplBuilder(holderTypeName: TypeName, logger: KSPLogger) {
     TypeSpec.classBuilder(KDType.BUILDER_CLASS_NAME).also { innerBuilderForBuilder ->
         FunSpec.builder(KDType.BUILDER_BUILD_METHOD).also { buildFunBuilder ->
-            buildFunBuilder.addModifiers(KModifier.INTERNAL).returns(superTypeName)
+            buildFunBuilder.returns(holderTypeName)
 
             parameters.forEach { param ->
                 buildFunBuilder.takeIf { param.typeReference is KDReference.Element && !param.typeReference.typeName.isNullable }
-                    ?.addStatement("""requireNotNull(%N) { "Property '%T.%N' is not set!" }""", param.name, superTypeName, param.name)
+                    ?.addStatement("""requireNotNull(%N) { "Property '%T.%N' is not set!" }""", param.name, holderTypeName, param.name)
                 param.toBuilderPropertySpec(this).also(innerBuilderForBuilder::addProperty)
             }
             buildFunBuilder.addStatement("return %T(", className)
@@ -135,9 +133,12 @@ internal fun KDType.createImplBuilder(superTypeName: TypeName, logger: KSPLogger
                             ).build()
                             FunSpec.builder(param.name.simpleName)
                                 .addParameter(blockParam)
-                                .addStatement("%N = %T().apply(%N).build()", param.name, receiver, blockParam)
-                                .build()
-                                .also(innerBuilderForBuilder::addFunction)
+                                .addStatement(
+                                    "%N = %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()",
+                                    param.name,
+                                    receiver,
+                                    blockParam
+                                ).build().also(innerBuilderForBuilder::addFunction)
                         } else {
                             if (ref.typeName.isNullable)
                                 buildFunBuilder.addStatement("\t%N = %N?.let(%T::create),", param.name, param.name, innerType.className)
@@ -167,9 +168,12 @@ internal fun KDType.createImplBuilder(superTypeName: TypeName, logger: KSPLogger
                                     ).build()
                                     FunSpec.builder(param.name.simpleName)
                                         .addParameter(blockParam)
-                                        .addStatement("%T().apply(%N).build().also(%N::add)", receiver, blockParam, param.name)
-                                        .build()
-                                        .also(innerBuilderForBuilder::addFunction)
+                                        .addStatement(
+                                            "%T().apply(%N).${KDType.BUILDER_BUILD_METHOD}().also(%N::add)",
+                                            receiver,
+                                            blockParam,
+                                            param.name
+                                        ).build().also(innerBuilderForBuilder::addFunction)
 
                                 } else StringBuilder("\t%N = %N.map").apply {
                                     takeIf { isNullable }?.append(" { it?.let(%T::create) }")
