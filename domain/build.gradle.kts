@@ -18,8 +18,12 @@ kotlin {
     explicitApi()
 }
 
-
 dependencies {
     implementation(libs.ddd)
     ksp(project(":ksp"))
+}
+
+ksp {
+    arg("a", "1")
+    arg("b", "2")
 }

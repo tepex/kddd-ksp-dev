@@ -15,7 +15,9 @@ public interface MyStruct : ValueObject {
     public val indexes: Set<Index>
     public val myMap: Map<Index, Name?>
     public val inner: Inner
+    public val nullableInner: Inner?
     public val innerList: List<Inner>
+    public val mapInnerKey: Map<Inner, Name>
     //public val str: String
 
     override fun validate() {

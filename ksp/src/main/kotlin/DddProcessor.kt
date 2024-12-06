@@ -40,6 +40,7 @@ public class DddProcessor(
         val symbols = resolver.getNewFiles()
         if (!symbols.iterator().hasNext()) return emptyList()
 
+        logger.warn("options: $options")
         logger.warn("symbols: ${symbols.toList()}")
         symbols.forEach { file ->
             file.declarations

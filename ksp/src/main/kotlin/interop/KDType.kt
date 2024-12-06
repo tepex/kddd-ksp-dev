@@ -22,6 +22,9 @@ internal data class KDType private constructor(
     fun getNestedType(typeName: TypeName) =
         nestedTypes[typeName.toNullable(false)] ?: error("Can't find implementation for $typeName in $className")
 
+    fun getBuilderClassName() =
+        ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
+
     companion object {
         const val BUILDER_CLASS_NAME = "Builder"
         const val BUILDER_BUILD_METHOD = "build"
