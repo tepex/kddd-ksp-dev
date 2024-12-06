@@ -229,14 +229,13 @@ private fun KDParameter.toBuilderPropertySpec(holder: KDType) = typeReference.le
             else ref.typeName
         }.let { PropertySpec.builder(name.simpleName, it.toNullable()).mutable().initializer("null") }
 
-
         is KDReference.Collection -> ref.parameterizedTypeName.typeArguments
-            .find { holder.getNestedType(it).valueObjectType.isValueObject }?.run {
+            .takeIf { args -> args.any { holder.getNestedType(it).valueObjectType.isValueObject } }?.let { args ->
                 // ValueObject -> ValueObject
-                ref.parameterizedTypeName.rawType.toMutableCollection()
-                    .parameterizedBy(ref.parameterizedTypeName.typeArguments)
-                    .let { PropertySpec.builder(name.simpleName, it) }
-                    .initializer(ref.collectionType.mutableInitializer)
+                ref.parameterizedTypeName.rawType
+                    .toMutableCollection()
+                    .parameterizedBy(args)
+                    .let { PropertySpec.builder(name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
             } ?: run {
                 ref.parameterizedTypeName.typeArguments.map { typeName ->
                     when(val voType = holder.getNestedType(typeName).valueObjectType) {
@@ -244,16 +243,9 @@ private fun KDParameter.toBuilderPropertySpec(holder: KDType) = typeReference.le
                         is KDValueObjectType.KDValueObjectSingle -> voType.boxedType.toNullable(typeName.isNullable)
                         else -> typeName
                     }
-                }.let { newArgs ->
-                    ref.parameterizedTypeName.copy(typeArguments = newArgs).let { typeName ->
-                        PropertySpec.builder(name.simpleName, typeName).apply {
-                            // Mutability only for ValueObjectSingle types
-                            ref.parameterizedTypeName.typeArguments
-                                .any { holder.getNestedType(it).valueObjectType.isValueObject }.not()
-                                .also(::mutable)
-                            initializer(ref.collectionType.initializer)
-                        }
-                    }
+                }.let { args ->
+                    ref.parameterizedTypeName.copy(typeArguments = args)
+                        .let { PropertySpec.builder(name.simpleName, it).mutable().initializer(ref.collectionType.initializer) }
                 }
             }
     }.build()
