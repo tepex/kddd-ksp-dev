@@ -67,30 +67,35 @@ public class DddProcessor(
         declaration.takeIf { it.toValueObjectType(logger).isValueObject }?.apply {
             val packageName = "${declaration.packageName.asString()}.impl"
             val implClassName = declaration.toClassNameImpl()
-            FileSpec.builder(packageName, implClassName.simpleName)
-                .also { fileBuilder ->
-                    logger.warn("process: $declaration")
-                    createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).builder.build()
-                        .also(fileBuilder::addType)
+            FileSpec.builder(packageName, implClassName.simpleName).also { fileBuilder ->
+                fileBuilder.addFileComment("""
+AUTO-GENERATED FILE. DO NOT MODIFY.
+This file generated automatically by «KDDD» framework.
+Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
+""".trimIndent())
 
-                    /* Root DSL builder */
-                    val receiver = ClassName(packageName, implClassName.simpleName, KDType.BUILDER_CLASS_NAME)
-                    val block = ParameterSpec.builder(
-                        "block",
-                        LambdaTypeName.get(
-                            receiver = receiver,
-                            returnType = Unit::class.asTypeName()
-                        )
-                    ).build()
-                    FunSpec.builder(declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() })
-                        .addParameter(block)
-                        .addStatement("return %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()", receiver, block)
-                        .returns(implClassName)
-                        .build()
-                        .also(fileBuilder::addFunction)
+                logger.warn("process: $declaration")
+                createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).builder.build()
+                    .also(fileBuilder::addType)
 
-                    file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
-                }
+                /* Root DSL builder */
+                val receiver = ClassName(packageName, implClassName.simpleName, KDType.BUILDER_CLASS_NAME)
+                val block = ParameterSpec.builder(
+                    "block",
+                    LambdaTypeName.get(
+                        receiver = receiver,
+                        returnType = Unit::class.asTypeName()
+                    )
+                ).build()
+                FunSpec.builder(declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() })
+                    .addParameter(block)
+                    .addStatement("return %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()", receiver, block)
+                    .returns(implClassName)
+                    .build()
+                    .also(fileBuilder::addFunction)
+
+                file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
+            }
         }
     }
 

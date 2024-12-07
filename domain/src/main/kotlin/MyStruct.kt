@@ -1,9 +1,13 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
 import ru.it_arch.ddd.Parsable
 import ru.it_arch.ddd.ValueObject
 import ru.it_arch.ddd.ValueObjectSingle
 import java.net.URI
+
+
+/** Операции  */
 
 public interface MyStruct : ValueObject {
     public val name: Name
@@ -15,23 +19,34 @@ public interface MyStruct : ValueObject {
     public val indexes: Set<Index>
     public val myMap: Map<Index, Name?>
     public val inner: Inner
+    /*
     public val nullableInner: Inner?
     public val innerList: List<Inner>
-    public val mapInnerKey: Map<Inner, Name>
+    public val mapInnerKey: Map<Inner, Name>*/
     //public val str: String
 
     override fun validate() {
-        require(names.size > 2) { "names size must be > 2" }
+        require(names.size > 0) { "names size must be > 0" }
     }
+
 
     public interface Name : ValueObjectSingle<String> {
         override fun validate() {}
+
+        public fun upper(): Name =
+            create(value.uppercase())
     }
 
     public interface Count : ValueObjectSingle<Int> {
         override fun validate() {
             require(value > 0 && value in (1..15))
         }
+
+        public fun inc(): Count =
+            create(value + 1)
+
+        public operator fun plus(i: Int): Count =
+            create(value + i)
     }
 
     public interface Index : ValueObjectSingle<Int> {
@@ -56,6 +71,9 @@ public interface MyStruct : ValueObject {
 
         public interface InnerLong : ValueObjectSingle<Long> {
             override fun validate() {}
+
+            public fun dec(): InnerLong =
+                MyStructImpl.InnerImpl.InnerLongImpl.create(value-1)
         }
 
         public interface InnerStr : ValueObjectSingle<String> {
@@ -63,7 +81,3 @@ public interface MyStruct : ValueObject {
         }
     }
 }
-/*
-public fun myStruct(block: MyStructImpl.Builder.() -> Unit): MyStructImpl =
-    MyStructImpl.Builder().apply(block).build()
-*/

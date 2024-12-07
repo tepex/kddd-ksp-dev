@@ -2,7 +2,9 @@ package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LambdaTypeName
@@ -15,9 +17,11 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.*
+import ru.it_arch.ddd.ValueObjectSingle
 
 internal fun KSClassDeclaration.toClassNameImpl(): ClassName =
     ClassName.bestGuess("${simpleName.asString()}Impl")
@@ -51,15 +55,18 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType, logger: KSPL
                 KDValueObjectType.KDValueObject -> {
                     builder
                         .addModifiers(KModifier.DATA)
-                        .addAnnotation(ConsistentCopyVisibility::class)
+                        //.addAnnotation(ConsistentCopyVisibility::class)
+                        .addAnnotation(ExposedCopyVisibility::class)
 
                     getAllProperties()
                         .map { KDParameter.create(implClassName.member(it.simpleName.asString()), it) }
                         .toList().also(builder::createConstructor)
+
+                    /* fun toBuilder() */
                 }
 
                 is KDValueObjectType.KDValueObjectSingle -> {
-                    builder.addModifiers(KModifier.PRIVATE)
+                    //builder.addModifiers(KModifier.PRIVATE)
                     builder.addModifiers(KModifier.VALUE)
                     builder.addAnnotation(JvmInline::class)
 
@@ -70,6 +77,29 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType, logger: KSPL
                         builder.createConstructor(this)
 
                         val valueParam = ParameterSpec.builder(KDValueObjectType.KDValueObjectSingle.PARAM_NAME, voType.boxedType).build()
+                        FunSpec.builder("toString")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .returns(String::class)
+                            .addStatement("return %N.toString()", valueParam)
+                            .build()
+                            .also(builder::addFunction)
+
+                        /*  override fun <T : ValueObjectSingle<String>> copy(value: String): T = NameImpl(value) as T */
+
+                        TypeVariableName("T", ValueObjectSingle::class.asTypeName().parameterizedBy(voType.boxedType))
+                            .also { tvn ->
+                                FunSpec.builder("copy")
+                                    .addTypeVariable(tvn)
+                                    .addParameter(valueParam)
+                                    .addModifiers(KModifier.OVERRIDE)
+                                    .addAnnotation(
+                                        AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build()
+                                    )
+                                    .returns(tvn)
+                                    .addStatement("return %T(%N) as %T", implClassName, valueParam, tvn)
+                                    .build()
+                                    .also(builder::addFunction)
+                            }
 
                         /* ValueObjectSingle companion object */
 
@@ -80,13 +110,6 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType, logger: KSPL
                             .build()
                             .let { TypeSpec.companionObjectBuilder().addFunction(it).build() }
                             .also(builder::addType)
-
-                        FunSpec.builder("toString")
-                            .addModifiers(KModifier.OVERRIDE)
-                            .returns(String::class)
-                            .addStatement("return %N.toString()", valueParam)
-                            .build()
-                            .also(builder::addFunction)
                     }
                 }
 
@@ -104,7 +127,7 @@ internal fun KDType.createImplBuilder(holderTypeName: TypeName, logger: KSPLogge
             ParameterSpec.builder(name, nestedType.valueObjectType.boxedType).build()
         else -> ParameterSpec.builder(
             name,
-            LambdaTypeName.get(receiver = nestedType.getBuilderClassName(), returnType = Unit::class.asTypeName())
+            LambdaTypeName.get(receiver = nestedType.builderClassName, returnType = Unit::class.asTypeName())
         ).build()
     }
 
@@ -113,9 +136,10 @@ internal fun KDType.createImplBuilder(holderTypeName: TypeName, logger: KSPLogge
         createDslBuilderParameter("p1", nestedType).let { blockParam ->
             FunSpec.builder(param.name.simpleName).apply {
                 addParameter(blockParam)
-                val kdBuilderType = nestedType.getBuilderClassName()
-                if (isCollection) addStatement("%T().apply(%N).${KDType.BUILDER_BUILD_METHOD}().also(%N::add)", kdBuilderType, blockParam, param.name)
-                else addStatement("%N = %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()", param.name, kdBuilderType, blockParam)
+                if (isCollection)
+                    addStatement("%T().apply(%N).${KDType.BUILDER_BUILD_METHOD}().also(%N::add)", nestedType.builderClassName, blockParam, param.name)
+                else
+                    addStatement("%N = %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()", param.name, nestedType.builderClassName, blockParam)
             }.build()
         }
 
@@ -133,7 +157,20 @@ public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
             addParameter(p2)
         }.build()
 
-    TypeSpec.classBuilder(KDType.BUILDER_CLASS_NAME).also { builderForKDBuilderClass ->
+
+    /*
+    val toBuilderReturnCodeBlock = CodeBlock.builder().add("return %T().also {", kdBuilderClass)
+
+    toBuilderReturnCodeBlock.add("}")
+    toBuilderReturnCodeBlock.add(toBuilderReturnCodeBlock.build())*/
+
+    val toBuilderFunBuilder = FunSpec.builder("toBuilder")
+        .returns(builderClassName)
+        .addStatement("val ret = %T()", builderClassName)
+        //.addStatement("return %T().also {}", kdBuilderClass)
+        .addStatement("ret.name = name.value")
+
+    TypeSpec.classBuilder(builderClassName).also { builderForKDBuilderClass ->
         FunSpec.builder(KDType.BUILDER_BUILD_METHOD).also { builderForKDBuildFun ->
             builderForKDBuildFun.returns(holderTypeName)
 
@@ -206,7 +243,11 @@ public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
             }
             builderForKDBuildFun.addStatement(")")
         }.also { builderForKDBuilderClass.addFunction(it.build()) }
+
         builderForKDBuilderClass.build().also(builder::addType)
+
+        toBuilderFunBuilder.addStatement("return ret")
+        builder.addFunction(toBuilderFunBuilder.build())
     }
 }
 

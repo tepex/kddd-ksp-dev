@@ -16,7 +16,7 @@ kotlin {
 dependencies {
     implementation(project(":domain"))
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.ddd)
+    implementation(libs.kddd)
 }
 
 val MAIN_CLASS = "ru.it_arch.clean_ddd.app.MainKt"

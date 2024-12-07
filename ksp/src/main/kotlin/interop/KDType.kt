@@ -12,6 +12,8 @@ internal data class KDType private constructor(
     val valueObjectType: KDValueObjectType
 ) {
 
+    val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
+
     val nestedTypes = mutableMapOf<TypeName, KDType>()
 
     fun addNestedType(key: TypeName, type: KDType) {
@@ -21,9 +23,6 @@ internal data class KDType private constructor(
 
     fun getNestedType(typeName: TypeName) =
         nestedTypes[typeName.toNullable(false)] ?: error("Can't find implementation for $typeName in $className")
-
-    fun getBuilderClassName() =
-        ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
 
     companion object {
         const val BUILDER_CLASS_NAME = "Builder"

@@ -19,7 +19,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(libs.ddd)
+    implementation(libs.kddd)
     ksp(project(":ksp"))
 }
 
