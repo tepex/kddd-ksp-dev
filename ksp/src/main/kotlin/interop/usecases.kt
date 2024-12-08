@@ -4,10 +4,8 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MUTABLE_LIST
 import com.squareup.kotlinpoet.MUTABLE_MAP
 import com.squareup.kotlinpoet.MUTABLE_SET
@@ -121,57 +119,12 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType, logger: KSPL
 
 internal fun KDType.createImplBuilder(holderTypeName: TypeName, logger: KSPLogger) {
 
-    /** BOXED or holderTypeName */
-    fun createDslBuilderParameter(name: String, nestedType: KDType) = when(nestedType.valueObjectType) {
-        is KDValueObjectType.KDValueObjectSingle ->
-            ParameterSpec.builder(name, nestedType.valueObjectType.boxedType).build()
-        else -> ParameterSpec.builder(
-            name,
-            LambdaTypeName.get(receiver = nestedType.builderClassName, returnType = Unit::class.asTypeName())
-        ).build()
-    }
 
-    /** DSL builder: `fun <t>(block: <T>Impl.Builder.() -> Unit) { ... }` */
-    fun createDslBuilder(param: KDParameter, nestedType: KDType, isCollection: Boolean) =
-        createDslBuilderParameter("p1", nestedType).let { blockParam ->
-            FunSpec.builder(param.name.simpleName).apply {
-                addParameter(blockParam)
-                if (isCollection)
-                    addStatement("%T().apply(%N).${KDType.BUILDER_BUILD_METHOD}().also(%N::add)", nestedType.builderClassName, blockParam, param.name)
-                else
-                    addStatement("%N = %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()", param.name, nestedType.builderClassName, blockParam)
-            }.build()
-        }
-
-    /** DSL builder: `fun <t>(boxed: BOXED, block: <T>Impl.Builder.() -> Unit) { ... }`*/
-    /*
-public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
-    myMap[NameImpl.create(name)] = InnerStructImpl.Builder().apply(block).build()
-}*/
-
-    fun createDslBuilder1(param: KDParameter, nestedType1: KDType, nestedType2: KDType) =
-        FunSpec.builder(param.name.simpleName).apply {
-            val p1 = createDslBuilderParameter("p1", nestedType1)
-            val p2 = createDslBuilderParameter("p2", nestedType2)
-            addParameter(p1)
-            addParameter(p2)
-        }.build()
-
-
-    /*
-    val toBuilderReturnCodeBlock = CodeBlock.builder().add("return %T().also {", kdBuilderClass)
-
-    toBuilderReturnCodeBlock.add("}")
-    toBuilderReturnCodeBlock.add(toBuilderReturnCodeBlock.build())*/
-
-    val toBuilderFunBuilder = FunSpec.builder("toBuilder")
-        .returns(builderClassName)
-        .addStatement("val ret = %T()", builderClassName)
-        //.addStatement("return %T().also {}", kdBuilderClass)
-        .addStatement("ret.name = name.value")
+    val helper = KDTypeBuilderHelper(this)
+    helper.toBuilderFun.add("name")
 
     TypeSpec.classBuilder(builderClassName).also { builderForKDBuilderClass ->
-        FunSpec.builder(KDType.BUILDER_BUILD_METHOD).also { builderForKDBuildFun ->
+        FunSpec.builder(KDType.BUILDER_BUILD_METHOD_NAME).also { builderForKDBuildFun ->
             builderForKDBuildFun.returns(holderTypeName)
 
             parameters.forEach { param ->
@@ -199,6 +152,9 @@ public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
                                     builderForKDBuildFun.addStatement("\t%N = %T.create(%N!!),", param.name, nestedType.className, param.name)
                             }
                         }
+
+                        // for toBuilder()
+                        //funToBuilder.addStatement("")
                     }
                     is KDReference.Collection -> {
                         val parametrizedKdTypes = param.typeReference.parameterizedTypeName.typeArguments
@@ -246,8 +202,7 @@ public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
 
         builderForKDBuilderClass.build().also(builder::addType)
 
-        toBuilderFunBuilder.addStatement("return ret")
-        builder.addFunction(toBuilderFunBuilder.build())
+        builder.addFunction(helper.toBuilderFun.build())
     }
 }
 

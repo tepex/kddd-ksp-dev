@@ -26,7 +26,7 @@ internal data class KDType private constructor(
 
     companion object {
         const val BUILDER_CLASS_NAME = "Builder"
-        const val BUILDER_BUILD_METHOD = "build"
+        const val BUILDER_BUILD_METHOD_NAME = "build"
 
         fun create(
             className: ClassName,

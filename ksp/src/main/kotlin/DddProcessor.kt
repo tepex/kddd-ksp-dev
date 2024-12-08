@@ -80,7 +80,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 
                 /* Root DSL builder */
                 val receiver = ClassName(packageName, implClassName.simpleName, KDType.BUILDER_CLASS_NAME)
-                val block = ParameterSpec.builder(
+                val builderParam = ParameterSpec.builder(
                     "block",
                     LambdaTypeName.get(
                         receiver = receiver,
@@ -88,8 +88,8 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                     )
                 ).build()
                 FunSpec.builder(declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() })
-                    .addParameter(block)
-                    .addStatement("return %T().apply(%N).${KDType.BUILDER_BUILD_METHOD}()", receiver, block)
+                    .addParameter(builderParam)
+                    .addStatement("return %T().apply(%N).${KDType.BUILDER_BUILD_METHOD_NAME}()", receiver, builderParam)
                     .returns(implClassName)
                     .build()
                     .also(fileBuilder::addFunction)
