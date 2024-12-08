@@ -14,7 +14,7 @@ internal data class KDType private constructor(
 
     val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
 
-    val nestedTypes = mutableMapOf<TypeName, KDType>()
+    private val nestedTypes = mutableMapOf<TypeName, KDType>()
 
     fun addNestedType(key: TypeName, type: KDType) {
         nestedTypes[key.toNullable(false)] = type

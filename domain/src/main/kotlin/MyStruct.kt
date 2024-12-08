@@ -19,8 +19,7 @@ public interface MyStruct : ValueObject {
     public val indexes: Set<Index>
     public val myMap: Map<Index, Name?>
     public val inner: Inner
-    /*
-    public val nullableInner: Inner?
+    public val nullableInner: Inner?/*
     public val innerList: List<Inner>
     public val mapInnerKey: Map<Inner, Name>*/
     //public val str: String
@@ -34,7 +33,7 @@ public interface MyStruct : ValueObject {
         override fun validate() {}
 
         public fun upper(): Name =
-            create(value.uppercase())
+            copy(value.uppercase())
     }
 
     public interface Count : ValueObjectSingle<Int> {
@@ -43,10 +42,10 @@ public interface MyStruct : ValueObject {
         }
 
         public fun inc(): Count =
-            create(value + 1)
+            copy(value + 1)
 
         public operator fun plus(i: Int): Count =
-            create(value + i)
+            copy(value + i)
     }
 
     public interface Index : ValueObjectSingle<Int> {

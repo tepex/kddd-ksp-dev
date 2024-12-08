@@ -21,10 +21,10 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.KDType
+import ru.it_arch.clean_ddd.ksp.interop.KDTypeBuilderBuilder
 import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
-import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
-import ru.it_arch.clean_ddd.ksp.interop.createImplBuilder
 import ru.it_arch.clean_ddd.ksp.interop.isValueObject
+import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
 import ru.it_arch.clean_ddd.ksp.interop.toKDType
 import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
@@ -115,7 +115,11 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                 }
 
             /* KDType.Builder() */
-            if (data.valueObjectType is KDValueObjectType.KDValueObject) data.createImplBuilder(data.className, logger)
+            if (data.valueObjectType is KDValueObjectType.KDValueObject)
+                KDTypeBuilderBuilder(data, logger).also { helper ->
+                    data.builder.addType(helper.build())
+                    data.builder.addFunction(helper.buildFunToBuilder())
+                }
         }
 
         override fun defaultHandler(node: KSNode, data: KDType) {}
