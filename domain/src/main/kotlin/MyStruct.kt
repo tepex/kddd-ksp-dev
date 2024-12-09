@@ -20,11 +20,10 @@ public interface MyStruct : ValueObject {
     public val myMap: Map<Index, Name?>
     public val inner: Inner
     public val nullableInner: Inner?
-    public val innerList: List<Inner> // innerList { a = ... b = ... }
-    public val mapInnerValue: Map<Name?, Inner>
+    public val innerList: List<Inner?> // innerList { a = ... b = ... }
+    public val mapInnerValue: Map<Name, Inner>
     public val mapInnerKeyValue: Map<Inner, Inner>
-    /*
-    public val mapInnerKey: Map<Inner, Name>*/
+    public val mapInnerKey: Map<Inner, Name>
     //public val str: String
 
     override fun validate() {

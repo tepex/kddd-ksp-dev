@@ -1,8 +1,5 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.MyStruct
-import ru.it_arch.clean_ddd.domain.MyValueObject
-import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
 import ru.it_arch.clean_ddd.domain.impl.myStruct
 import java.net.URI
 
@@ -19,13 +16,27 @@ val testStruct = myStruct {
         innerLong = 33
         innerStr = "fsdfsd"
     }
+    innerList {
+        innerLong = 11
+        innerStr = "11"
+    }
+    innerList {
+        innerLong = 22
+        innerStr = "22"
+    }
+    innerList += null
 }
 
 fun main() {
     println("myStruct: $testStruct")
     //val newCount = testStruct.count.inc()
+    /*
     val cp = testStruct.copy(count = testStruct.count + 3)
-    println("myStruct copy: $cp")
+    println("myStruct copy: $cp")*/
+    val cp = testStruct.toBuilder().apply {
+        name = "nnnn"
+    }.build()
+    println("new struct: $cp")
     val newLong = testStruct.inner.innerLong.dec()
 }
 
