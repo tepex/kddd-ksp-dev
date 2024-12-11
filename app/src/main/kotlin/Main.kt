@@ -4,6 +4,7 @@ import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
 import ru.it_arch.clean_ddd.domain.impl.myStruct
 import ru.it_arch.clean_ddd.domain.impl.point
 import ru.it_arch.clean_ddd.domain.plus
+import ru.it_arch.clean_ddd.domain.updateCount
 import java.net.URI
 
 val testStruct = myStruct {
@@ -40,7 +41,7 @@ fun main() {
     val cp = testStruct.toBuilder<MyStructImpl.Builder>().apply {
         name = MyStructImpl.NameImpl.create("nnnn")
     }.build()
-    println("new struct: $cp")
+    println("new struct: ${cp.updateCount()}")
 
     val point1 = point {
         x = 12

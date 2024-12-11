@@ -82,3 +82,6 @@ public interface MyStruct : ValueObject {
         }
     }
 }
+
+public fun MyStructImpl.updateCount(): MyStructImpl =
+    toBuilder<MyStructImpl.Builder>().also { it.count = count.inc() }.build()
