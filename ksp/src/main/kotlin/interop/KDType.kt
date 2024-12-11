@@ -13,6 +13,7 @@ internal data class KDType private constructor(
 ) {
 
     val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
+    val dslBuilderClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
 
     private val nestedTypes = mutableMapOf<TypeName, KDType>()
 
@@ -26,6 +27,7 @@ internal data class KDType private constructor(
 
     companion object {
         const val BUILDER_CLASS_NAME = "Builder"
+        const val DSL_BUILDER_CLASS_NAME = "DslBuilder"
         const val BUILDER_BUILD_METHOD_NAME = "build"
         const val APPLY_BUILDER = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 

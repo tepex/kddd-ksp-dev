@@ -1,8 +1,10 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.processing.KSPLogger
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MUTABLE_LIST
 import com.squareup.kotlinpoet.MUTABLE_MAP
@@ -11,22 +13,33 @@ import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.*
+import ru.it_arch.ddd.ValueObject
+import ru.it_arch.ddd.ValueObjectSingle
 
 internal class KDTypeBuilderBuilder(
     private val holder: KDType,
+    private val isDsl: Boolean,
     private val logger: KSPLogger
 ) {
     /** fun Impl.toBuilder(): Impl.Builder */
-    private val toBuilderFun = ToBuilderFun(holder)
+    private val toBuilderFun: ToBuilderFun? = if (!isDsl) ToBuilderFun(holder) else null
 
-    /** class Impl.Builder */
-    private val classBuilder = TypeSpec.classBuilder(holder.builderClassName)
+    /** class Impl.[Dsl]Builder() : ValueObject.IBuilder<Impl> */
+    private val classBuilder =
+        (holder.dslBuilderClassName.takeIf { isDsl }?.let(TypeSpec::classBuilder)
+            ?: TypeSpec.classBuilder(holder.builderClassName))
+            .also { cb ->
+                ValueObject.IBuilder::class.asTypeName().parameterizedBy(holder.className).also(cb::addSuperinterface)
+            }
 
     /** fun Impl.Builder.build(): Impl */
     private val builderBuildFun = FunSpec.builder(KDType.BUILDER_BUILD_METHOD_NAME)
+        .addModifiers(KModifier.OVERRIDE)
         .returns(holder.className)
 
     init {
@@ -63,17 +76,17 @@ internal class KDTypeBuilderBuilder(
         classBuilder.addFunction(builderBuildFun.build()).build()
 
     fun buildFunToBuilder() =
-        toBuilderFun.build()
+        toBuilderFun?.build()
 
     private fun addParameterForElement(name: MemberName, nestedType: KDType, isNullable: Boolean) {
-        if (nestedType.valueObjectType.isValueObject) {
-            createDslBuilder(name, KDTypeWrapper(nestedType, isNullable), false).also(classBuilder::addFunction)
+        if (nestedType.valueObjectType.isValueObject || !isDsl) {
+            if (isDsl) createDslBuilder(name, KDTypeWrapper(nestedType, isNullable), false).also(classBuilder::addFunction)
+            toBuilderFun?.valueObject(name.simpleName)
             builderBuildFun.addStatement("%N = %N${if (!isNullable) "!!" else ""},", name, name)
-            toBuilderFun.valueObject(name.simpleName)
-        } else {
+        } else { // single or dsl
             if (isNullable) builderBuildFun.addStatement("%N = %N?.let(%T::create),", name, name, nestedType.className)
             else builderBuildFun.addStatement("%N = %T.create(%N!!),", name, nestedType.className, name)
-            toBuilderFun.element(name.simpleName, isNullable)
+            toBuilderFun?.element(name.simpleName, isNullable)
         }
     }
 
@@ -87,25 +100,26 @@ internal class KDTypeBuilderBuilder(
             LIST, SET -> parametrized.first().also { wrapper ->
                 StringBuilder("%N = %N").apply {
                     takeIf { collectionType == LIST }?.append(".toList(),") ?: append(".toSet(),")
-                }.toString().takeIf { wrapper.type.valueObjectType.isValueObject }?.also { str ->
+                }.toString().takeIf { wrapper.type.valueObjectType.isValueObject || !isDsl }?.also { str ->
                     builderBuildFun.addStatement(str, name, name)
-                    createDslBuilder(name, wrapper, true).also(classBuilder::addFunction)
-                    toBuilderFun.mutableListOrSet(name.simpleName, collectionType == SET)
+                    if (isDsl) createDslBuilder(name, wrapper, true).also(classBuilder::addFunction)
+                    toBuilderFun?.mutableListOrSet(name.simpleName, collectionType == SET)
                 } ?: StringBuilder("%N = %N.map").apply {
                     takeIf { wrapper.isNullable }?.append(" { it?.let(%T::create) }") ?: append("(%T::create)")
                     takeIf { collectionType == SET }?.append(".toSet()")
                     append(',')
                 }.toString()
                     .also { builderBuildFun.addStatement(it, name, name, wrapper.type.className) }
-                    .also { toBuilderFun.listOrSet(name.simpleName, wrapper.isNullable, collectionType == SET) }
+                    .also { toBuilderFun?.listOrSet(name.simpleName, wrapper.isNullable, collectionType == SET) }
             }
             MAP -> {
-                if (parametrized.any { it.type.valueObjectType.isValueObject })
+                if (parametrized.any { it.type.valueObjectType.isValueObject } && isDsl)
                     createDslBuilderForMap(name, parametrized[0], parametrized[1]).also(classBuilder::addFunction)
 
-                if (parametrized.all { it.type.valueObjectType.isValueObject })
+                if (parametrized.all { it.type.valueObjectType.isValueObject } || !isDsl) {
                     builderBuildFun.addStatement("%N = %N.toMap(),", name, name)
-                else {
+                    toBuilderFun?.mutableMap(name.simpleName)
+                } else {
                     // 1 or 2
                     parametrized.fold(mutableListOf<ClassName>()) { acc, item ->
                         item.takeUnless { it.type.valueObjectType.isValueObject }?.also { acc.add(it.type.className) }
@@ -142,17 +156,16 @@ internal class KDTypeBuilderBuilder(
     private fun toBuilderPropertySpec(param: KDParameter) = param.typeReference.let { ref ->
         when (ref) {
             is KDReference.Element -> holder.getNestedType(ref.typeName).let { innerType ->
-                if (innerType.valueObjectType is KDValueObjectType.KDValueObjectSingle) innerType.valueObjectType.boxedType
+                if (innerType.valueObjectType is KDValueObjectType.KDValueObjectSingle && isDsl) innerType.valueObjectType.boxedType
                 else ref.typeName
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
             is KDReference.Collection -> {
                 val newArgs = ref.parameterizedTypeName.typeArguments.map { typeName ->
-                    when (val voType = holder.getNestedType(typeName).valueObjectType) {
-                        // ValueObjectSingle<BOXED> -> BOXED
-                        is KDValueObjectType.KDValueObjectSingle -> voType.boxedType.toNullable(typeName.isNullable)
-                        else -> typeName
-                    }
+                    val voType = holder.getNestedType(typeName).valueObjectType
+                    if (voType is KDValueObjectType.KDValueObjectSingle && isDsl) // ValueObjectSingle<BOXED> -> BOXED
+                        voType.boxedType.toNullable(typeName.isNullable)
+                    else typeName
                 }
                 ref.parameterizedTypeName.typeArguments
                     .takeIf { args -> args.any { holder.getNestedType(it).valueObjectType.isValueObject } }
@@ -192,13 +205,13 @@ internal class KDTypeBuilderBuilder(
                 else -> ParameterSpec.builder(
                     name,
                     LambdaTypeName.get(
-                        receiver = nestedType.type.builderClassName,
+                        receiver = nestedType.type.dslBuilderClassName,
                         returnType = Unit::class.asTypeName()
                     )
                 ).build()
             }
 
-        /** DSL builder: `fun <t>(block: <T>Impl.Builder.() -> Unit) { ... }` */
+        /** DSL builder: `fun <t>(block: <T>Impl.DslBuilder.() -> Unit) { ... }` */
         fun createDslBuilder(name: MemberName, nestedType: KDTypeWrapper, isCollection: Boolean) =
             createDslBuilderParameter("p1", nestedType).let { blockParam ->
                 FunSpec.builder(name.simpleName).apply {
@@ -206,7 +219,7 @@ internal class KDTypeBuilderBuilder(
                     if (isCollection)
                         addStatement(
                             "${KDType.APPLY_BUILDER}.also(%N::add)",
-                            nestedType.type.builderClassName,
+                            nestedType.type.dslBuilderClassName,
                             blockParam,
                             name
                         )
@@ -214,21 +227,11 @@ internal class KDTypeBuilderBuilder(
                         addStatement(
                             "%N = ${KDType.APPLY_BUILDER}",
                             name,
-                            nestedType.type.builderClassName,
+                            nestedType.type.dslBuilderClassName,
                             blockParam
                         )
                 }.build()
             }
-
-        /** DSL builder: `fun <t>(boxed: BOXED, block: <T>Impl.Builder.() -> Unit) { ... }`*/
-        /*
-public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
-    myMap[NameImpl.create(name)] = InnerStructImpl.Builder().apply(block).build()
-
-    myMap[p1] = InnerImpl.Builder().apply(p2).build()
-    myMap[InnerImpl.Builder().apply(p1).build()] = InnerImpl.Builder().apply(p2).build()
-
-}*/
 
         fun createDslBuilderForMap(name: MemberName, keyType: KDTypeWrapper, valueType: KDTypeWrapper) =
             FunSpec.builder(name.simpleName).apply {
@@ -240,34 +243,28 @@ public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
                 StringBuilder("%N[").apply {
                     if (keyType.type.valueObjectType.isValueObject) {
                         append(KDType.APPLY_BUILDER)
-                        templateArgs += keyType.type.builderClassName
+                        templateArgs += keyType.type.dslBuilderClassName
                     } else append("%N")
                     templateArgs += p1
                     append("] = ")
                     if (valueType.type.valueObjectType.isValueObject) {
                         append(KDType.APPLY_BUILDER)
-                        templateArgs += valueType.type.builderClassName
+                        templateArgs += valueType.type.dslBuilderClassName
                     } else append("%N")
                     templateArgs += p2
                 }.toString().also { addStatement(it, *templateArgs.toTypedArray()) }
             }.build()
-
     }
 
-    /*
-    ret.name = name.value
-    ret.optName = optName?.value
-
-    ret.names = names.map { it.value }
-    ret.nullableNames = nullableNames.map { it?.value }
-    ret.indexes = indexes.map { it.value }.toSet()
-    ret.myMap = myMap.entries.associate { it.key.value to it.value?.value }
-    ret.inner = inner // no null check
-    ret.innerList = innerList.toMutableList()
-     */
     private class ToBuilderFun(kdType: KDType) {
+        private val returnType =
+            TypeVariableName("B", ValueObject.IBuilder::class.asTypeName().parameterizedBy(STAR))
+
         private val builder = FunSpec.builder("toBuilder")
-            .returns(kdType.builderClassName)
+            .addModifiers(KModifier.OVERRIDE)
+            .addUncheckedCast()
+            .addTypeVariable(returnType)
+            .returns(returnType)
             .addStatement("val $RET = %T()", kdType.builderClassName)
 
         fun element(name: String, isNullable: Boolean) {
@@ -295,6 +292,10 @@ public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
             }.toString().also(builder::addStatement)
         }
 
+        fun mutableMap(name: String) {
+            builder.addStatement("$RET.$name = $name.toMutableMap()")
+        }
+
         fun map(name: String, isKeyNullable: Boolean, isValueNullable: Boolean) {
             StringBuilder("$RET.$name = $name.entries.associate { ").apply {
                 append("it.key")
@@ -306,7 +307,7 @@ public fun myMap(name: String, block: InnerStructImpl.Builder.() -> Unit) {
         }
 
         fun build(): FunSpec =
-            builder.addStatement("return $RET").build()
+            builder.addStatement("return $RET as %T", returnType).build()
 
         private companion object {
             const val RET = "ret"

@@ -79,7 +79,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                     .also(fileBuilder::addType)
 
                 /* Root DSL builder */
-                val receiver = ClassName(packageName, implClassName.simpleName, KDType.BUILDER_CLASS_NAME)
+                val receiver = ClassName(packageName, implClassName.simpleName, KDType.DSL_BUILDER_CLASS_NAME)
                 val builderParam = ParameterSpec.builder(
                     "block",
                     LambdaTypeName.get(
@@ -115,11 +115,13 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                 }
 
             /* KDType.Builder() */
-            if (data.valueObjectType is KDValueObjectType.KDValueObject)
-                KDTypeBuilderBuilder(data, logger).also { helper ->
+            if (data.valueObjectType is KDValueObjectType.KDValueObject) {
+                KDTypeBuilderBuilder(data, false, logger).also { helper ->
                     data.builder.addType(helper.build())
-                    data.builder.addFunction(helper.buildFunToBuilder())
+                    helper.buildFunToBuilder()?.also(data.builder::addFunction)
                 }
+                KDTypeBuilderBuilder(data, true, logger).build().also(data.builder::addType)
+            }
         }
 
         override fun defaultHandler(node: KSNode, data: KDType) {}

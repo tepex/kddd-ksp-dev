@@ -17,7 +17,7 @@ internal sealed interface KDReference {
 
         @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObjectSingle<TypeName>> copy(value: TypeName): T =
-            Element(value) as T
+            create(value) as T
 
         override fun toString(): String =
             value.toString()

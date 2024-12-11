@@ -82,13 +82,11 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType, logger: KSPL
 
                         TypeVariableName("T", ValueObjectSingle::class.asTypeName().parameterizedBy(voType.boxedType))
                             .also { tvn ->
-                                FunSpec.builder("copy")
+                                FunSpec.builder(KDValueObjectType.KDValueObjectSingle.CREATE_METHOD)
                                     .addTypeVariable(tvn)
                                     .addParameter(valueParam)
                                     .addModifiers(KModifier.OVERRIDE)
-                                    .addAnnotation(
-                                        AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build()
-                                    )
+                                    .addUncheckedCast()
                                     .returns(tvn)
                                     .addStatement("return %T(%N) as %T", implClassName, valueParam, tvn)
                                     .build()
@@ -112,3 +110,6 @@ internal fun KSClassDeclaration.toKDType(voType: KDValueObjectType, logger: KSPL
         }
     }
 }
+
+internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
+    addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build())
