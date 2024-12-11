@@ -119,7 +119,7 @@ internal class KDTypeBuilderBuilder(
                 if (parametrized.all { it.type.valueObjectType.isValueObject } || !isDsl) {
                     builderBuildFun.addStatement("%N = %N.toMap(),", name, name)
                     toBuilderFun?.mutableMap(name.simpleName)
-                } else {
+                } else { // has BOXED && isDSL
                     // 1 or 2
                     parametrized.fold(mutableListOf<ClassName>()) { acc, item ->
                         item.takeUnless { it.type.valueObjectType.isValueObject }?.also { acc.add(it.type.className) }
