@@ -22,18 +22,13 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDTypeBuilderBuilder
-import ru.it_arch.clean_ddd.ksp.interop.KDValueObjectType
-import ru.it_arch.clean_ddd.ksp.interop.isValueObject
 import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
-import ru.it_arch.clean_ddd.ksp.interop.toKDType
-import ru.it_arch.clean_ddd.ksp.interop.toValueObjectType
 
 public class DddProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
     private val options: Map<String, String>
 ) : SymbolProcessor {
-
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         //val symbols = resolver.getAllFiles()
@@ -47,7 +42,10 @@ public class DddProcessor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .forEach { declaration ->
-                    processDeclaration(file, declaration)
+                    createKDType(ValueObjectVisitor(), declaration)?.let { kdType ->
+                        logger.warn("process: $declaration")
+                        KDContext.create(declaration, kdType).also { it.processDeclaration(file) }
+                    }
                 }
         }
 
@@ -59,63 +57,56 @@ public class DddProcessor(
 
          */
 
-
         return symbols.filterNot { it.validate() }.toList()
     }
 
-    private fun processDeclaration(file: KSFile?, declaration: KSClassDeclaration) {
-        declaration.takeIf { it.toValueObjectType(logger).isValueObject }?.apply {
-            val packageName = "${declaration.packageName.asString()}.impl"
-            val implClassName = declaration.toClassNameImpl()
-            FileSpec.builder(packageName, implClassName.simpleName).also { fileBuilder ->
-                fileBuilder.addFileComment("""
+    private fun KDContext.processDeclaration(file: KSFile?) {
+        FileSpec.builder(packageName, implClassName.simpleName).also { fileBuilder ->
+            fileBuilder.addFileComment("""
 AUTO-GENERATED FILE. DO NOT MODIFY.
 This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """.trimIndent())
 
-                logger.warn("process: $declaration")
-                createKDType(ValueObjectVisitor(), declaration, KDValueObjectType.KDValueObject).builder.build()
-                    .also(fileBuilder::addType)
+            if (kdType is KDType.Impl) kdType.builder.build().also(fileBuilder::addType)
 
-                /* Root DSL builder */
-                val receiver = ClassName(packageName, implClassName.simpleName, KDType.DSL_BUILDER_CLASS_NAME)
-                val builderParam = ParameterSpec.builder(
-                    "block",
-                    LambdaTypeName.get(
-                        receiver = receiver,
-                        returnType = Unit::class.asTypeName()
-                    )
-                ).build()
-                FunSpec.builder(declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() })
+            /* Root DSL builder */
+            ParameterSpec.builder(
+                "block",
+                LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
+            ).build().also { builderParam ->
+                FunSpec.builder(builderFunName)
                     .addParameter(builderParam)
-                    .addStatement("return %T().apply(%N).${KDType.BUILDER_BUILD_METHOD_NAME}()", receiver, builderParam)
+                    .addStatement(
+                        "return %T().apply(%N).${KDType.KDValueObject.BUILDER_BUILD_METHOD_NAME}()",
+                        receiver,
+                        builderParam
+                    )
                     .returns(implClassName)
-                    .build()
-                    .also(fileBuilder::addFunction)
-
-                file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
+                    .build().also(fileBuilder::addFunction)
             }
+            file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
         }
     }
 
-    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration, voType: KDValueObjectType) =
-        declaration.toKDType(voType, logger).also { declaration.accept(visitor, it) }
+    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration): KDType? {
+        val kdType = KDType.create(declaration, logger)
+        if (kdType is KDType.Impl) declaration.accept(visitor, kdType)
+        return kdType
+    }
 
-    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType, Unit>() {
-        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType) {
+    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.Impl, Unit>() {
+        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Impl) {
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { nestedDeclaration ->
-                    val nestedTypeName = nestedDeclaration.asType(emptyList()).toTypeName()
-                    nestedDeclaration.toValueObjectType(logger)?.also { voType ->
-                        createKDType(this, nestedDeclaration, voType)
-                            .also { data.addNestedType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
-                    } ?: logger.error("Unsupported type declaration", nestedDeclaration)
+                    createKDType(this, nestedDeclaration)
+                        ?.also { data.addNestedType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
+                        ?: logger.error("Unsupported type declaration", nestedDeclaration)
                 }
 
             /* KDType.Builder() */
-            if (data.valueObjectType is KDValueObjectType.KDValueObject) {
+            if (data is KDType.KDValueObject) {
                 KDTypeBuilderBuilder(data, false, logger).also { helper ->
                     data.builder.addType(helper.build())
                     helper.buildFunToBuilder()?.also(data.builder::addFunction)
@@ -124,6 +115,24 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
             }
         }
 
-        override fun defaultHandler(node: KSNode, data: KDType) {}
+        override fun defaultHandler(node: KSNode, data: KDType.Impl) {}
+    }
+
+    private class KDContext private constructor(
+        val kdType: KDType,
+        val packageName: String,
+        val implClassName: ClassName,
+        val builderFunName: String,
+    ) {
+        val receiver = ClassName(packageName, implClassName.simpleName, KDType.KDValueObject.DSL_BUILDER_CLASS_NAME)
+
+        companion object {
+            fun create(declaration: KSClassDeclaration, kdType: KDType) = KDContext(
+                kdType,
+                "${declaration.packageName.asString()}.impl",
+                declaration.toClassNameImpl(),
+                declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() }
+            )
+        }
     }
 }
