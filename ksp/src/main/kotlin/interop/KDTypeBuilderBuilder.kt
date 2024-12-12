@@ -62,8 +62,9 @@ internal class KDTypeBuilderBuilder(
 
                 is KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
                     .map { KDTypeWrapper(holder.getNestedType(it), it.isNullable) }
-                    .also { addParameterForCollection(param.name, param.typeReference.collectionType, it) }
+                    .also { addParameterForCollection(param.name, param.typeReference.collectionType, it, logger) }
             }
+            toBuilderFun?.addStatement(param.name.simpleName)
         }
         builderBuildFun.addStatement("⇤)")
     }
@@ -78,11 +79,11 @@ internal class KDTypeBuilderBuilder(
         if (nestedType is KDType.KDValueObjectSingle && isDsl) {
             if (isNullable) builderBuildFun.addStatement("%N = %N?.let(%T::create),", name, name, nestedType.className)
             else builderBuildFun.addStatement("%N = %T.create(%N!!),", name, nestedType.className, name)
-            toBuilderFun?.element(name.simpleName, isNullable)
+            //toBuilderFun?.element(name.simpleName, isNullable)
         } else {
             if (isDsl && nestedType is KDType.KDValueObject)
                 createDslBuilder(name, KDTypeWrapper(nestedType, isNullable), false).also(classBuilder::addFunction)
-            toBuilderFun?.valueObject(name.simpleName)
+            //toBuilderFun?.valueObject(name.simpleName)
             builderBuildFun.addStatement("%N = %N${if (!isNullable) "!!" else ""},", name, name)
         }
     }
@@ -90,10 +91,12 @@ internal class KDTypeBuilderBuilder(
     private fun addParameterForCollection(
         name: MemberName,
         collectionType: KDReference.Collection.CollectionType,
-        parametrized: List<KDTypeWrapper>
+        parametrized: List<KDTypeWrapper>,
+        logger: KSPLogger
     ) {
         when (collectionType) {
             LIST, SET -> parametrized.first().also { wrapper ->
+                //logger.warn("wrapper: $wrapper isDsl: $isDsl")
                 if (wrapper.type is KDType.KDValueObjectSingle && isDsl) {
                     //toBuilderFun?.listOrSet(name.simpleName, wrapper.isNullable, collectionType == SET)
                     StringBuilder("%N = %N.map").apply {
@@ -101,7 +104,7 @@ internal class KDTypeBuilderBuilder(
                         takeIf { collectionType == SET }?.append(".toSet()")
                         append(',')
                     }.also { builderBuildFun.addStatement(it.toString(), name, name, wrapper.type.className) }
-                } else {
+                } else { // !Single || !isDsl
                     if (isDsl && wrapper.type is KDType.KDValueObject)
                         createDslBuilder(name, wrapper, true).also(classBuilder::addFunction)
                     StringBuilder("%N = %N").apply {
@@ -266,14 +269,7 @@ internal class KDTypeBuilderBuilder(
             .returns(returnType)
             .addStatement("val $RET = %T()", kdType.builderClassName)
 
-        fun element(name: String, isNullable: Boolean) {
-            StringBuilder("$RET.$name = $name").apply {
-                if (isNullable) append('?')
-                append(".${KDType.KDValueObjectSingle.PARAM_NAME}")
-            }.toString().also(builder::addStatement)
-        }
-
-        fun valueObject(name: String) {
+        fun addStatement(name: String) {
             builder.addStatement("$RET.$name = $name")
         }
 

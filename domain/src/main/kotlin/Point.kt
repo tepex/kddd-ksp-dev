@@ -2,11 +2,13 @@ package ru.it_arch.clean_ddd.domain
 
 import ru.it_arch.clean_ddd.domain.impl.PointImpl
 import ru.it_arch.ddd.ValueObject
+import ru.it_arch.ddd.ValueObjectBase
 import ru.it_arch.ddd.ValueObjectSingle
 
 public interface Point : ValueObject {
     public val x: X
     public val y: Y
+    public val en: MyEnum
 
     override fun validate() {   }
 
@@ -21,6 +23,12 @@ public interface Point : ValueObject {
         override fun validate() {   }
         public operator fun plus(other: Y): Y =
             copy(value + other.value)
+    }
+
+    public enum class MyEnum : ValueObjectBase {
+        A, B, C;
+
+        override fun validate() {   }
     }
 }
 
