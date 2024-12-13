@@ -4,7 +4,6 @@ import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.ddd.ValueObjectSingle
 
 @ConsistentCopyVisibility
 internal data class KDParameter private constructor(

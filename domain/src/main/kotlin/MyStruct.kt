@@ -1,15 +1,14 @@
 package ru.it_arch.clean_ddd.domain
 
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
-import ru.it_arch.ddd.Parsable
-import ru.it_arch.ddd.ValueObject
-import ru.it_arch.ddd.ValueObjectSingle
+import ru.it_arch.kddd.Parsable
+import ru.it_arch.kddd.ValueObject
 import java.net.URI
 
 
 /** Операции  */
 
-public interface MyStruct : ValueObject {
+public interface MyStruct : ValueObject.Data {
     public val name: Name
     public val optName: Name?
     public val count: Count
@@ -31,32 +30,32 @@ public interface MyStruct : ValueObject {
     }
 
 
-    public interface Name : ValueObjectSingle<String> {
+    public interface Name : ValueObject.Boxed<String> {
         override fun validate() {}
 
         public fun upper(): Name =
-            copy(value.uppercase())
+            copy(boxed.uppercase())
     }
 
-    public interface Count : ValueObjectSingle<Int> {
+    public interface Count : ValueObject.Boxed<Int> {
         override fun validate() {
-            require(value > 0 && value in (1..15))
+            require(boxed > 0 && boxed in (1..15))
         }
 
         public fun inc(): Count =
-            copy(value + 1)
+            copy(boxed + 1)
 
         public operator fun plus(i: Int): Count =
-            copy(value + i)
+            copy(boxed + i)
     }
 
-    public interface Index : ValueObjectSingle<Int> {
+    public interface Index : ValueObject.Boxed<Int> {
         override fun validate() {
-            value in (1..10) || value in (20..30)
+            boxed in (1..10) || boxed in (20..30)
         }
     }
 
-    public interface Uri : ValueObjectSingle<URI>, Parsable<URI> {
+    public interface Uri : ValueObject.Boxed<URI>, Parsable<URI> {
 
         override fun validate() {}
 
@@ -64,24 +63,24 @@ public interface MyStruct : ValueObject {
             URI.create(str)
     }
 
-    public interface Inner : ValueObject {
+    public interface Inner : ValueObject.Data {
         public val innerLong: InnerLong
         public val innerStr: InnerStr
 
         override fun validate() {}
 
-        public interface InnerLong : ValueObjectSingle<Long> {
+        public interface InnerLong : ValueObject.Boxed<Long> {
             override fun validate() {}
-
+            /*
             public fun dec(): InnerLong =
-                MyStructImpl.InnerImpl.InnerLongImpl.create(value-1)
+                MyStructImpl.InnerImpl.InnerLongImpl.create(boxed-1)*/
         }
 
-        public interface InnerStr : ValueObjectSingle<String> {
+        public interface InnerStr : ValueObject.Boxed<String> {
             override fun validate() {}
         }
     }
 }
 
 public fun MyStructImpl.updateCount(): MyStructImpl =
-    toBuilder<MyStructImpl.Builder>().also { it.count = count.inc() }.build()
+    toBuilder().also { it.count = count.inc() }.build()

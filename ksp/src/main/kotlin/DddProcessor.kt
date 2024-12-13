@@ -78,7 +78,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                 FunSpec.builder(builderFunName)
                     .addParameter(builderParam)
                     .addStatement(
-                        "return %T().apply(%N).${KDType.KDValueObject.BUILDER_BUILD_METHOD_NAME}()",
+                        "return %T().apply(%N).${KDType.Data.BUILDER_BUILD_METHOD_NAME}()",
                         receiver,
                         builderParam
                     )
@@ -106,12 +106,15 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                 }
 
             /* KDType.Builder() */
-            if (data is KDType.KDValueObject) {
+            if (data is KDType.Data) {
                 KDTypeBuilderBuilder(data, false, logger).also { helper ->
                     data.builder.addType(helper.build())
-                    helper.buildFunToBuilder()?.also(data.builder::addFunction)
+                    helper.buildFunToBuilder().also(data.builder::addFunction)
                 }
-                KDTypeBuilderBuilder(data, true, logger).build().also(data.builder::addType)
+                KDTypeBuilderBuilder(data, true, logger).also { helper ->
+                    data.builder.addType(helper.build())
+                    helper.buildFunToBuilder().also(data.builder::addFunction)
+                }
             }
         }
 
@@ -124,7 +127,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
         val implClassName: ClassName,
         val builderFunName: String,
     ) {
-        val receiver = ClassName(packageName, implClassName.simpleName, KDType.KDValueObject.DSL_BUILDER_CLASS_NAME)
+        val receiver = ClassName(packageName, implClassName.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
 
         companion object {
             fun create(declaration: KSClassDeclaration, kdType: KDType) = KDContext(

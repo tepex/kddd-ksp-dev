@@ -3,24 +3,17 @@ package ru.it_arch.clean_ddd.ksp.interop
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
-import ru.it_arch.ddd.ValueObjectSingle
 
 internal sealed interface KDReference {
     val typeName: TypeName
 
     @JvmInline
-    value class Element private constructor(override val value: TypeName) : ValueObjectSingle<TypeName>, KDReference {
+    value class Element private constructor(val boxed: TypeName) : KDReference {
         override val typeName: TypeName
-            get() = value
-
-        override fun validate() {}
-
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObjectSingle<TypeName>> copy(value: TypeName): T =
-            create(value) as T
+            get() = boxed
 
         override fun toString(): String =
-            value.toString()
+            boxed.toString()
 
         companion object {
             fun create(typeName: TypeName) =

@@ -39,7 +39,7 @@ fun main() {
     /*
     val cp = testStruct.copy(count = testStruct.count + 3)
     println("myStruct copy: $cp")*/
-    val cp = testStruct.toBuilder<MyStructImpl.Builder>().apply {
+    val cp = testStruct.toBuilder().apply {
         name = MyStructImpl.NameImpl.create("nnnn")
     }.build()
     println("new struct: ${cp.updateCount()}")

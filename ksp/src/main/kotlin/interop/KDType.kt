@@ -15,19 +15,19 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.ddd.ValueObjectSingle
+import ru.it_arch.kddd.ValueObject
 
 internal sealed interface KDType {
-    class KDValueObjectBase private constructor(val typeName: TypeName) : KDType {
+    class Sealed private constructor(val typeName: TypeName) : KDType {
         companion object {
-            const val CLASSNAME = "ru.it_arch.ddd.ValueObjectBase"
+            val CLASSNAME: String = ValueObject.Sealed::class.java.canonicalName
 
             fun create(typeName: TypeName) =
-                KDValueObjectBase(typeName)
+                Sealed(typeName)
         }
     }
 
-    class KDValueObject private constructor(
+    class Data private constructor(
         declaration: KSClassDeclaration
     ) : Impl(declaration), KDType {
 
@@ -35,35 +35,35 @@ internal sealed interface KDType {
         val dslBuilderClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
 
         companion object {
-            const val CLASSNAME = "ru.it_arch.ddd.ValueObject"
+            val CLASSNAME: String = ValueObject.Data::class.java.canonicalName
             const val BUILDER_CLASS_NAME = "Builder"
             const val DSL_BUILDER_CLASS_NAME = "DslBuilder"
             const val BUILDER_BUILD_METHOD_NAME = "build"
             const val APPLY_BUILDER = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-            fun create(declaration: KSClassDeclaration) = KDValueObject(declaration)
+            fun create(declaration: KSClassDeclaration) = Data(declaration)
         }
     }
 
-    class KDValueObjectSingle private constructor(
+    class Boxed private constructor(
         declaration: KSClassDeclaration,
         val boxedType: TypeName,
     ) : Impl(declaration, boxedType), KDType {
 
         override fun toString(): String =
-            "KDValueObjectSingle<$boxedType>"
+            "KDType.Boxed<$boxedType>"
 
         companion object {
-            const val CLASSNAME = "ru.it_arch.ddd.ValueObjectSingle"
-            const val PARAM_NAME = "value"
+            val CLASSNAME: String = ValueObject.Boxed::class.java.canonicalName
+            const val PARAM_NAME = "boxed"
             const val FABRIC_CREATE_METHOD = "create"
             const val CREATE_METHOD = "copy"
 
-            fun create(declaration: KSClassDeclaration, superInterfaceName: TypeName): KDValueObjectSingle {
+            fun create(declaration: KSClassDeclaration, superInterfaceName: TypeName): Boxed {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
-                return KDValueObjectSingle(declaration, superInterfaceName.typeArguments.first())
+                return Boxed(declaration, superInterfaceName.typeArguments.first())
             }
         }
     }
@@ -83,12 +83,12 @@ internal sealed interface KDType {
                 builder.addAnnotation(JvmInline::class)
 
                 listOf(
-                    KDParameter.create(className.member(KDValueObjectSingle.PARAM_NAME), boxedType)
+                    KDParameter.create(className.member(Boxed.PARAM_NAME), boxedType)
                 ).apply {
                     /* value class constructor */
                     createConstructor(this)
 
-                    val valueParam = ParameterSpec.builder(KDValueObjectSingle.PARAM_NAME, boxedType).build()
+                    val valueParam = ParameterSpec.builder(Boxed.PARAM_NAME, boxedType).build()
                     FunSpec.builder("toString")
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(String::class)
@@ -100,9 +100,9 @@ internal sealed interface KDType {
 
                     TypeVariableName(
                         "T",
-                        ValueObjectSingle::class.asTypeName().parameterizedBy(boxedType)
+                        ValueObject.Boxed::class.asTypeName().parameterizedBy(boxedType)
                     ).also { tvn ->
-                        FunSpec.builder(KDValueObjectSingle.CREATE_METHOD)
+                        FunSpec.builder(Boxed.CREATE_METHOD)
                             .addTypeVariable(tvn)
                             .addParameter(valueParam)
                             .addModifiers(KModifier.OVERRIDE)
@@ -115,7 +115,7 @@ internal sealed interface KDType {
 
                     /* ValueObjectSingle companion object */
 
-                    FunSpec.builder(KDValueObjectSingle.FABRIC_CREATE_METHOD)
+                    FunSpec.builder(Boxed.FABRIC_CREATE_METHOD)
                         .addParameter(valueParam)
                         .returns(className)
                         .addStatement("return %T(%N)", className, valueParam)
@@ -161,12 +161,12 @@ internal sealed interface KDType {
     companion object {
         fun create(declaration: KSClassDeclaration, logger: KSPLogger): KDType? {
             declaration.superTypes.forEach { parent ->
-                val fullName = parent.resolve().declaration.let { "${it.packageName.asString()}.${it.simpleName.asString()}" }
+                val fullName = parent.resolve().declaration.let { it.qualifiedName?.asString() }
                 when(fullName) {
-                    KDValueObjectBase.CLASSNAME -> KDValueObjectBase.create(declaration.asType(emptyList()).toTypeName())
-                    KDValueObject.CLASSNAME -> KDValueObject.create(declaration)
-                    KDValueObjectSingle.CLASSNAME -> {
-                        runCatching { KDValueObjectSingle.create(declaration, parent.toTypeName()) }.getOrElse {
+                    Sealed.CLASSNAME -> Sealed.create(declaration.asType(emptyList()).toTypeName())
+                    Data.CLASSNAME -> Data.create(declaration)
+                    Boxed.CLASSNAME -> {
+                        runCatching { Boxed.create(declaration, parent.toTypeName()) }.getOrElse {
                             logger.warn(it.message ?: "Cant parse parent type $parent")
                             null
                         }
