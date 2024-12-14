@@ -198,7 +198,7 @@ internal class KDTypeBuilderBuilder(
             is KDType.Boxed ->
                 (nestedType.type.boxedType.takeIf { nestedType.isNullable }?.toNullable()
                     ?: nestedType.type.boxedType).let { ParameterSpec.builder(name, it).build() }
-            is KDType.Data -> ParameterSpec.builder(
+            is KDType.Model -> ParameterSpec.builder(
                 name,
                 LambdaTypeName.get(
                     receiver = nestedType.type.dslBuilderClassName,

@@ -17,58 +17,66 @@ import ru.it_arch.kddd.ValueObject
 internal sealed interface KDType {
     class Sealed private constructor(val typeName: TypeName) : KDType {
         companion object {
-            val CLASSNAME: String = ValueObject.Sealed::class.java.canonicalName
-
             fun create(typeName: TypeName) =
                 Sealed(typeName)
         }
     }
 
-    class Data private constructor(
-        declaration: KDClassDeclaration
-    ) : Impl(declaration), KDType {
+    interface Model : KDType {
+        val builderClassName: ClassName
+        val dslBuilderClassName: ClassName
+    }
 
-        val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
-        val dslBuilderClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
+    class Data private constructor(
+        helper: KDTypeHelper
+    ) : Impl(helper), Model {
+
+        override val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
+        override val dslBuilderClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
 
         companion object {
-            val CLASSNAME: String = ValueObject.Data::class.java.canonicalName
             const val BUILDER_CLASS_NAME = "Builder"
             const val DSL_BUILDER_CLASS_NAME = "DslBuilder"
             const val BUILDER_BUILD_METHOD_NAME = "build"
             const val APPLY_BUILDER = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-            fun create(declaration: KDClassDeclaration) = Data(declaration)
+            fun create(helper: KDTypeHelper) = Data(helper)
+        }
+    }
+
+    class IEntity private constructor(val data: Data) : Model by data {
+        companion object {
+            fun create(helper: KDTypeHelper) =
+                Data.create(helper).let(KDType::IEntity)
         }
     }
 
     class Boxed private constructor(
-        declaration: KDClassDeclaration,
+        helper: KDTypeHelper,
         val boxedType: TypeName,
-    ) : Impl(declaration, boxedType), KDType {
+    ) : Impl(helper, boxedType), KDType {
 
         override fun toString(): String =
             "KDType.Boxed<$boxedType>"
 
         companion object {
-            val CLASSNAME: String = ValueObject.Boxed::class.java.canonicalName
             const val PARAM_NAME = "boxed"
             const val FABRIC_CREATE_METHOD = "create"
             const val CREATE_METHOD = "copy"
 
-            fun create(declaration: KDClassDeclaration, superInterfaceName: TypeName): Boxed {
+            fun create(helper: KDTypeHelper, superInterfaceName: TypeName): Boxed {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
-                return Boxed(declaration, superInterfaceName.typeArguments.first())
+                return Boxed(helper, superInterfaceName.typeArguments.first())
             }
         }
     }
 
-    open class Impl(declaration: KDClassDeclaration, boxedType: TypeName? = null) {
-        val className = declaration.implClassName
+    open class Impl(helper: KDTypeHelper, boxedType: TypeName? = null) {
+        val className = helper.implClassName
         val builder = TypeSpec.classBuilder(className)
-            .addSuperinterface(declaration.typeName)
+            .addSuperinterface(helper.typeName)
         val parameters: List<KDParameter>
 
         private val nestedTypes = mutableMapOf<TypeName, KDType>()
@@ -124,7 +132,7 @@ internal sealed interface KDType {
                 builder
                     .addModifiers(KModifier.DATA)
                     .addAnnotation(ConsistentCopyVisibility::class)
-                declaration.properties
+                helper.properties
                     .map(KDParameter::create)
                     .also(::createConstructor)
             }

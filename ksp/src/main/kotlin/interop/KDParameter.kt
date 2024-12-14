@@ -13,7 +13,7 @@ internal data class KDParameter private constructor(
         fun create(name: MemberName, propertyTypeName: TypeName) =
             KDParameter(name, KDReference.create(propertyTypeName))
 
-        fun create(property: KDClassDeclaration.Property) =
+        fun create(property: KDTypeHelper.Property) =
             KDParameter(property.name, KDReference.create(property.typeName))
     }
 }

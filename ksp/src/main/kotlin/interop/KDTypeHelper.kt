@@ -4,7 +4,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
 
-internal data class KDClassDeclaration(
+internal data class KDTypeHelper(
     val implClassName: ClassName,
     val typeName: TypeName,
     val properties: List<Property>

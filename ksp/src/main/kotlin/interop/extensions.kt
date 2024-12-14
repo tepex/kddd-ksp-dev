@@ -15,3 +15,9 @@ internal fun TypeName.toNullable(nullable: Boolean = true) =
 
 internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
     addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build())
+
+internal fun KDType.asImpl(): KDType.Impl? = when(this) {
+    is KDType.IEntity -> data
+    is KDType.Impl    -> this
+    else              -> null
+}
