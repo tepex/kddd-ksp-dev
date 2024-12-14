@@ -1,6 +1,5 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
-import com.google.devtools.ksp.processing.KSPLogger
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
@@ -20,7 +19,7 @@ import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.SE
 internal class KDTypeBuilderBuilder(
     private val holder: KDType.Data,
     private val isDsl: Boolean,
-    private val logger: KSPLogger
+    private val logger: KDLogger
 ) {
     /** fun Impl.toBuilder(): Impl.Builder */
     private val toBuildersFun =
@@ -88,7 +87,7 @@ internal class KDTypeBuilderBuilder(
         name: MemberName,
         collectionType: KDReference.Collection.CollectionType,
         parametrized: List<KDTypeWrapper>,
-        logger: KSPLogger
+        logger: KDLogger
     ) {
         when (collectionType) {
             LIST, SET -> parametrized.first().also { wrapper ->

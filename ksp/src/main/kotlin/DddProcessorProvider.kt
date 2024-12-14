@@ -6,11 +6,12 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
 // ru.it_arch.clean_ddd.ksp.DddProcessorProvider
 
-public class DddProcessorProvider : SymbolProcessorProvider {
+public class DddProcessorProvider(private val isTesting: Boolean = false) : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
         DddProcessor(
             environment.codeGenerator,
             environment.logger,
-            environment.options
+            environment.options,
+            isTesting
         )
 }

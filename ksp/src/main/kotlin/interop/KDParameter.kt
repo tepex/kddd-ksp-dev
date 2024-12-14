@@ -1,9 +1,7 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.ksp.toTypeName
 
 @ConsistentCopyVisibility
 internal data class KDParameter private constructor(
@@ -12,10 +10,10 @@ internal data class KDParameter private constructor(
 ) {
 
     companion object {
-        fun create(name: MemberName, property: KSPropertyDeclaration) =
-            KDParameter(name, KDReference.create(property.type.toTypeName()))
+        fun create(name: MemberName, propertyTypeName: TypeName) =
+            KDParameter(name, KDReference.create(propertyTypeName))
 
-        fun create(name: MemberName, typeName: TypeName) =
-            KDParameter(name, KDReference.create(typeName))
+        fun create(property: KDClassDeclaration.Property) =
+            KDParameter(property.name, KDReference.create(property.typeName))
     }
 }

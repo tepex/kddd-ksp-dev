@@ -16,26 +16,33 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
+import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
+import ru.it_arch.clean_ddd.ksp.interop.KDClassDeclaration
+import ru.it_arch.clean_ddd.ksp.interop.KDClassDeclaration.Property
+import ru.it_arch.clean_ddd.ksp.interop.KDLogger
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDTypeBuilderBuilder
 import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
 
-public class DddProcessor(
+internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
-    private val options: Map<String, String>
+    private val options: Map<String, String>,
+    private val isTesting: Boolean
 ) : SymbolProcessor {
+
+    private val kdLogger = KDLoggerImpl(logger)
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         //val symbols = resolver.getAllFiles()
         val symbols = resolver.getNewFiles()
         if (!symbols.iterator().hasNext()) return emptyList()
 
-        logger.warn("options: $options")
+        logger.warn("options: $options, isTesting: $isTesting")
         logger.warn("symbols: ${symbols.toList()}")
         symbols.forEach { file ->
             file.declarations
@@ -43,7 +50,6 @@ public class DddProcessor(
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .forEach { declaration ->
                     createKDType(ValueObjectVisitor(), declaration)?.let { kdType ->
-                        logger.warn("process: $declaration")
                         KDContext.create(declaration, kdType).also { it.processDeclaration(file) }
                     }
                 }
@@ -89,11 +95,8 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
         }
     }
 
-    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration): KDType? {
-        val kdType = KDType.create(declaration, logger)
-        if (kdType is KDType.Impl) declaration.accept(visitor, kdType)
-        return kdType
-    }
+    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration): KDType? =
+        declaration.toKDType(isTesting, kdLogger).also { if (it is KDType.Impl) declaration.accept(visitor, it) }
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.Impl, Unit>() {
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Impl) {
@@ -107,11 +110,11 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 
             /* KDType.Builder() */
             if (data is KDType.Data) {
-                KDTypeBuilderBuilder(data, false, logger).also { helper ->
+                KDTypeBuilderBuilder(data, false, kdLogger).also { helper ->
                     data.builder.addType(helper.build())
                     helper.buildFunToBuilder().also(data.builder::addFunction)
                 }
-                KDTypeBuilderBuilder(data, true, logger).also { helper ->
+                KDTypeBuilderBuilder(data, true, kdLogger).also { helper ->
                     data.builder.addType(helper.build())
                     helper.buildFunToBuilder().also(data.builder::addFunction)
                 }
@@ -138,4 +141,28 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
             )
         }
     }
+}
+
+internal fun KSClassDeclaration.toKDType(isTesting: Boolean, logger: KDLogger): KDType? {
+    val className = toClassNameImpl()
+    val declaration = KDClassDeclaration(
+        className,
+        asType(emptyList()).toTypeName(),
+        getAllProperties()
+            .map { Property(className.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
+    )
+    superTypes.forEach { parent ->
+        when(parent.toString()) {
+            KDType.Sealed::class.java.simpleName -> KDType.Sealed.create(declaration.typeName)
+            KDType.Data::class.java.simpleName -> KDType.Data.create(declaration)
+            KDType.Boxed::class.java.simpleName -> {
+                runCatching { KDType.Boxed.create(declaration, parent.toTypeName()) }.getOrElse {
+                    logger.log(it.message ?: "Cant parse parent type $parent")
+                    null
+                }
+            }
+            else -> null
+        }?.also { return it }
+    }
+    return null
 }

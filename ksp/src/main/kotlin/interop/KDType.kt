@@ -1,7 +1,5 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
-import com.google.devtools.ksp.processing.KSPLogger
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -14,7 +12,6 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
-import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.kddd.ValueObject
 
 internal sealed interface KDType {
@@ -28,7 +25,7 @@ internal sealed interface KDType {
     }
 
     class Data private constructor(
-        declaration: KSClassDeclaration
+        declaration: KDClassDeclaration
     ) : Impl(declaration), KDType {
 
         val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
@@ -41,12 +38,12 @@ internal sealed interface KDType {
             const val BUILDER_BUILD_METHOD_NAME = "build"
             const val APPLY_BUILDER = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-            fun create(declaration: KSClassDeclaration) = Data(declaration)
+            fun create(declaration: KDClassDeclaration) = Data(declaration)
         }
     }
 
     class Boxed private constructor(
-        declaration: KSClassDeclaration,
+        declaration: KDClassDeclaration,
         val boxedType: TypeName,
     ) : Impl(declaration, boxedType), KDType {
 
@@ -59,7 +56,7 @@ internal sealed interface KDType {
             const val FABRIC_CREATE_METHOD = "create"
             const val CREATE_METHOD = "copy"
 
-            fun create(declaration: KSClassDeclaration, superInterfaceName: TypeName): Boxed {
+            fun create(declaration: KDClassDeclaration, superInterfaceName: TypeName): Boxed {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
@@ -68,10 +65,10 @@ internal sealed interface KDType {
         }
     }
 
-    open class Impl(declaration: KSClassDeclaration, boxedType: TypeName? = null) {
-        val className = declaration.toClassNameImpl()
+    open class Impl(declaration: KDClassDeclaration, boxedType: TypeName? = null) {
+        val className = declaration.implClassName
         val builder = TypeSpec.classBuilder(className)
-            .addSuperinterface(declaration.asType(emptyList()).toTypeName())
+            .addSuperinterface(declaration.typeName)
         val parameters: List<KDParameter>
 
         private val nestedTypes = mutableMapOf<TypeName, KDType>()
@@ -127,9 +124,9 @@ internal sealed interface KDType {
                 builder
                     .addModifiers(KModifier.DATA)
                     .addAnnotation(ConsistentCopyVisibility::class)
-                declaration.getAllProperties()
-                    .map { KDParameter.create(className.member(it.simpleName.asString()), it) }
-                    .toList().also(::createConstructor)
+                declaration.properties
+                    .map(KDParameter::create)
+                    .also(::createConstructor)
             }
         }
 
@@ -155,26 +152,6 @@ internal sealed interface KDType {
                 .addStatement("validate()")
                 .build()
                 .also(builder::primaryConstructor)
-        }
-    }
-
-    companion object {
-        fun create(declaration: KSClassDeclaration, logger: KSPLogger): KDType? {
-            declaration.superTypes.forEach { parent ->
-                val fullName = parent.resolve().declaration.let { it.qualifiedName?.asString() }
-                when(fullName) {
-                    Sealed.CLASSNAME -> Sealed.create(declaration.asType(emptyList()).toTypeName())
-                    Data.CLASSNAME -> Data.create(declaration)
-                    Boxed.CLASSNAME -> {
-                        runCatching { Boxed.create(declaration, parent.toTypeName()) }.getOrElse {
-                            logger.warn(it.message ?: "Cant parse parent type $parent")
-                            null
-                        }
-                    }
-                    else -> null
-                }?.also { return it }
-            }
-            return null
         }
     }
 }
