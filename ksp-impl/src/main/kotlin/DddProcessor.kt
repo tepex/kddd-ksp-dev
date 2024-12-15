@@ -10,25 +10,20 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSNode
-import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
-import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.KDLoggerImpl
-import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper
-import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper.Property
+import ru.it_arch.clean_ddd.ksp.interop.kDTypeOrNull
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
-import ru.it_arch.clean_ddd.ksp.model.build
-import ru.it_arch.clean_ddd.ksp.model.kdTypeOrNull
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -51,8 +46,8 @@ internal class DddProcessor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .forEach { declaration ->
-                    createKDType(ValueObjectVisitor(), declaration)?.let { kdType ->
-                        KDContext.create(declaration, kdType).also { it.processDeclaration(file) }
+                    declaration.visitDeclaration(ValueObjectVisitor())?.let { kdType ->
+                        KDContext.create(declaration, kdType).also { it.generate(file) }
                     }
                 }
         }
@@ -68,7 +63,7 @@ internal class DddProcessor(
         return symbols.filterNot { it.validate() }.toList()
     }
 
-    private fun KDContext.processDeclaration(file: KSFile?) {
+    private fun KDContext.generate(file: KSFile?) {
         FileSpec.builder(packageName, toBeGenerated.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment("""
 AUTO-GENERATED FILE. DO NOT MODIFY.
@@ -97,32 +92,18 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
         }
     }
 
-    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration): KDType? {
-        fun Sequence<KSTypeReference>.find(helper: KDTypeHelper): KDType? {
-            forEach { parent ->
-                parent.toString().kdTypeOrNull(helper, parent.toTypeName())?.also { return it }
-            }
-            return null
-        }
-
-        val toBeGenerated = declaration.toGeneratedClassName()
-        val helper = KDTypeHelper(
-            toBeGenerated,
-            declaration.asType(emptyList()).toTypeName(),
-            declaration.getAllProperties()
-                .map { Property(toBeGenerated.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
-        )
-
-        return declaration.superTypes.find(helper)
-            .also { if (it is KDType.Generatable) declaration.accept(visitor, it) }
-    }
+    private fun KSClassDeclaration.visitDeclaration(visitor: ValueObjectVisitor): KDType? =
+        kDTypeOrNull(toGeneratedClassName()).getOrElse {
+            logger.warn(it.message ?: "Cant parse parent type", this)
+            null
+        }.also { if (it is KDType.Generatable) accept(visitor, it) }
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.Generatable, Unit>() {
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Generatable) {
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { nestedDeclaration ->
-                    createKDType(this, nestedDeclaration)
+                    nestedDeclaration.visitDeclaration(this)
                         ?.also { data.addNestedType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
                         ?: logger.error("Unsupported type declaration", nestedDeclaration)
                 }
@@ -164,5 +145,5 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
     }
 }
 
-internal fun KSClassDeclaration.toGeneratedClassName(): ClassName =
+private fun KSClassDeclaration.toGeneratedClassName(): ClassName =
     ClassName.bestGuess("${simpleName.asString()}Impl")

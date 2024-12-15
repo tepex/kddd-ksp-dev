@@ -1,18 +1,14 @@
 package ru.it_arch.clean_ddd.ksp.model
 
+import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.MemberName.Companion.member
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.TypeVariableName
-import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.kddd.ValueObject
 
 public sealed interface KDType {
     public class Sealed private constructor(public val typeName: TypeName) : KDType {
@@ -55,6 +51,45 @@ public sealed interface KDType {
     }
 
     public class IEntity private constructor(private val data: Data) : Model by data {
+        public fun build() {
+            val paramId = parameters.find { it.name.simpleName == ID_NAME }
+                ?: error("ID parameter not found for Entity $className")
+
+            FunSpec.builder("hashCode").apply {
+                addModifiers(KModifier.OVERRIDE)
+                addStatement("return %N.hashCode()", paramId.name)
+                returns(Int::class)
+            }.build().also(builder::addFunction)
+
+            val paramOther = ParameterSpec.builder("other", ANY.toNullable()).build()
+            FunSpec.builder("equals").apply {
+                addModifiers(KModifier.OVERRIDE)
+                addParameter(paramOther)
+                addStatement("if (this === other) return true")
+                addStatement("if (%N !is %T) return false", paramOther, className)
+                addStatement("if (%N != %N.%N) return false", paramId.name, paramOther, paramId.name)
+                addStatement("return true")
+                returns(Boolean::class)
+            }.build().also(builder::addFunction)
+
+            // override fun toString()
+
+            parameters.filter { it.name.simpleName != ID_NAME }
+                .fold(mutableListOf<Pair<String, MemberName>>()) { acc, param -> acc.apply { add("%N: $%N" to param.name) } }
+                .let { it.joinToString { pair -> pair.first } to it.fold(mutableListOf(paramId.name)) { acc, pair ->
+                    acc.apply {
+                        add(pair.second)
+                        add(pair.second)
+                    }
+                } }.also { pair ->
+                    FunSpec.builder("toString").apply {
+                        addModifiers(KModifier.OVERRIDE)
+                        returns(String::class)
+                        addStatement("return \"[ID: $%N, ${pair.first}]\"", *pair.second.toTypedArray())
+                    }.build().also(builder::addFunction)
+                }
+        }
+
         public companion object {
             public const val ID_NAME: String = "id"
 
@@ -83,94 +118,6 @@ public sealed interface KDType {
                 val boxed = superInterfaceName.typeArguments.first()
                 return Boxed(ForGeneration(helper, boxed), boxed)
             }
-        }
-    }
-
-    private class ForGeneration(helper: KDTypeHelper, boxedType: TypeName? = null, isEntity: Boolean = false) : Generatable {
-        override val className = helper.toBeGenerated
-        override val builder = TypeSpec.classBuilder(className).addSuperinterface(helper.typeName)
-        override val parameters: List<KDParameter>
-
-        private val nestedTypes = mutableMapOf<TypeName, KDType>()
-
-        init {
-            parameters = boxedType?.let {
-                builder.addModifiers(KModifier.VALUE)
-                builder.addAnnotation(JvmInline::class)
-
-                listOf(
-                    KDParameter.create(className.member(Boxed.PARAM_NAME), boxedType)
-                ).apply {
-                    /* value class constructor */
-                    createConstructor(this)
-
-                    val boxedParam = ParameterSpec.builder(Boxed.PARAM_NAME, boxedType).build()
-                    FunSpec.builder("toString")
-                        .addModifiers(KModifier.OVERRIDE)
-                        .returns(String::class)
-                        .addStatement("return %N.toString()", boxedParam)
-                        .build()
-                        .also(builder::addFunction)
-
-                    /*  override fun <T : ValueObjectSingle<String>> copy(value: String): T = NameImpl(value) as T */
-
-                    TypeVariableName(
-                        "T",
-                        ValueObject.Boxed::class.asTypeName().parameterizedBy(boxedType)
-                    ).also { tvn ->
-                        FunSpec.builder(Boxed.CREATE_METHOD)
-                            .addTypeVariable(tvn)
-                            .addParameter(boxedParam)
-                            .addModifiers(KModifier.OVERRIDE)
-                            .addUncheckedCast()
-                            .returns(tvn)
-                            .addStatement("return %T(%N) as %T", className, boxedParam, tvn)
-                            .build()
-                            .also(builder::addFunction)
-                    }
-
-                    /* ValueObjectSingle companion object */
-
-                    FunSpec.builder(Boxed.FABRIC_CREATE_METHOD)
-                        .addParameter(boxedParam)
-                        .returns(className)
-                        .addStatement("return %T(%N)", className, boxedParam)
-                        .build()
-                        .let { TypeSpec.companionObjectBuilder().addFunction(it).build() }
-                        .also(builder::addType)
-                }
-            } ?: run {
-                // not Boxed
-                builder.addAnnotation(ConsistentCopyVisibility::class)
-                if (!isEntity) builder.addModifiers(KModifier.DATA)
-                helper.properties
-                    .map(KDParameter::create)
-                    .also(::createConstructor)
-            }
-        }
-
-        override fun addNestedType(key: TypeName, type: KDType) {
-            nestedTypes[key.toNullable(false)] = type
-            if (type is Generatable) builder.addType(type.builder.build())
-        }
-
-        override fun getNestedType(typeName: TypeName) =
-            nestedTypes[typeName.toNullable(false)] ?: error("Can't find implementation for $typeName in $className")
-
-        private fun createConstructor(parameters: List<KDParameter>) {
-            parameters.map { param ->
-                PropertySpec
-                    .builder(param.name.simpleName, param.typeReference.typeName, KModifier.OVERRIDE)
-                    .initializer(param.name.simpleName)
-                    .build()
-            }.also(builder::addProperties)
-
-            FunSpec.constructorBuilder()
-                .addModifiers(KModifier.PRIVATE)
-                .addParameters(parameters.map { ParameterSpec(it.name.simpleName, it.typeReference.typeName) })
-                .addStatement("validate()")
-                .build()
-                .also(builder::primaryConstructor)
         }
     }
 }
