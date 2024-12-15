@@ -9,7 +9,13 @@ import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper
 import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper.Property
 
-public fun KSClassDeclaration.kDTypeOrNull(toBeGenerated: ClassName): Result<KDType?> {
+public const val FILE_HEADER_STUB: String = """
+AUTO-GENERATED FILE. DO NOT MODIFY.
+This file generated automatically by «KDDD» framework.
+Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
+"""
+
+public fun KSClassDeclaration.kdTypeOrNull(toBeGenerated: ClassName): Result<KDType?> {
     KDTypeHelper(
         toBeGenerated,
         asType(emptyList()).toTypeName(),
@@ -20,6 +26,7 @@ public fun KSClassDeclaration.kDTypeOrNull(toBeGenerated: ClassName): Result<KDT
             parent.kdTypeOrNull(helper)?.also { return it }
         }
     }
+    // Not found
     return Result.success(null)
 }
 

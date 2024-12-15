@@ -9,19 +9,17 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
-import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
-import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
-import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
-import ru.it_arch.clean_ddd.ksp.interop.KDLoggerImpl
-import ru.it_arch.clean_ddd.ksp.interop.kDTypeOrNull
+import ru.it_arch.clean_ddd.ksp.interop.FILE_HEADER_STUB
+import ru.it_arch.clean_ddd.ksp.interop.KDContext
+import ru.it_arch.clean_ddd.ksp.interop.KDVisitor
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
 
@@ -32,8 +30,6 @@ internal class DddProcessor(
     private val isTesting: Boolean
 ) : SymbolProcessor {
 
-    private val kdLogger = KDLoggerImpl(logger)
-
     override fun process(resolver: Resolver): List<KSAnnotated> {
         //val symbols = resolver.getAllFiles()
         val symbols = resolver.getNewFiles()
@@ -41,13 +37,18 @@ internal class DddProcessor(
 
         logger.warn("options: $options, isTesting: $isTesting")
         logger.warn("symbols: ${symbols.toList()}")
+
+        val classNameGenerator: KSClassDeclaration.() -> ClassName = {
+            ClassName.bestGuess("${simpleName.asString()}Impl")
+        }
+
         symbols.forEach { file ->
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .forEach { declaration ->
-                    declaration.visitDeclaration(ValueObjectVisitor())?.let { kdType ->
-                        KDContext.create(declaration, kdType).also { it.generate(file) }
+                    DomainLayerVisitor(classNameGenerator).visitDeclaration(declaration)?.let { kdType ->
+                        KDContext.create(declaration, kdType, classNameGenerator).also { it.generate(file) }
                     }
                 }
         }
@@ -65,13 +66,9 @@ internal class DddProcessor(
 
     private fun KDContext.generate(file: KSFile?) {
         FileSpec.builder(packageName, toBeGenerated.simpleName).also { fileBuilder ->
-            fileBuilder.addFileComment("""
-AUTO-GENERATED FILE. DO NOT MODIFY.
-This file generated automatically by «KDDD» framework.
-Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
-""".trimIndent())
+            fileBuilder.addFileComment(FILE_HEADER_STUB)
 
-            if (kdType is KDType.Generatable) kdType.builder.build().also(fileBuilder::addType)
+            (kdType as? KDType.Generatable)?.builder?.build()?.also(fileBuilder::addType)
 
             /* Root DSL builder */
             ParameterSpec.builder(
@@ -92,58 +89,19 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
         }
     }
 
-    private fun KSClassDeclaration.visitDeclaration(visitor: ValueObjectVisitor): KDType? =
-        kDTypeOrNull(toGeneratedClassName()).getOrElse {
-            logger.warn(it.message ?: "Cant parse parent type", this)
-            null
-        }.also { if (it is KDType.Generatable) accept(visitor, it) }
+    private inner class DomainLayerVisitor(
+        generateClassName: KSClassDeclaration.() -> ClassName
+    ) : KDVisitor(logger, generateClassName) {
 
-    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.Generatable, Unit>() {
-        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Generatable) {
-            classDeclaration.declarations
-                .filterIsInstance<KSClassDeclaration>()
-                .forEach { nestedDeclaration ->
-                    nestedDeclaration.visitDeclaration(this)
-                        ?.also { data.addNestedType(nestedDeclaration.asType(emptyList()).toTypeName(), it) }
-                        ?: logger.error("Unsupported type declaration", nestedDeclaration)
-                }
-
-            /* KDType.Builder() */
-            if (data is KDType.Model) {
-                KDTypeBuilderBuilder(data, false, kdLogger).also { helper ->
-                    data.builder.addType(helper.build())
-                    helper.buildFunToBuilder().also(data.builder::addFunction)
-                }
-                KDTypeBuilderBuilder(data, true, kdLogger).also { helper ->
-                    data.builder.addType(helper.build())
-                    helper.buildFunToBuilder().also(data.builder::addFunction)
-                }
-
-                if (data is KDType.IEntity) data.build()
+        override fun createBuilder(model: KDType.Model) {
+            KDTypeBuilderBuilder(model, false, kdLogger).also { helper ->
+                model.builder.addType(helper.build())
+                helper.buildFunToBuilder().also(model.builder::addFunction)
             }
-        }
-
-        override fun defaultHandler(node: KSNode, data: KDType.Generatable) {}
-    }
-
-    private class KDContext private constructor(
-        val kdType: KDType,
-        val packageName: String,
-        val toBeGenerated: ClassName,
-        val builderFunName: String,
-    ) {
-        val receiver = ClassName(packageName, toBeGenerated.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
-
-        companion object {
-            fun create(declaration: KSClassDeclaration, kdType: KDType) = KDContext(
-                kdType,
-                "${declaration.packageName.asString()}.impl",
-                declaration.toGeneratedClassName(),
-                declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() }
-            )
+            KDTypeBuilderBuilder(model, true, kdLogger).also { helper ->
+                model.builder.addType(helper.build())
+                helper.buildFunToBuilder().also(model.builder::addFunction)
+            }
         }
     }
 }
-
-private fun KSClassDeclaration.toGeneratedClassName(): ClassName =
-    ClassName.bestGuess("${simpleName.asString()}Impl")
