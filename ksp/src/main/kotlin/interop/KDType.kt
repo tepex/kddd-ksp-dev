@@ -103,11 +103,11 @@ internal sealed interface KDType {
                     /* value class constructor */
                     createConstructor(this)
 
-                    val valueParam = ParameterSpec.builder(Boxed.PARAM_NAME, boxedType).build()
+                    val boxedParam = ParameterSpec.builder(Boxed.PARAM_NAME, boxedType).build()
                     FunSpec.builder("toString")
                         .addModifiers(KModifier.OVERRIDE)
                         .returns(String::class)
-                        .addStatement("return %N.toString()", valueParam)
+                        .addStatement("return %N.toString()", boxedParam)
                         .build()
                         .also(builder::addFunction)
 
@@ -119,11 +119,11 @@ internal sealed interface KDType {
                     ).also { tvn ->
                         FunSpec.builder(Boxed.CREATE_METHOD)
                             .addTypeVariable(tvn)
-                            .addParameter(valueParam)
+                            .addParameter(boxedParam)
                             .addModifiers(KModifier.OVERRIDE)
                             .addUncheckedCast()
                             .returns(tvn)
-                            .addStatement("return %T(%N) as %T", className, valueParam, tvn)
+                            .addStatement("return %T(%N) as %T", className, boxedParam, tvn)
                             .build()
                             .also(builder::addFunction)
                     }
@@ -131,9 +131,9 @@ internal sealed interface KDType {
                     /* ValueObjectSingle companion object */
 
                     FunSpec.builder(Boxed.FABRIC_CREATE_METHOD)
-                        .addParameter(valueParam)
+                        .addParameter(boxedParam)
                         .returns(className)
-                        .addStatement("return %T(%N)", className, valueParam)
+                        .addStatement("return %T(%N)", className, boxedParam)
                         .build()
                         .let { TypeSpec.companionObjectBuilder().addFunction(it).build() }
                         .also(builder::addType)

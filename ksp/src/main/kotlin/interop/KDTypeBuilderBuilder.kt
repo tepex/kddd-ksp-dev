@@ -2,6 +2,7 @@ package ru.it_arch.clean_ddd.ksp.interop
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MUTABLE_LIST
 import com.squareup.kotlinpoet.MUTABLE_MAP
@@ -21,6 +22,7 @@ internal class KDTypeBuilderBuilder(
     private val isDsl: Boolean,
     private val logger: KDLogger
 ) {
+
     /** fun Impl.toBuilder(): Impl.Builder */
     private val toBuildersFun =
         ToBuildersFun((holder.dslBuilderClassName.takeIf { isDsl } ?: holder.builderClassName), isDsl)
@@ -59,7 +61,7 @@ internal class KDTypeBuilderBuilder(
                     .map { KDTypeWrapper(holder.getNestedType(it), it.isNullable) }
                     .also { addParameterForCollection(param.name, param.typeReference.collectionType, it, logger) }
                     .let { false }
-            }//.also { toBuildersFun.addStatement(param.name.simpleName, it) }
+            }
         }
         builderBuildFun.addStatement("⇤)")
     }

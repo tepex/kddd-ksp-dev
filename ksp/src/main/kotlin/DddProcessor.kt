@@ -21,6 +21,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
+import ru.it_arch.clean_ddd.ksp.interop.EntityBuilder
 import ru.it_arch.clean_ddd.ksp.interop.KDTypeHelper
 import ru.it_arch.clean_ddd.ksp.interop.KDTypeHelper.Property
 import ru.it_arch.clean_ddd.ksp.interop.KDLogger
@@ -119,6 +120,9 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                     data.builder.addType(helper.build())
                     helper.buildFunToBuilder().also(data.builder::addFunction)
                 }
+
+                /* toString() */
+                EntityBuilder(data, kdLogger)
             }
         }
 
