@@ -22,14 +22,13 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
-import ru.it_arch.clean_ddd.ksp.interop.KDTypeHelper
-import ru.it_arch.clean_ddd.ksp.interop.KDTypeHelper.Property
-import ru.it_arch.clean_ddd.ksp.interop.KDLogger
-import ru.it_arch.clean_ddd.ksp.interop.KDType
-import ru.it_arch.clean_ddd.ksp.interop.KDTypeBuilderBuilder
-import ru.it_arch.clean_ddd.ksp.interop.build
-import ru.it_arch.clean_ddd.ksp.interop.kdTypeOrNull
-import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
+import ru.it_arch.clean_ddd.ksp.interop.KDLoggerImpl
+import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper
+import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper.Property
+import ru.it_arch.clean_ddd.ksp.model.KDType
+import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
+import ru.it_arch.clean_ddd.ksp.model.build
+import ru.it_arch.clean_ddd.ksp.model.kdTypeOrNull
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -70,14 +69,14 @@ internal class DddProcessor(
     }
 
     private fun KDContext.processDeclaration(file: KSFile?) {
-        FileSpec.builder(packageName, implClassName.simpleName).also { fileBuilder ->
+        FileSpec.builder(packageName, toBeGenerated.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment("""
 AUTO-GENERATED FILE. DO NOT MODIFY.
 This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """.trimIndent())
 
-            if (kdType is KDType.HasImpl) kdType.builder.build().also(fileBuilder::addType)
+            if (kdType is KDType.Generatable) kdType.builder.build().also(fileBuilder::addType)
 
             /* Root DSL builder */
             ParameterSpec.builder(
@@ -91,7 +90,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                         receiver,
                         builderParam
                     )
-                    .returns(implClassName)
+                    .returns(toBeGenerated)
                     .build().also(fileBuilder::addFunction)
             }
             file?.also { fileBuilder.build().writeTo(codeGenerator, Dependencies(false, file)) }
@@ -106,19 +105,20 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
             return null
         }
 
-        val className = declaration.toClassNameImpl()
+        val toBeGenerated = declaration.toGeneratedClassName()
         val helper = KDTypeHelper(
-            className,
+            toBeGenerated,
             declaration.asType(emptyList()).toTypeName(),
             declaration.getAllProperties()
-                .map { Property(className.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
+                .map { Property(toBeGenerated.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
         )
+
         return declaration.superTypes.find(helper)
-            .also { if (it is KDType.HasImpl) declaration.accept(visitor, it) }
+            .also { if (it is KDType.Generatable) declaration.accept(visitor, it) }
     }
 
-    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.HasImpl, Unit>() {
-        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.HasImpl) {
+    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.Generatable, Unit>() {
+        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Generatable) {
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { nestedDeclaration ->
@@ -142,24 +142,27 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
             }
         }
 
-        override fun defaultHandler(node: KSNode, data: KDType.HasImpl) {}
+        override fun defaultHandler(node: KSNode, data: KDType.Generatable) {}
     }
 
     private class KDContext private constructor(
         val kdType: KDType,
         val packageName: String,
-        val implClassName: ClassName,
+        val toBeGenerated: ClassName,
         val builderFunName: String,
     ) {
-        val receiver = ClassName(packageName, implClassName.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
+        val receiver = ClassName(packageName, toBeGenerated.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
 
         companion object {
             fun create(declaration: KSClassDeclaration, kdType: KDType) = KDContext(
                 kdType,
                 "${declaration.packageName.asString()}.impl",
-                declaration.toClassNameImpl(),
+                declaration.toGeneratedClassName(),
                 declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() }
             )
         }
     }
 }
+
+internal fun KSClassDeclaration.toGeneratedClassName(): ClassName =
+    ClassName.bestGuess("${simpleName.asString()}Impl")

@@ -8,8 +8,7 @@ plugins {
 kotlin {
     jvmToolchain(17)
     compilerOptions {
-        //apiVersion.set(KotlinVersion.KOTLIN_2_0)
-        //languageVersion.set(KotlinVersion.KOTLIN_2_0)
+        apiVersion.set(KotlinVersion.KOTLIN_2_0)
     }
     /*
     sourceSets.all {
@@ -20,10 +19,8 @@ kotlin {
 
 dependencies {
     implementation(libs.kddd)
-    ksp(project(":ksp-impl"))
-}
-
-ksp {
-    arg("a", "1")
-    arg("b", "2")
+    implementation(libs.ksp.api)
+    implementation(libs.kotlinpoet)
+    implementation(libs.kotlinpoet.ksp)
+    implementation(project(":ksp-model"))
 }

@@ -1,17 +1,14 @@
-package ru.it_arch.clean_ddd.ksp.interop
+package ru.it_arch.clean_ddd.ksp.model
 
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
-
-internal fun KSClassDeclaration.toClassNameImpl(): ClassName =
-    ClassName.bestGuess("${simpleName.asString()}Impl")
+import ru.it_arch.clean_ddd.ksp.model.KDType
+import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper
 
 internal fun TypeName.toNullable(nullable: Boolean = true) =
     if (isNullable != nullable) copy(nullable = nullable) else this
@@ -19,7 +16,7 @@ internal fun TypeName.toNullable(nullable: Boolean = true) =
 internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
     addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build())
 
-internal fun KDType.IEntity.build() {
+public fun KDType.IEntity.build() {
 
     val paramId = parameters.find { it.name.simpleName == KDType.IEntity.ID_NAME }
         ?: error("ID parameter not found for Entity $className")
@@ -30,11 +27,6 @@ internal fun KDType.IEntity.build() {
         returns(Int::class)
     }.build().also(builder::addFunction)
 
-    /*        if (this === other) return true
-        if (other !is MyEntityImpl) return false
-        if (id != other.id) return false
-        return true
-*/
     val paramOther = ParameterSpec.builder("other", ANY.toNullable()).build()
     FunSpec.builder("equals").apply {
         addModifiers(KModifier.OVERRIDE)
@@ -63,7 +55,7 @@ internal fun KDType.IEntity.build() {
         }
 }
 
-internal fun String.kdTypeOrNull(helper: KDTypeHelper, parentTypeName: TypeName) = when(this) {
+public fun String.kdTypeOrNull(helper: KDTypeHelper, parentTypeName: TypeName): KDType? = when(this) {
     KDType.Sealed::class.java.simpleName -> KDType.Sealed.create(helper.typeName)
     KDType.Data::class.java.simpleName -> KDType.Data.create(helper, false)
     KDType.IEntity::class.java.simpleName -> KDType.IEntity.create(helper)

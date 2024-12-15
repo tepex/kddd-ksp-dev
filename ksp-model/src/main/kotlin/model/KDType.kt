@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.ksp.interop
+package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
@@ -12,84 +12,82 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.kddd.IEntity
 import ru.it_arch.kddd.ValueObject
 
-internal sealed interface KDType {
-    class Sealed private constructor(val typeName: TypeName) : KDType {
-        companion object {
-            fun create(typeName: TypeName) =
+public sealed interface KDType {
+    public class Sealed private constructor(public val typeName: TypeName) : KDType {
+        public companion object {
+            public fun create(typeName: TypeName): Sealed =
                 Sealed(typeName)
         }
     }
 
-    interface Model : HasImpl {
-        val builderClassName: ClassName
-        val dslBuilderClassName: ClassName
+    public interface Model : Generatable {
+        public val builderClassName: ClassName
+        public val dslBuilderClassName: ClassName
     }
 
-    interface HasImpl : KDType {
-        val className: ClassName
-        val builder: TypeSpec.Builder
-        val parameters: List<KDParameter>
+    public interface Generatable : KDType {
+        public val className: ClassName
+        public val builder: TypeSpec.Builder
+        public val parameters: List<KDParameter>
 
-        fun addNestedType(key: TypeName, type: KDType)
-        fun getNestedType(typeName: TypeName): KDType
+        public fun addNestedType(key: TypeName, type: KDType)
+        public fun getNestedType(typeName: TypeName): KDType
     }
 
-    class Data private constructor(
-        private val impl: Impl
-    ) : HasImpl by impl, Model {
+    public class Data private constructor(
+        private val forGeneration: ForGeneration
+    ) : Generatable by forGeneration, Model {
 
-        override val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
-        override val dslBuilderClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
+        override val builderClassName: ClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
+        override val dslBuilderClassName: ClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
 
-        companion object {
-            const val BUILDER_CLASS_NAME = "Builder"
-            const val DSL_BUILDER_CLASS_NAME = "DslBuilder"
-            const val BUILDER_BUILD_METHOD_NAME = "build"
-            const val APPLY_BUILDER = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
+        public companion object {
+            public const val BUILDER_CLASS_NAME: String = "Builder"
+            public const val DSL_BUILDER_CLASS_NAME: String = "DslBuilder"
+            public const val BUILDER_BUILD_METHOD_NAME: String = "build"
+            public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-
-            fun create(helper: KDTypeHelper, isEntity: Boolean) =
-                Data(Impl(helper, null, isEntity))
+            public fun create(helper: KDTypeHelper, isEntity: Boolean): Data =
+                Data(ForGeneration(helper, null, isEntity))
         }
     }
 
-    class IEntity private constructor(private val data: Data) : Model by data {
-        companion object {
-            const val ID_NAME = "id"
+    public class IEntity private constructor(private val data: Data) : Model by data {
+        public companion object {
+            public const val ID_NAME: String = "id"
 
-            fun create(helper: KDTypeHelper) =
+            public fun create(helper: KDTypeHelper): IEntity =
                 Data.create(helper, true).let(KDType::IEntity)
         }
     }
 
-    class Boxed private constructor(
-        private val impl: Impl,
-        val boxedType: TypeName,
-    ) : HasImpl by impl, KDType {
+    public class Boxed private constructor(
+        private val forGeneration: ForGeneration,
+        public val boxedType: TypeName,
+    ) : Generatable by forGeneration, KDType {
 
         override fun toString(): String =
             "KDType.Boxed<$boxedType>"
 
-        companion object {
-            const val PARAM_NAME = "boxed"
-            const val FABRIC_CREATE_METHOD = "create"
-            const val CREATE_METHOD = "copy"
+        public companion object {
+            public const val PARAM_NAME: String = "boxed"
+            public const val FABRIC_CREATE_METHOD: String = "create"
+            public const val CREATE_METHOD: String = "copy"
 
-            fun create(helper: KDTypeHelper, superInterfaceName: TypeName): Boxed {
+            public fun create(helper: KDTypeHelper, superInterfaceName: TypeName): Boxed {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
                 val boxed = superInterfaceName.typeArguments.first()
-                return Boxed(Impl(helper, boxed), boxed)
+                return Boxed(ForGeneration(helper, boxed), boxed)
             }
         }
     }
 
-    private class Impl(helper: KDTypeHelper, boxedType: TypeName? = null, isEntity: Boolean = false) : HasImpl {
-        override val className = helper.implClassName
+    private class ForGeneration(helper: KDTypeHelper, boxedType: TypeName? = null, isEntity: Boolean = false) : Generatable {
+        override val className = helper.toBeGenerated
         override val builder = TypeSpec.classBuilder(className).addSuperinterface(helper.typeName)
         override val parameters: List<KDParameter>
 
@@ -153,7 +151,7 @@ internal sealed interface KDType {
 
         override fun addNestedType(key: TypeName, type: KDType) {
             nestedTypes[key.toNullable(false)] = type
-            if (type is HasImpl) builder.addType(type.builder.build())
+            if (type is Generatable) builder.addType(type.builder.build())
         }
 
         override fun getNestedType(typeName: TypeName) =

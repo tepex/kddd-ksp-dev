@@ -1,9 +1,9 @@
-package ru.it_arch.clean_ddd.ksp
+package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.processing.KSPLogger
-import ru.it_arch.clean_ddd.ksp.interop.KDLogger
+import ru.it_arch.clean_ddd.ksp.model.KDLogger
 
-internal class KDLoggerImpl(private val kspLogger: KSPLogger) : KDLogger {
+public class KDLoggerImpl(private val kspLogger: KSPLogger) : KDLogger {
     override fun log(text: String) {
         kspLogger.warn(text)
     }

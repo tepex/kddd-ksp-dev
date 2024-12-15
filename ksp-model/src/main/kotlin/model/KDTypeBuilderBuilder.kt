@@ -1,8 +1,7 @@
-package ru.it_arch.clean_ddd.ksp.interop
+package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MUTABLE_LIST
 import com.squareup.kotlinpoet.MUTABLE_MAP
@@ -13,11 +12,11 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.LIST
-import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.MAP
-import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.SET
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.LIST
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.MAP
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.SET
 
-internal class KDTypeBuilderBuilder(
+public class KDTypeBuilderBuilder(
     private val holder: KDType.Model,
     private val isDsl: Boolean,
     private val logger: KDLogger
@@ -59,17 +58,17 @@ internal class KDTypeBuilderBuilder(
 
                 is KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
                     .map { KDTypeWrapper(holder.getNestedType(it), it.isNullable) }
-                    .also { addParameterForCollection(param.name, param.typeReference.collectionType, it, logger) }
+                    .also { addParameterForCollection(param.name, param.typeReference.collectionType, it) }
                     .let { false }
             }
         }
         builderBuildFun.addStatement("⇤)")
     }
 
-    fun build() =
+    public fun build(): TypeSpec =
         classBuilder.addFunction(builderBuildFun.build()).build()
 
-    fun buildFunToBuilder() =
+    public fun buildFunToBuilder(): FunSpec =
         toBuildersFun.build()
 
     private fun addParameterForElement(name: MemberName, nestedType: KDType, isNullable: Boolean) {
@@ -89,7 +88,6 @@ internal class KDTypeBuilderBuilder(
         name: MemberName,
         collectionType: KDReference.Collection.CollectionType,
         parametrized: List<KDTypeWrapper>,
-        logger: KDLogger
     ) {
         when (collectionType) {
             LIST, SET -> parametrized.first().also { wrapper ->
