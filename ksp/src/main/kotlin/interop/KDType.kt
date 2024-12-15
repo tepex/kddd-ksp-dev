@@ -12,6 +12,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
+import ru.it_arch.kddd.IEntity
 import ru.it_arch.kddd.ValueObject
 
 internal sealed interface KDType {
@@ -57,6 +58,8 @@ internal sealed interface KDType {
 
     class IEntity private constructor(private val data: Data) : Model by data {
         companion object {
+            const val ID_NAME = "id"
+
             fun create(helper: KDTypeHelper) =
                 Data.create(helper, true).let(KDType::IEntity)
         }
