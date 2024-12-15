@@ -10,6 +10,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSNode
+import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.validate
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.ClassName
@@ -27,6 +28,7 @@ import ru.it_arch.clean_ddd.ksp.interop.KDLogger
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDTypeBuilderBuilder
 import ru.it_arch.clean_ddd.ksp.interop.build
+import ru.it_arch.clean_ddd.ksp.interop.kdTypeOrNull
 import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
 
 internal class DddProcessor(
@@ -96,9 +98,24 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
         }
     }
 
-    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration): KDType? =
-        declaration.toKDType(isTesting, kdLogger)
+    private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration): KDType? {
+        fun Sequence<KSTypeReference>.find(helper: KDTypeHelper): KDType? {
+            forEach { parent ->
+                parent.toString().kdTypeOrNull(helper, parent.toTypeName())?.also { return it }
+            }
+            return null
+        }
+
+        val className = declaration.toClassNameImpl()
+        val helper = KDTypeHelper(
+            className,
+            declaration.asType(emptyList()).toTypeName(),
+            declaration.getAllProperties()
+                .map { Property(className.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
+        )
+        return declaration.superTypes.find(helper)
             .also { if (it is KDType.HasImpl) declaration.accept(visitor, it) }
+    }
 
     private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.HasImpl, Unit>() {
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.HasImpl) {
@@ -145,29 +162,4 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
             )
         }
     }
-}
-
-internal fun KSClassDeclaration.toKDType(isTesting: Boolean, logger: KDLogger): KDType? {
-    val className = toClassNameImpl()
-    val helper = KDTypeHelper(
-        className,
-        asType(emptyList()).toTypeName(),
-        getAllProperties()
-            .map { Property(className.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
-    )
-    superTypes.forEach { parent ->
-        when(parent.toString()) {
-            KDType.Sealed::class.java.simpleName -> KDType.Sealed.create(helper.typeName)
-            KDType.Data::class.java.simpleName -> KDType.Data.create(helper, false)
-            KDType.IEntity::class.java.simpleName -> KDType.IEntity.create(helper)
-            KDType.Boxed::class.java.simpleName -> {
-                runCatching { KDType.Boxed.create(helper, parent.toTypeName()) }.getOrElse {
-                    logger.log(it.message ?: "Cant parse parent type $parent")
-                    null
-                }
-            }
-            else -> null
-        }?.also { return it }
-    }
-    return null
 }

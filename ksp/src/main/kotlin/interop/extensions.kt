@@ -62,3 +62,16 @@ internal fun KDType.IEntity.build() {
             }.build().also(builder::addFunction)
         }
 }
+
+internal fun String.kdTypeOrNull(helper: KDTypeHelper, parentTypeName: TypeName) = when(this) {
+    KDType.Sealed::class.java.simpleName -> KDType.Sealed.create(helper.typeName)
+    KDType.Data::class.java.simpleName -> KDType.Data.create(helper, false)
+    KDType.IEntity::class.java.simpleName -> KDType.IEntity.create(helper)
+    KDType.Boxed::class.java.simpleName -> {
+        runCatching { KDType.Boxed.create(helper, parentTypeName) }.getOrElse {
+            //logger.log(it.message ?: "Cant parse parent type $parentTypeName")
+            null
+        }
+    }
+    else -> null
+}
