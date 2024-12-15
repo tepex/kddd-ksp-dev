@@ -22,14 +22,23 @@ internal sealed interface KDType {
         }
     }
 
-    interface Model : KDType {
+    interface Model : HasImpl {
         val builderClassName: ClassName
         val dslBuilderClassName: ClassName
     }
 
+    interface HasImpl : KDType {
+        val className: ClassName
+        val builder: TypeSpec.Builder
+        val parameters: List<KDParameter>
+
+        fun addNestedType(key: TypeName, type: KDType)
+        fun getNestedType(typeName: TypeName): KDType
+    }
+
     class Data private constructor(
-        helper: KDTypeHelper
-    ) : Impl(helper), Model {
+        private val impl: Impl
+    ) : HasImpl by impl, Model {
 
         override val builderClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
         override val dslBuilderClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
@@ -40,21 +49,23 @@ internal sealed interface KDType {
             const val BUILDER_BUILD_METHOD_NAME = "build"
             const val APPLY_BUILDER = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-            fun create(helper: KDTypeHelper) = Data(helper)
+
+            fun create(helper: KDTypeHelper, isEntity: Boolean) =
+                Data(Impl(helper, null, isEntity))
         }
     }
 
-    class IEntity private constructor(val data: Data) : Model by data {
+    class IEntity private constructor(private val data: Data) : Model by data {
         companion object {
             fun create(helper: KDTypeHelper) =
-                Data.create(helper).let(KDType::IEntity)
+                Data.create(helper, true).let(KDType::IEntity)
         }
     }
 
     class Boxed private constructor(
-        helper: KDTypeHelper,
+        private val impl: Impl,
         val boxedType: TypeName,
-    ) : Impl(helper, boxedType), KDType {
+    ) : HasImpl by impl, KDType {
 
         override fun toString(): String =
             "KDType.Boxed<$boxedType>"
@@ -68,22 +79,21 @@ internal sealed interface KDType {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
-                return Boxed(helper, superInterfaceName.typeArguments.first())
+                val boxed = superInterfaceName.typeArguments.first()
+                return Boxed(Impl(helper, boxed), boxed)
             }
         }
     }
 
-    open class Impl(helper: KDTypeHelper, boxedType: TypeName? = null) {
-        val className = helper.implClassName
-        val builder = TypeSpec.classBuilder(className)
-            .addSuperinterface(helper.typeName)
-        val parameters: List<KDParameter>
+    private class Impl(helper: KDTypeHelper, boxedType: TypeName? = null, isEntity: Boolean = false) : HasImpl {
+        override val className = helper.implClassName
+        override val builder = TypeSpec.classBuilder(className).addSuperinterface(helper.typeName)
+        override val parameters: List<KDParameter>
 
         private val nestedTypes = mutableMapOf<TypeName, KDType>()
 
         init {
             parameters = boxedType?.let {
-                //builder.addModifiers(KModifier.PRIVATE)
                 builder.addModifiers(KModifier.VALUE)
                 builder.addAnnotation(JvmInline::class)
 
@@ -129,21 +139,21 @@ internal sealed interface KDType {
                         .also(builder::addType)
                 }
             } ?: run {
-                builder
-                    .addModifiers(KModifier.DATA)
-                    .addAnnotation(ConsistentCopyVisibility::class)
+                // not Boxed
+                builder.addAnnotation(ConsistentCopyVisibility::class)
+                if (!isEntity) builder.addModifiers(KModifier.DATA)
                 helper.properties
                     .map(KDParameter::create)
                     .also(::createConstructor)
             }
         }
 
-        fun addNestedType(key: TypeName, type: KDType) {
+        override fun addNestedType(key: TypeName, type: KDType) {
             nestedTypes[key.toNullable(false)] = type
-            if (type is Impl) builder.addType(type.builder.build())
+            if (type is HasImpl) builder.addType(type.builder.build())
         }
 
-        fun getNestedType(typeName: TypeName) =
+        override fun getNestedType(typeName: TypeName) =
             nestedTypes[typeName.toNullable(false)] ?: error("Can't find implementation for $typeName in $className")
 
         private fun createConstructor(parameters: List<KDParameter>) {

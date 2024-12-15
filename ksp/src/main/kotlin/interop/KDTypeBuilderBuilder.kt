@@ -17,7 +17,7 @@ import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.MA
 import ru.it_arch.clean_ddd.ksp.interop.KDReference.Collection.CollectionType.SET
 
 internal class KDTypeBuilderBuilder(
-    private val holder: KDType.Data,
+    private val holder: KDType.Model,
     private val isDsl: Boolean,
     private val logger: KDLogger
 ) {
@@ -205,6 +205,8 @@ internal class KDTypeBuilderBuilder(
                     returnType = Unit::class.asTypeName()
                 )
             ).build()
+
+            else -> error("Impossible state")
         }
 
         /**

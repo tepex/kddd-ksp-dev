@@ -26,7 +26,6 @@ import ru.it_arch.clean_ddd.ksp.interop.KDTypeHelper.Property
 import ru.it_arch.clean_ddd.ksp.interop.KDLogger
 import ru.it_arch.clean_ddd.ksp.interop.KDType
 import ru.it_arch.clean_ddd.ksp.interop.KDTypeBuilderBuilder
-import ru.it_arch.clean_ddd.ksp.interop.asImpl
 import ru.it_arch.clean_ddd.ksp.interop.toClassNameImpl
 
 internal class DddProcessor(
@@ -75,7 +74,7 @@ This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """.trimIndent())
 
-            kdType.asImpl()?.also { it.builder.build().also(fileBuilder::addType) }
+            if (kdType is KDType.HasImpl) kdType.builder.build().also(fileBuilder::addType)
 
             /* Root DSL builder */
             ParameterSpec.builder(
@@ -98,10 +97,10 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 
     private fun createKDType(visitor: ValueObjectVisitor, declaration: KSClassDeclaration): KDType? =
         declaration.toKDType(isTesting, kdLogger)
-            .also { kdType -> kdType?.asImpl()?.also { declaration.accept(visitor, it) } }
+            .also { if (it is KDType.HasImpl) declaration.accept(visitor, it) }
 
-    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.Impl, Unit>() {
-        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Impl) {
+    private inner class ValueObjectVisitor : KSDefaultVisitor<KDType.HasImpl, Unit>() {
+        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.HasImpl) {
             classDeclaration.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .forEach { nestedDeclaration ->
@@ -111,7 +110,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
                 }
 
             /* KDType.Builder() */
-            if (data is KDType.Data) {
+            if (data is KDType.Model) {
                 KDTypeBuilderBuilder(data, false, kdLogger).also { helper ->
                     data.builder.addType(helper.build())
                     helper.buildFunToBuilder().also(data.builder::addFunction)
@@ -123,7 +122,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
             }
         }
 
-        override fun defaultHandler(node: KSNode, data: KDType.Impl) {}
+        override fun defaultHandler(node: KSNode, data: KDType.HasImpl) {}
     }
 
     private class KDContext private constructor(
@@ -156,7 +155,7 @@ internal fun KSClassDeclaration.toKDType(isTesting: Boolean, logger: KDLogger): 
     superTypes.forEach { parent ->
         when(parent.toString()) {
             KDType.Sealed::class.java.simpleName -> KDType.Sealed.create(helper.typeName)
-            KDType.Data::class.java.simpleName -> KDType.Data.create(helper)
+            KDType.Data::class.java.simpleName -> KDType.Data.create(helper, false)
             KDType.IEntity::class.java.simpleName -> KDType.IEntity.create(helper)
             KDType.Boxed::class.java.simpleName -> {
                 runCatching { KDType.Boxed.create(helper, parent.toTypeName()) }.getOrElse {
