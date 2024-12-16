@@ -19,6 +19,7 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.FILE_HEADER_STUB
 import ru.it_arch.clean_ddd.ksp.interop.KDContext
+import ru.it_arch.clean_ddd.ksp.interop.KDOptions
 import ru.it_arch.clean_ddd.ksp.interop.KDVisitor
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
@@ -26,7 +27,7 @@ import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
-    private val options: Map<String, String>,
+    private val options: KDOptions,
     private val isTesting: Boolean
 ) : SymbolProcessor {
 
@@ -39,7 +40,7 @@ internal class DddProcessor(
         logger.warn("symbols: ${symbols.toList()}")
 
         val classNameGenerator: KSClassDeclaration.() -> ClassName = {
-            ClassName.bestGuess("${simpleName.asString()}Impl")
+            options.generateClassName(simpleName.asString()).let(ClassName::bestGuess)
         }
 
         symbols.forEach { file ->
@@ -48,7 +49,7 @@ internal class DddProcessor(
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .forEach { declaration ->
                     DomainLayerVisitor(classNameGenerator).visitDeclaration(declaration)?.let { kdType ->
-                        KDContext.create(declaration, kdType, classNameGenerator).also { it.generate(file) }
+                        KDContext.create(declaration, options.getPackage(declaration), kdType, classNameGenerator).also { it.generate(file) }
                     }
                 }
         }
@@ -65,7 +66,7 @@ internal class DddProcessor(
     }
 
     private fun KDContext.generate(file: KSFile?) {
-        FileSpec.builder(packageName, toBeGenerated.simpleName).also { fileBuilder ->
+        FileSpec.builder(packageName.boxed, toBeGenerated.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
 
             (kdType as? KDType.Generatable)?.builder?.build()?.also(fileBuilder::addType)
@@ -75,7 +76,7 @@ internal class DddProcessor(
                 "block",
                 LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
             ).build().also { builderParam ->
-                FunSpec.builder(builderFunName)
+                FunSpec.builder(builderFunName.boxed)
                     .addParameter(builderParam)
                     .addStatement(
                         "return %T().apply(%N).${KDType.Data.BUILDER_BUILD_METHOD_NAME}()",

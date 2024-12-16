@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ksp)
@@ -7,10 +5,6 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
-    compilerOptions {
-        //apiVersion.set(KotlinVersion.KOTLIN_2_0)
-        //languageVersion.set(KotlinVersion.KOTLIN_2_0)
-    }
     /*
     sourceSets.all {
         languageSettings.enableLanguageFeature("ExplicitBackingFields")
@@ -24,6 +18,6 @@ dependencies {
 }
 
 ksp {
-    arg("a", "1")
-    arg("b", "2")
+    arg("subpackage", "impl")
+    arg("generatedClassNameResult", "$1Default")
 }
