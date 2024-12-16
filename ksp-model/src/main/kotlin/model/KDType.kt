@@ -33,7 +33,7 @@ public sealed interface KDType {
     }
 
     public class Data private constructor(
-        private val forGeneration: ForGeneration
+        private val forGeneration: KDTypeForGeneration
     ) : Generatable by forGeneration, Model {
 
         override val builderClassName: ClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
@@ -46,7 +46,7 @@ public sealed interface KDType {
             public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
             public fun create(helper: KDTypeHelper, isEntity: Boolean): Data =
-                Data(ForGeneration(helper, null, isEntity))
+                Data(KDTypeForGeneration(helper, null, isEntity))
         }
     }
 
@@ -99,7 +99,7 @@ public sealed interface KDType {
     }
 
     public class Boxed private constructor(
-        private val forGeneration: ForGeneration,
+        private val forGeneration: KDTypeForGeneration,
         public val boxedType: TypeName,
     ) : Generatable by forGeneration, KDType {
 
@@ -116,7 +116,7 @@ public sealed interface KDType {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
                 val boxed = superInterfaceName.typeArguments.first()
-                return Boxed(ForGeneration(helper, boxed), boxed)
+                return Boxed(KDTypeForGeneration(helper, boxed), boxed)
             }
         }
     }

@@ -49,7 +49,7 @@ public sealed interface KDReference {
     public companion object {
         public fun create(typeName: TypeName): KDReference = when(typeName) {
             is ParameterizedTypeName -> Collection.create(typeName)
-            else -> Element.create(typeName)
+            else                     -> Element.create(typeName)
         }
     }
 }

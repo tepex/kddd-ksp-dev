@@ -14,8 +14,11 @@ import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed
 import ru.it_arch.clean_ddd.ksp.model.KDType.Generatable
 import ru.it_arch.kddd.ValueObject
 
-internal class ForGeneration(helper: KDTypeHelper, boxedType: TypeName? = null, isEntity: Boolean = false) :
-    Generatable {
+internal class KDTypeForGeneration(
+    helper: KDTypeHelper,
+    boxedType: TypeName? = null,
+    isEntity: Boolean = false
+) : Generatable {
     override val className = helper.toBeGenerated
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(helper.typeName)
     override val parameters: List<KDParameter>

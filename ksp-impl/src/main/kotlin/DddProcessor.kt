@@ -95,11 +95,11 @@ internal class DddProcessor(
     ) : KDVisitor(logger, generateClassName) {
 
         override fun createBuilder(model: KDType.Model) {
-            KDTypeBuilderBuilder(model, false, kdLogger).also { helper ->
+            KDTypeBuilderBuilder.create(model, false, kdLogger).also { helper ->
                 model.builder.addType(helper.build())
                 helper.buildFunToBuilder().also(model.builder::addFunction)
             }
-            KDTypeBuilderBuilder(model, true, kdLogger).also { helper ->
+            KDTypeBuilderBuilder.create(model, true, kdLogger).also { helper ->
                 model.builder.addType(helper.build())
                 helper.buildFunToBuilder().also(model.builder::addFunction)
             }

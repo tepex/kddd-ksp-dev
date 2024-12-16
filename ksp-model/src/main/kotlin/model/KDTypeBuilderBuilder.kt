@@ -16,7 +16,7 @@ import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.LIST
 import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.MAP
 import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.SET
 
-public class KDTypeBuilderBuilder(
+public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
     private val isDsl: Boolean,
     private val logger: KDLogger
@@ -183,83 +183,6 @@ public class KDTypeBuilderBuilder(
         }.mutable().build()
     }
 
-    private companion object {
-        fun ClassName.toMutableCollection() = when (this) {
-            com.squareup.kotlinpoet.LIST -> MUTABLE_LIST
-            com.squareup.kotlinpoet.SET -> MUTABLE_SET
-            com.squareup.kotlinpoet.MAP -> MUTABLE_MAP
-            else -> error("Unsupported collection for mutable: $this")
-        }
-
-        /** BOXED or Enum or lambda */
-        fun createDslBuilderParameter(name: String, nestedType: KDTypeWrapper) = when (nestedType.type) {
-            is KDType.Sealed ->
-                ParameterSpec.builder(name, nestedType.type.typeName).build()
-            is KDType.Boxed ->
-                (nestedType.type.boxedType.takeIf { nestedType.isNullable }?.toNullable()
-                    ?: nestedType.type.boxedType).let { ParameterSpec.builder(name, it).build() }
-            is KDType.Model -> ParameterSpec.builder(
-                name,
-                LambdaTypeName.get(
-                    receiver = nestedType.type.dslBuilderClassName,
-                    returnType = Unit::class.asTypeName()
-                )
-            ).build()
-
-            else -> error("Impossible state")
-        }
-
-        /**
-         * DSL builder for param: ValueObject, param: List<ValueObject.Boxed>
-         * `fun <t>(block: <T>Impl.DslBuilder.() -> Unit) { ... }`
-         *
-         * @param kdTypeWrapper type is KDValueObject
-         **/
-        fun createDslBuilder(name: MemberName, kdTypeWrapper: KDTypeWrapper, isCollection: Boolean) =
-            createDslBuilderParameter("p1", kdTypeWrapper).let { blockParam ->
-                FunSpec.builder(name.simpleName).apply {
-                    addParameter(blockParam)
-                    val dslBuilderClassName = (kdTypeWrapper.type as KDType.Data).dslBuilderClassName
-                    if (isCollection)
-                        addStatement(
-                            "${KDType.Data.APPLY_BUILDER}.also(%N::add)",
-                            dslBuilderClassName,
-                            blockParam,
-                            name
-                        )
-                    else
-                        addStatement(
-                            "%N = ${KDType.Data.APPLY_BUILDER}",
-                            name,
-                            dslBuilderClassName,
-                            blockParam
-                        )
-                }.build()
-            }
-
-        fun createDslBuilderForMap(name: MemberName, keyType: KDTypeWrapper, valueType: KDTypeWrapper) =
-            FunSpec.builder(name.simpleName).apply {
-                val p1 = createDslBuilderParameter("p1", keyType)
-                val p2 = createDslBuilderParameter("p2", valueType)
-                addParameter(p1)
-                addParameter(p2)
-                val templateArgs = mutableListOf<Any>(name)
-                StringBuilder("%N[").apply {
-                    if (keyType.type is KDType.Data) {
-                        append(KDType.Data.APPLY_BUILDER)
-                        templateArgs += keyType.type.dslBuilderClassName
-                    } else append("%N")
-                    templateArgs += p1
-                    append("] = ")
-                    if (valueType.type is KDType.Data) {
-                        append(KDType.Data.APPLY_BUILDER)
-                        templateArgs += valueType.type.dslBuilderClassName
-                    } else append("%N")
-                    templateArgs += p2
-                }.toString().also { addStatement(it, *templateArgs.toTypedArray()) }
-            }.build()
-    }
-
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
         private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")
             .returns(builderTypeName)
@@ -334,5 +257,86 @@ public class KDTypeBuilderBuilder(
                         ?: "%T.${KDType.Boxed.FABRIC_CREATE_METHOD}($paramName)"
                     } ?: paramName
             }
+    }
+
+    public companion object {
+
+        public fun create(holder: KDType.Model, isDsl: Boolean, logger: KDLogger): KDTypeBuilderBuilder =
+            KDTypeBuilderBuilder(holder, isDsl, logger)
+
+        private fun ClassName.toMutableCollection() = when (this) {
+            com.squareup.kotlinpoet.LIST -> MUTABLE_LIST
+            com.squareup.kotlinpoet.SET -> MUTABLE_SET
+            com.squareup.kotlinpoet.MAP -> MUTABLE_MAP
+            else -> error("Unsupported collection for mutable: $this")
+        }
+
+        /** BOXED or Enum or lambda */
+        private fun createDslBuilderParameter(name: String, nestedType: KDTypeWrapper) = when (nestedType.type) {
+            is KDType.Sealed ->
+                ParameterSpec.builder(name, nestedType.type.typeName).build()
+            is KDType.Boxed ->
+                (nestedType.type.boxedType.takeIf { nestedType.isNullable }?.toNullable()
+                    ?: nestedType.type.boxedType).let { ParameterSpec.builder(name, it).build() }
+            is KDType.Model -> ParameterSpec.builder(
+                name,
+                LambdaTypeName.get(
+                    receiver = nestedType.type.dslBuilderClassName,
+                    returnType = Unit::class.asTypeName()
+                )
+            ).build()
+
+            else -> error("Impossible state")
+        }
+
+        /**
+         * DSL builder for param: ValueObject, param: List<ValueObject.Boxed>
+         * `fun <t>(block: <T>Impl.DslBuilder.() -> Unit) { ... }`
+         *
+         * @param kdTypeWrapper type is KDValueObject
+         **/
+        private fun createDslBuilder(name: MemberName, kdTypeWrapper: KDTypeWrapper, isCollection: Boolean) =
+            createDslBuilderParameter("p1", kdTypeWrapper).let { blockParam ->
+                FunSpec.builder(name.simpleName).apply {
+                    addParameter(blockParam)
+                    val dslBuilderClassName = (kdTypeWrapper.type as KDType.Data).dslBuilderClassName
+                    if (isCollection)
+                        addStatement(
+                            "${KDType.Data.APPLY_BUILDER}.also(%N::add)",
+                            dslBuilderClassName,
+                            blockParam,
+                            name
+                        )
+                    else
+                        addStatement(
+                            "%N = ${KDType.Data.APPLY_BUILDER}",
+                            name,
+                            dslBuilderClassName,
+                            blockParam
+                        )
+                }.build()
+            }
+
+        private fun createDslBuilderForMap(name: MemberName, keyType: KDTypeWrapper, valueType: KDTypeWrapper) =
+            FunSpec.builder(name.simpleName).apply {
+                val p1 = createDslBuilderParameter("p1", keyType)
+                val p2 = createDslBuilderParameter("p2", valueType)
+                addParameter(p1)
+                addParameter(p2)
+                val templateArgs = mutableListOf<Any>(name)
+                StringBuilder("%N[").apply {
+                    if (keyType.type is KDType.Data) {
+                        append(KDType.Data.APPLY_BUILDER)
+                        templateArgs += keyType.type.dslBuilderClassName
+                    } else append("%N")
+                    templateArgs += p1
+                    append("] = ")
+                    if (valueType.type is KDType.Data) {
+                        append(KDType.Data.APPLY_BUILDER)
+                        templateArgs += valueType.type.dslBuilderClassName
+                    } else append("%N")
+                    templateArgs += p2
+                }.toString().also { addStatement(it, *templateArgs.toTypedArray()) }
+            }.build()
     }
 }
