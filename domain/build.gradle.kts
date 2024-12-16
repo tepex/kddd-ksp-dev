@@ -19,5 +19,5 @@ dependencies {
 
 ksp {
     arg("subpackage", "impl")
-    arg("generatedClassNameResult", "$1Default")
+    //arg("generatedClassNameResult", "$1Default")
 }

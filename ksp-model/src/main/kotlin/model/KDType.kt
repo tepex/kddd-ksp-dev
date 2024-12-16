@@ -9,6 +9,10 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asTypeName
+import java.io.File
+import java.net.URI
+import java.util.UUID
 
 public sealed interface KDType {
     public class Sealed private constructor(public val typeName: TypeName) : KDType {
@@ -100,16 +104,32 @@ public sealed interface KDType {
 
     public class Boxed private constructor(
         private val forGeneration: KDTypeForGeneration,
-        public val boxedType: TypeName,
+        private val boxedType: TypeName,
     ) : Generatable by forGeneration, KDType {
 
         override fun toString(): String =
             "KDType.Boxed<$boxedType>"
 
+        public val isCommonType: Boolean =
+            COMMON_TYPES.containsKey(boxedType)
+
+        public val fabricMethod: String =
+            FABRIC_PARSE_METHOD.takeIf { isCommonType } ?: FABRIC_CREATE_METHOD
+
+        public val boxedTypeOrCommon: TypeName =
+            boxedType.takeUnless { isCommonType } ?: String::class.asTypeName()//.toNullable()
+
         public companion object {
             public const val PARAM_NAME: String = "boxed"
             public const val FABRIC_CREATE_METHOD: String = "create"
+            public const val FABRIC_PARSE_METHOD: String = "parse"
             public const val CREATE_METHOD: String = "copy"
+
+            public val COMMON_TYPES: Map<ClassName, String> = mapOf(
+                URI::class.asTypeName() to ".create",
+                UUID::class.asTypeName() to ".fromString",
+                File::class.asTypeName() to ""
+            )
 
             public fun create(helper: KDTypeHelper, superInterfaceName: TypeName): Boxed {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {

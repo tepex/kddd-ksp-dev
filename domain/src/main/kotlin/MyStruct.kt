@@ -6,8 +6,6 @@ import ru.it_arch.kddd.ValueObject
 import java.net.URI
 
 
-/** Операции  */
-
 public interface MyStruct : ValueObject.Data {
     public val name: Name
     public val optName: Name?
@@ -23,10 +21,10 @@ public interface MyStruct : ValueObject.Data {
     public val mapInnerValue: Map<Name, Inner>
     public val mapInnerKeyValue: Map<Inner, Inner>
     public val mapInnerKey: Map<Inner, Name>
-    //public val str: String
+    public val mapKeyUri: Map<Uri, Inner>
 
     override fun validate() {
-        require(names.size > 0) { "names size must be > 0" }
+        require(names.isNotEmpty()) { "names size must be > 0" }
     }
 
 

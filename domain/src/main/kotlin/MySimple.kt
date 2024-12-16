@@ -1,14 +1,45 @@
 package ru.it_arch.clean_ddd.domain
 
 import ru.it_arch.kddd.ValueObject
+import java.io.File
+import java.net.URI
+import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 public interface MySimple : ValueObject.Data {
     public val name: Name
+    public val uri: SomeUri
+    public val listUri: List<SomeUri>
+    public val nullableListUri: List<SomeUri?>
+    public val file: SomeFile
+    public val uuid: SomeUUID?
+    public val mapUUID: Map<Name, SomeUUID>
+    public val mapUUIDNullable: Map<Name, SomeUUID?>
+    public val mapUUIDAll: Map<SomeUUID, SomeUUID>
+    //public val kotlinUuid: SomeUuid
 
     override fun validate() {   }
 
     public interface Name : ValueObject.Boxed<String> {
-
-        override fun validate() {   }
+        override fun validate() {}
     }
+
+    public interface SomeUri : ValueObject.Boxed<URI> {
+        override fun validate() {}
+    }
+
+    public interface SomeFile : ValueObject.Boxed<File> {
+        override fun validate() {}
+    }
+
+    public interface SomeUUID : ValueObject.Boxed<UUID> {
+        override fun validate() {}
+    }
+
+    /*
+    @OptIn(ExperimentalUuidApi::class)
+    public interface SomeUuid : ValueObject.Boxed<Uuid> {
+        override fun validate() {}
+    }*/
 }

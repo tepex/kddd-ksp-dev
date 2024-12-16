@@ -27,59 +27,66 @@ internal class KDTypeForGeneration(
 
     init {
         parameters = boxedType?.let {
-            builder.addModifiers(KModifier.VALUE)
-            builder.addAnnotation(JvmInline::class)
-
-            listOf(
-                KDParameter.create(className.member(Boxed.PARAM_NAME), boxedType)
-            ).apply {
-                /* value class constructor */
-                createConstructor(this)
-
-                val boxedParam = ParameterSpec.builder(Boxed.PARAM_NAME, boxedType).build()
-                FunSpec.builder("toString")
-                    .addModifiers(KModifier.OVERRIDE)
-                    .returns(String::class)
-                    .addStatement("return %N.toString()", boxedParam)
-                    .build()
-                    .also(builder::addFunction)
-
-                /*  override fun <T : ValueObjectSingle<String>> copy(value: String): T = NameImpl(value) as T */
-
-                TypeVariableName(
-                    "T",
-                    ValueObject.Boxed::class.asTypeName().parameterizedBy(boxedType)
-                ).also { tvn ->
-                    FunSpec.builder(Boxed.CREATE_METHOD)
-                        .addTypeVariable(tvn)
-                        .addParameter(boxedParam)
-                        .addModifiers(KModifier.OVERRIDE)
-                        .addUncheckedCast()
-                        .returns(tvn)
-                        .addStatement("return %T(%N) as %T", className, boxedParam, tvn)
-                        .build()
-                        .also(builder::addFunction)
-                }
-
-                /* ValueObjectSingle companion object */
-
-                FunSpec.builder(Boxed.FABRIC_CREATE_METHOD)
-                    .addParameter(boxedParam)
-                    .returns(className)
-                    .addStatement("return %T(%N)", className, boxedParam)
-                    .build()
-                    .let { TypeSpec.companionObjectBuilder().addFunction(it).build() }
-                    .also(builder::addType)
-            }
+            boxedType(boxedType)
+            listOf(KDParameter.create(className.member(Boxed.PARAM_NAME), boxedType)).also(::createConstructor)
         } ?: run {
             // not Boxed
-            builder.addAnnotation(ConsistentCopyVisibility::class)
-            if (!isEntity) builder.addModifiers(KModifier.DATA)
+            if (!isEntity) {
+                builder.addModifiers(KModifier.DATA)
+                builder.addAnnotation(ConsistentCopyVisibility::class)
+            }
             helper.properties
                 .map(KDParameter::create)
                 .also(::createConstructor)
         }
     }
+
+    private fun boxedType(boxedType: TypeName) {
+        builder.addModifiers(KModifier.VALUE)
+        builder.addAnnotation(JvmInline::class)
+
+        val boxedParam = ParameterSpec.builder(Boxed.PARAM_NAME, boxedType).build()
+        FunSpec.builder("toString").apply {
+            addModifiers(KModifier.OVERRIDE)
+            returns(String::class)
+            addStatement("return %N.toString()", boxedParam)
+        }.build().also(builder::addFunction)
+
+        /*  override fun <T : ValueObjectSingle<String>> copy(value: String): T = NameImpl(value) as T */
+        TypeVariableName(
+            "T",
+            ValueObject.Boxed::class.asTypeName().parameterizedBy(boxedType)
+        ).also { tvn ->
+            FunSpec.builder(Boxed.CREATE_METHOD).apply {
+                addTypeVariable(tvn)
+                addParameter(boxedParam)
+                addModifiers(KModifier.OVERRIDE)
+                addUncheckedCast()
+                returns(tvn)
+                addStatement("return %T(%N) as %T", className, boxedParam, tvn)
+            }.build().also(builder::addFunction)
+        }
+
+        /* ValueObjectSingle companion object */
+        TypeSpec.companionObjectBuilder().apply {
+            FunSpec.builder(Boxed.FABRIC_CREATE_METHOD).apply {
+                addParameter(boxedParam)
+                returns(className)
+                addStatement("return %T(%N)", className, boxedParam)
+            }.build().let(::addFunction)
+            createParseFun(boxedType)?.let(::addFunction)
+        }.build().also(builder::addType)
+    }
+
+    private fun createParseFun(boxedType: TypeName): FunSpec? =
+        Boxed.COMMON_TYPES[boxedType]?.let { creator ->
+            FunSpec.builder(Boxed.FABRIC_PARSE_METHOD).apply {
+                val srcParam = ParameterSpec.builder("src", String::class).build()
+                addParameter(srcParam)
+                returns(className)
+                addStatement("return %T$creator(%N).let(::${Boxed.FABRIC_CREATE_METHOD})", boxedType, srcParam)
+            }.build()
+        }
 
     override fun addNestedType(key: TypeName, type: KDType) {
         nestedTypes[key.toNullable(false)] = type

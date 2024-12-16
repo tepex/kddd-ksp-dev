@@ -2,17 +2,19 @@ package ru.it_arch.clean_ddd.app
 
 import ru.it_arch.clean_ddd.domain.Point
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
+import ru.it_arch.clean_ddd.domain.impl.mySimple
 import ru.it_arch.clean_ddd.domain.impl.myStruct
 import ru.it_arch.clean_ddd.domain.impl.point
 import ru.it_arch.clean_ddd.domain.plus
 import ru.it_arch.clean_ddd.domain.updateCount
 import java.net.URI
+import java.util.UUID
 
 val testStruct = myStruct {
     name = "my name"
     optName = null
     count = 12
-    uri = URI.create("https://ya.ru")
+    uri = "https://ya.ru"
     names += "another name"
     nullableNames = listOf(null, null)
     indexes += 2
@@ -29,11 +31,22 @@ val testStruct = myStruct {
         innerLong = 22
         innerStr = "22"
     }
-    innerList += null
+    innerList.add(null)
 }
 
 
 fun main() {
+    val simple = mySimple {
+        name = "simple"
+        uri = "https://ya.ru"
+        file = "~/.bashrc"
+        listUri += "http://google.com"
+        nullableListUri += null
+        mapUUID = mapOf("my uuid" to UUID.randomUUID().toString())
+    }
+    println("mySimple: $simple, file: ${simple.file.boxed.canonicalFile}")
+    println()
+    println()
     println("myStruct: $testStruct")
     //val newCount = testStruct.count.inc()
     /*
