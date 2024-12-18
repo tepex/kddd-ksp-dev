@@ -23,24 +23,26 @@ public class KDTypeBuilderBuilder private constructor(
 ) {
 
     /** fun Impl.toBuilder(): Impl.Builder */
-    private val toBuildersFun =
+    private val toBuildersHolder =
         ToBuildersFun((holder.dslBuilderClassName.takeIf { isDsl } ?: holder.builderClassName), isDsl)
 
     /** class Impl.<Dsl>Builder()  */
-    private val classBuilder =
+    private val innerBuilder =
         (holder.dslBuilderClassName.takeIf { isDsl }?.let(TypeSpec::classBuilder)
             ?: TypeSpec.classBuilder(holder.builderClassName))
 
     /** fun Impl.Builder.build(): Impl */
-    private val builderBuildFun = FunSpec.builder(KDType.Data.BUILDER_BUILD_METHOD_NAME)
+    private val builderFunBuild = FunSpec.builder(KDType.Data.BUILDER_BUILD_METHOD_NAME)
         .returns(holder.className)
 
     init {
-        holder.parameters.map(::toBuilderPropertySpec).also(classBuilder::addProperties)
+        holder.parameters.map(::toBuilderPropertySpec).also(innerBuilder::addProperties)
+
+        // Check nulls statements
         holder.parameters
             .filter { it.typeReference is KDReference.Element && !it.typeReference.typeName.isNullable }
             .forEach { p ->
-                builderBuildFun
+                builderFunBuild
                     .addStatement(
                         """requireNotNull(%N) { "Property '%T.%N' is not set!" }""",
                         p.name,
@@ -61,14 +63,14 @@ public class KDTypeBuilderBuilder private constructor(
             }
         }
         funSpecStatement.final()
-        funSpecStatement.add(builderBuildFun)
+        funSpecStatement.add(builderFunBuild)
     }
 
     public fun build(): TypeSpec =
-        classBuilder.addFunction(builderBuildFun.build()).build()
+        innerBuilder.addFunction(builderFunBuild.build()).build()
 
     public fun buildFunToBuilder(): FunSpec =
-        toBuildersFun.build()
+        toBuildersHolder.build()
 
     /**
      * 1. <Dsl>Builder.build() { return T(<name> = <name>) }
@@ -80,11 +82,11 @@ public class KDTypeBuilderBuilder private constructor(
         if (nestedType is KDType.Boxed && isDsl) {
             if (isNullable) +Chunk("%N?.let(%T::${nestedType.fabricMethod}),", name, nestedType.className)
             else +Chunk("%T.${nestedType.fabricMethod}(%N!!),", nestedType.className, name)
-            toBuildersFun.element(name.simpleName, isNullable, nestedType.isParsable)
+            toBuildersHolder.element(name.simpleName, isNullable, nestedType.isParsable)
         } else {
             if (isDsl && nestedType is KDType.Data)
-                createDslBuilder(name, KDTypeWrapper(nestedType, isNullable), false).also(classBuilder::addFunction)
-            toBuildersFun.asIs(name.simpleName)
+                createDslBuilder(name, KDTypeWrapper(nestedType, isNullable), false).also(innerBuilder::addFunction)
+            toBuildersHolder.asIs(name.simpleName)
             +Chunk("%N${if (!isNullable) "!!" else ""},", name)
         }
     }
@@ -98,33 +100,33 @@ public class KDTypeBuilderBuilder private constructor(
         when (collectionType) {
             LIST, SET -> parametrized.first().also { wrapper ->
                 if (wrapper.type is KDType.Boxed && isDsl) {
-                    toBuildersFun.listOrSet(name.simpleName, wrapper.isNullable, wrapper.type.isParsable,collectionType == SET)
+                    toBuildersHolder.listOrSet(name.simpleName, wrapper.isNullable, wrapper.type.isParsable,collectionType == SET)
                     +Chunk(".map")
                     if (wrapper.isNullable ) +Chunk(" { it?.let(%T::${wrapper.type.fabricMethod}) }", wrapper.type.className)
                     else +Chunk("(%T::${wrapper.type.fabricMethod})", wrapper.type.className)
                     if (collectionType == SET) toSet()
                 } else { // !Boxed || !isDsl
                     if (isDsl) {
-                        if (wrapper.type is KDType.Model) toBuildersFun.mutableListOrSet(name.simpleName, collectionType == SET)
-                        else toBuildersFun.asIs(name.simpleName)
-                    } else toBuildersFun.asIs(name.simpleName)
+                        if (wrapper.type is KDType.Model) toBuildersHolder.mutableListOrSet(name.simpleName, collectionType == SET)
+                        else toBuildersHolder.asIs(name.simpleName)
+                    } else toBuildersHolder.asIs(name.simpleName)
 
-                    if (isDsl && wrapper.type is KDType.Data) createDslBuilder(name, wrapper, true).also(classBuilder::addFunction)
+                    if (isDsl && wrapper.type is KDType.Data) createDslBuilder(name, wrapper, true).also(innerBuilder::addFunction)
                     if (isDsl)
                         if (collectionType == LIST) toList() else toSet()
                 }
             }
             MAP -> {
                 if (parametrized.any { it.type is KDType.Data } && isDsl)
-                    createDslBuilderForMap(name, parametrized[0], parametrized[1]).also(classBuilder::addFunction)
+                    createDslBuilderForMap(name, parametrized[0], parametrized[1]).also(innerBuilder::addFunction)
 
                 if (parametrized.all { it.type !is KDType.Boxed } || !isDsl) {
                     if (isDsl) {
                         toMap()
-                        toBuildersFun.mutableMap(name.simpleName)
+                        toBuildersHolder.mutableMap(name.simpleName)
                     }
                 } else { // has BOXED && isDSL
-                    toBuildersFun.map(name.simpleName, parametrized)
+                    toBuildersHolder.map(name.simpleName, parametrized)
                     //logger.log("${name.simpleName}, parametrized: $parametrized")
                     +Chunk(".entries.associate { ")
                     +parametrized[0].toStatementTemplate("it.key")
@@ -159,15 +161,14 @@ public class KDTypeBuilderBuilder private constructor(
             is KDReference.Collection -> {
                 // ValueObject.Boxed<BOXED> -> BOXED for DSL
                 val newArgs = ref.parameterizedTypeName.typeArguments.map { paramTypeName ->
-
-                    val kdType = holder.getKDType(paramTypeName)
-                    if (kdType is KDType.Boxed && isDsl) kdType.rawTypeName.toNullable(paramTypeName.isNullable) else paramTypeName
-
-
+                    holder.getKDType(paramTypeName).let { kdType ->
+                        if (kdType is KDType.Boxed && isDsl) kdType.rawTypeName.toNullable(paramTypeName.isNullable)
+                        else paramTypeName
+                    }
                 }
                 ref.parameterizedTypeName.typeArguments
                     // Если есть хоть один ValueObject.Data, то нужно готовить mutableCollection для ф-ции DSL-build
-                    .takeIf { args -> args.any { holder.getKDType(it) is KDType.Data } && isDsl }
+                    .takeIf { args -> /*args.any { holder.getKDType(it) is KDType.Data } &&*/ isDsl }
                     ?.let {
                         ref.parameterizedTypeName.rawType
                             .toMutableCollection()
@@ -200,7 +201,7 @@ public class KDTypeBuilderBuilder private constructor(
             StringBuilder("$RET.$name = $name.map { it").apply {
                 commonTypeOrNot(isNullable, isCommonType)
                 append(" }")
-                if (isSet) append(".toSet()")
+                if (isSet) append(".toMutableSet()") else append(".toMutableList()")
             }.toString().also(builder::addStatement)
         }
 
@@ -221,19 +222,12 @@ public class KDTypeBuilderBuilder private constructor(
                 append(" to it.value")
                 boxedOrNot(parametrized[1])
                 append(" }")
-                if (!parametrized.all { it.type is KDType.Boxed }) append(".toMutableMap()")
+                /*if (!parametrized.all { it.type is KDType.Boxed })*/ append(".toMutableMap()")
             }.toString().also(builder::addStatement)
         }
 
         private fun StringBuilder.boxedOrNot(wrapper: KDTypeWrapper) {
-            if (wrapper.type is KDType.Boxed) {
-                commonTypeOrNot(wrapper.isNullable, wrapper.type.isParsable)
-                /*
-                if (wrapper.isNullable) append('?')
-                append(".${KDType.Boxed.PARAM_NAME}")
-
-                 */
-            }
+            if (wrapper.type is KDType.Boxed) commonTypeOrNot(wrapper.isNullable, wrapper.type.isParsable)
         }
 
         private fun StringBuilder.commonTypeOrNot(isNullable: Boolean, isCommonType: Boolean) {
@@ -273,7 +267,7 @@ public class KDTypeBuilderBuilder private constructor(
         }
 
         operator fun Chunk.unaryPlus() {
-            chunks.add(this)
+            chunks += this
         }
 
         operator fun plusAssign(other: FunSpecStatement) {
@@ -311,7 +305,6 @@ public class KDTypeBuilderBuilder private constructor(
     private class Chunk(val str: String, vararg params: Any) {
         val args = params.toList()
     }
-
 
     public companion object {
 
