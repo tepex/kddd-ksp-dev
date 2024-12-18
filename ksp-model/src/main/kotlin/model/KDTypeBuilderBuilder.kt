@@ -12,9 +12,9 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.LIST
-import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.MAP
-import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.SET
+import ru.it_arch.clean_ddd.ksp.model.KDParameter.KDReference.Collection.CollectionType.LIST
+import ru.it_arch.clean_ddd.ksp.model.KDParameter.KDReference.Collection.CollectionType.MAP
+import ru.it_arch.clean_ddd.ksp.model.KDParameter.KDReference.Collection.CollectionType.SET
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
@@ -40,7 +40,7 @@ public class KDTypeBuilderBuilder private constructor(
 
         // Check nulls statements
         holder.parameters
-            .filter { it.typeReference is KDReference.Element && !it.typeReference.typeName.isNullable }
+            .filter { it.typeReference is KDParameter.KDReference.Element && !it.typeReference.typeName.isNullable }
             .forEach { p ->
                 builderFunBuild
                     .addStatement(
@@ -54,10 +54,10 @@ public class KDTypeBuilderBuilder private constructor(
         val funSpecStatement = FunSpecStatement(Chunk("return %T(", holder.className))
         holder.parameters.forEach { param ->
             when (param.typeReference) {
-                is KDReference.Element -> holder.getKDType(param.typeReference.typeName)
+                is KDParameter.KDReference.Element -> holder.getKDType(param.typeReference.typeName)
                     .also { funSpecStatement.addParameterForElement(param.name, it, param.typeReference.typeName.isNullable) }
 
-                is KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
+                is KDParameter.KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
                     .map { KDTypeWrapper(holder.getKDType(it), it.isNullable) }
                     .also { funSpecStatement.addParameterForCollection(param.name, param.typeReference.collectionType, it) }
             }
@@ -93,7 +93,7 @@ public class KDTypeBuilderBuilder private constructor(
 
     private fun FunSpecStatement.addParameterForCollection(
         name: MemberName,
-        collectionType: KDReference.Collection.CollectionType,
+        collectionType: KDParameter.KDReference.Collection.CollectionType,
         parametrized: List<KDTypeWrapper>,
     ) {
         +Chunk("%N = %N", name, name)
@@ -154,11 +154,11 @@ public class KDTypeBuilderBuilder private constructor(
      * */
     private fun toBuilderPropertySpec(param: KDParameter) = param.typeReference.let { ref ->
         when (ref) {
-            is KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
+            is KDParameter.KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
                 if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
-            is KDReference.Collection -> {
+            is KDParameter.KDReference.Collection -> {
                 // ValueObject.Boxed<BOXED> -> BOXED for DSL
                 val newArgs = ref.parameterizedTypeName.typeArguments.map { paramTypeName ->
                     holder.getKDType(paramTypeName).let { kdType ->
