@@ -15,6 +15,7 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.interop.FILE_HEADER_STUB
@@ -43,12 +44,13 @@ internal class DddProcessor(
             options.generateClassName(simpleName.asString()).let(ClassName::bestGuess)
         }
 
+        val globalKDTypes = mutableMapOf<TypeName, KDType>()
         symbols.forEach { file ->
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
-                .filter { it.classKind == ClassKind.INTERFACE }
+                .filter { it.classKind == ClassKind.INTERFACE && !it.simpleName.asString().startsWith('_') }
                 .forEach { declaration ->
-                    DomainLayerVisitor(classNameGenerator).visitDeclaration(declaration)?.let { kdType ->
+                    DomainLayerVisitor(resolver, globalKDTypes, classNameGenerator).visitKDDeclaration(declaration)?.let { kdType ->
                         KDContext.create(declaration, options.getPackage(declaration), kdType, classNameGenerator).also { it.generate(file) }
                     }
                 }
@@ -91,8 +93,10 @@ internal class DddProcessor(
     }
 
     private inner class DomainLayerVisitor(
+        resolver: Resolver,
+        globalKDTypes: MutableMap<TypeName, KDType>,
         generateClassName: KSClassDeclaration.() -> ClassName
-    ) : KDVisitor(logger, generateClassName) {
+    ) : KDVisitor(resolver, globalKDTypes, logger, generateClassName) {
 
         override fun createBuilder(model: KDType.Model) {
             KDTypeBuilderBuilder.create(model, false, kdLogger).also { helper ->

@@ -52,12 +52,12 @@ public class KDTypeBuilderBuilder private constructor(
         builderBuildFun.addStatement("return %T(⇥", holder.className)
         holder.parameters.forEach { param ->
             when (param.typeReference) {
-                is KDReference.Element -> holder.getNestedType(param.typeReference.typeName)
+                is KDReference.Element -> holder.getKDType(param.typeReference.typeName)
                     .also { addParameterForElement(param.name, it, param.typeReference.typeName.isNullable) }
                     .let { it is KDType.Boxed && isDsl }
 
                 is KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
-                    .map { KDTypeWrapper(holder.getNestedType(it), it.isNullable) }
+                    .map { KDTypeWrapper(holder.getKDType(it), it.isNullable) }
                     .also { addParameterForCollection(param.name, param.typeReference.collectionType, it) }
                     .let { false }
             }
@@ -80,7 +80,7 @@ public class KDTypeBuilderBuilder private constructor(
         if (nestedType is KDType.Boxed && isDsl) {
             if (isNullable) builderBuildFun.addStatement("%N = %N?.let(%T::${nestedType.fabricMethod}),", name, name, nestedType.className)
             else builderBuildFun.addStatement("%N = %T.${nestedType.fabricMethod}(%N!!),", name, nestedType.className, name)
-            toBuildersFun.element(name.simpleName, isNullable, nestedType.isCommonType)
+            toBuildersFun.element(name.simpleName, isNullable, nestedType.isParsable)
         } else {
             if (isDsl && nestedType is KDType.Data)
                 createDslBuilder(name, KDTypeWrapper(nestedType, isNullable), false).also(classBuilder::addFunction)
@@ -98,7 +98,7 @@ public class KDTypeBuilderBuilder private constructor(
             LIST, SET -> parametrized.first().also { wrapper ->
                 //logger.warn("wrapper: $wrapper isDsl: $isDsl")
                 if (wrapper.type is KDType.Boxed && isDsl) {
-                    toBuildersFun.listOrSet(name.simpleName, wrapper.isNullable, wrapper.type.isCommonType, collectionType == SET)
+                    toBuildersFun.listOrSet(name.simpleName, wrapper.isNullable, wrapper.type.isParsable, collectionType == SET)
                     StringBuilder("%N = %N.map").apply {
                         takeIf { wrapper.isNullable }?.append(" { it?.let(%T::${wrapper.type.fabricMethod}) }")
                             ?: append("(%T::${wrapper.type.fabricMethod})")
@@ -162,19 +162,19 @@ public class KDTypeBuilderBuilder private constructor(
      * */
     private fun toBuilderPropertySpec(param: KDParameter) = param.typeReference.let { ref ->
         when (ref) {
-            is KDReference.Element -> holder.getNestedType(ref.typeName).let { nestedType ->
-                if (nestedType is KDType.Boxed && isDsl) nestedType.boxedTypeOrCommon else ref.typeName
+            is KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
+                if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
             is KDReference.Collection -> {
                 val newArgs = ref.parameterizedTypeName.typeArguments.map { param ->
-                    val voType = holder.getNestedType(param)
+                    val voType = holder.getKDType(param)
                     // ValueObject.Boxed<BOXED> -> BOXED
-                    if (voType is KDType.Boxed && isDsl) voType.boxedTypeOrCommon.toNullable(param.isNullable) else param
+                    if (voType is KDType.Boxed && isDsl) voType.rawTypeName.toNullable(param.isNullable) else param
                 }
                 ref.parameterizedTypeName.typeArguments
                     // Если есть хоть один ValueObject.Data, то нужно готовить mutableCollection для ф-ции DSL-build
-                    .takeIf { args -> args.any { holder.getNestedType(it) is KDType.Data } && isDsl }
+                    .takeIf { args -> args.any { holder.getKDType(it) is KDType.Data } && isDsl }
                     ?.let {
                         ref.parameterizedTypeName.rawType
                             .toMutableCollection()
@@ -234,7 +234,7 @@ public class KDTypeBuilderBuilder private constructor(
 
         private fun StringBuilder.boxedOrNot(wrapper: KDTypeWrapper) {
             if (wrapper.type is KDType.Boxed) {
-                commonTypeOrNot(wrapper.isNullable, wrapper.type.isCommonType)
+                commonTypeOrNot(wrapper.isNullable, wrapper.type.isParsable)
                 /*
                 if (wrapper.isNullable) append('?')
                 append(".${KDType.Boxed.PARAM_NAME}")
@@ -291,9 +291,9 @@ public class KDTypeBuilderBuilder private constructor(
         /** BOXED or Enum or lambda */
         private fun createDslBuilderParameter(name: String, nestedType: KDTypeWrapper) = when (nestedType.type) {
             is KDType.Sealed ->
-                ParameterSpec.builder(name, nestedType.type.typeName).build()
+                ParameterSpec.builder(name, nestedType.type.sourceTypeName).build()
             is KDType.Boxed ->
-                nestedType.type.boxedTypeOrCommon.let { type -> type.takeIf { nestedType.isNullable }?.toNullable() ?: type }
+                nestedType.type.rawTypeName.let { type -> type.takeIf { nestedType.isNullable }?.toNullable() ?: type }
                     .let { ParameterSpec.builder(name, it).build() }
 
             is KDType.Model -> ParameterSpec.builder(

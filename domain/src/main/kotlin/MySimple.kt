@@ -18,6 +18,9 @@ public interface MySimple : ValueObject.Data {
     public val mapUUIDNullable: Map<Name, SomeUUID?>
     public val mapUUIDAll: Map<SomeUUID, SomeUUID>
     //public val kotlinUuid: SomeUuid
+    public val myEnum: MyEnum
+    //public val point: Point
+    //public val empty: List<ValueObject>
 
     override fun validate() {   }
 
@@ -36,6 +39,17 @@ public interface MySimple : ValueObject.Data {
     public interface SomeUUID : ValueObject.Boxed<UUID> {
         override fun validate() {}
     }
+
+    public enum class MyEnum : ValueObject.Sealed {
+        A, B, C
+    }
+
+    /*
+    public interface MyContainer<A : ValueObject, B : List<ValueObject>, C : ValueObject.Boxed<String>> : ValueObject.Data {
+        public val a: A
+        public val b: B
+        public val c: C
+    }*/
 
     /*
     @OptIn(ExperimentalUuidApi::class)

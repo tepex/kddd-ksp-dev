@@ -15,15 +15,18 @@ import ru.it_arch.clean_ddd.ksp.model.KDType.Generatable
 import ru.it_arch.kddd.ValueObject
 
 internal class KDTypeForGeneration(
-    helper: KDTypeHelper,
+    private val helper: KDTypeHelper,
     boxedType: TypeName? = null,
     isEntity: Boolean = false
 ) : Generatable {
     override val className = helper.toBeGenerated
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(helper.typeName)
     override val parameters: List<KDParameter>
+    override val sourceTypeName: TypeName = helper.typeName
 
-    private val nestedTypes = mutableMapOf<TypeName, KDType>()
+    private val _nestedTypes = mutableMapOf<TypeName, KDType>()
+    override val nestedTypes: Map<TypeName, KDType>
+        get() = _nestedTypes.toMap()
 
     init {
         parameters = boxedType?.let {
@@ -79,7 +82,7 @@ internal class KDTypeForGeneration(
     }
 
     private fun createParseFun(boxedType: TypeName): FunSpec? =
-        Boxed.COMMON_TYPES[boxedType]?.let { creator ->
+        Boxed.PARSABLES[boxedType]?.let { creator ->
             FunSpec.builder(Boxed.FABRIC_PARSE_METHOD).apply {
                 val srcParam = ParameterSpec.builder("src", String::class).build()
                 addParameter(srcParam)
@@ -88,13 +91,16 @@ internal class KDTypeForGeneration(
             }.build()
         }
 
-    override fun addNestedType(key: TypeName, type: KDType) {
-        nestedTypes[key.toNullable(false)] = type
+    override fun addNestedType(type: KDType) {
+        _nestedTypes[type.sourceTypeName.toNullable(false)] = type
         if (type is Generatable) builder.addType(type.builder.build())
     }
 
-    override fun getNestedType(typeName: TypeName) =
-        nestedTypes[typeName.toNullable(false)] ?: error("Can't find implementation for $typeName in $className")
+    override fun getKDType(typeName: TypeName) =
+        if (typeName == KDType.Abstraction.TYPENAME) KDType.Abstraction
+        else _nestedTypes[typeName.toNullable(false)] ?: run {
+            error("Can't find implementation for $typeName in $className")
+        }
 
     private fun createConstructor(parameters: List<KDParameter>) {
         parameters.map { param ->

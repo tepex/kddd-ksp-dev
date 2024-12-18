@@ -8,12 +8,10 @@ public sealed interface KDReference {
     public val typeName: TypeName
 
     @JvmInline
-    public value class Element private constructor(public val boxed: TypeName) : KDReference {
-        override val typeName: TypeName
-            get() = boxed
+    public value class Element private constructor(override val typeName: TypeName) : KDReference {
 
         override fun toString(): String =
-            boxed.toString()
+            typeName.toString()
 
         public companion object {
             public fun create(typeName: TypeName): Element =

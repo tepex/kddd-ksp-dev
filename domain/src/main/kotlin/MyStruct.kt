@@ -1,7 +1,6 @@
 package ru.it_arch.clean_ddd.domain
 
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
-import ru.it_arch.kddd.Parsable
 import ru.it_arch.kddd.ValueObject
 import java.net.URI
 
@@ -53,12 +52,13 @@ public interface MyStruct : ValueObject.Data {
         }
     }
 
-    public interface Uri : ValueObject.Boxed<URI>, Parsable<URI> {
+    public interface Uri : ValueObject.Boxed<URI>/*, Parsable<URI>*/ {
 
         override fun validate() {}
 
+        /*
         override fun parse(str: String): URI =
-            URI.create(str)
+            URI.create(str)*/
     }
 
     public interface Inner : ValueObject.Data {

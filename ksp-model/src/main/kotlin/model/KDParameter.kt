@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.ksp.model
 
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
 

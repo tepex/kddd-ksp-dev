@@ -1,13 +1,15 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.Point
+import ru.it_arch.clean_ddd.domain.MySimple
+import ru.it_arch.clean_ddd.domain.impl.AbstrImpl
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
+import ru.it_arch.clean_ddd.domain.impl.abstr
 import ru.it_arch.clean_ddd.domain.impl.mySimple
 import ru.it_arch.clean_ddd.domain.impl.myStruct
 import ru.it_arch.clean_ddd.domain.impl.point
 import ru.it_arch.clean_ddd.domain.plus
-import ru.it_arch.clean_ddd.domain.updateCount
-import java.net.URI
+import ru.it_arch.clean_ddd.domain.serialize
+import ru.it_arch.clean_ddd.domain.toPoint
 import java.util.UUID
 
 val testStruct = myStruct {
@@ -34,8 +36,9 @@ val testStruct = myStruct {
     innerList.add(null)
 }
 
-
 fun main() {
+    abstr1()
+
     val simple = mySimple {
         name = "simple"
         uri = "https://ya.ru"
@@ -43,6 +46,7 @@ fun main() {
         listUri += "http://google.com"
         nullableListUri += null
         mapUUID = mapOf("my uuid" to UUID.randomUUID().toString())
+        myEnum = MySimple.MyEnum.A
     }
     println("mySimple: $simple, file: ${simple.file.boxed.canonicalFile}")
     println()
@@ -52,25 +56,41 @@ fun main() {
     /*
     val cp = testStruct.copy(count = testStruct.count + 3)
     println("myStruct copy: $cp")*/
+
     val cp = testStruct.toBuilder().apply {
         name = MyStructImpl.NameImpl.create("nnnn")
     }.build()
-    println("new struct: ${cp.updateCount()}")
+    //println("new struct: ${cp.updateCount()}")
 
     val point1 = point {
         x = 12
         y = 15
-        en = Point.MyEnum.A
+        //en = Point.MyEnum.A
     }
 
     val point2 = point {
         x = 10
         y = 20
-        en = Point.MyEnum.B
+        //en = Point.MyEnum.B
     }
     val sum = point1.plus(point2)
+    println()
+    println()
     println("point1: $point1, point2: $point2, sun: ${point1 + point2}")
+    println("point serialize: ${point1.serialize()}")
+    val point = "3:5".toPoint()
+    println("point: $point")
 }
 
 class Main {
+}
+
+
+fun abstr1() {
+    val abs = abstr {
+        name = "Abstr"
+        some = AbstrImpl.NameImpl.create("qqq")
+    }
+
+    println("abstr = $abs")
 }

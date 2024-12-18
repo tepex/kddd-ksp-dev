@@ -5,9 +5,9 @@ import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
+import ru.it_arch.clean_ddd.ksp.model.KDLogger
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper
-import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper.Property
 
 public const val FILE_HEADER_STUB: String = """
 AUTO-GENERATED FILE. DO NOT MODIFY.
@@ -15,25 +15,21 @@ This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
 
-public fun KSClassDeclaration.kdTypeOrNull(toBeGenerated: ClassName): Result<KDType?> {
-    KDTypeHelper(
-        toBeGenerated,
-        asType(emptyList()).toTypeName(),
-        getAllProperties()
-            .map { Property(toBeGenerated.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
-    ).also { helper ->
-        superTypes.forEach { parent ->
-            parent.kdTypeOrNull(helper)?.also { return it }
-        }
+public fun KSClassDeclaration.kdTypeOrNull(helper: KDTypeHelper, logger: KDLogger): Result<KDType?> {
+    superTypes.forEach { parent ->
+        /*
+        val resolved = parent.resolve()
+        logger.log("$this: parent: $resolved isKSClassDecl: ${resolved is KSClassDeclaration}")*/
+        parent.kdTypeOrNull(helper)?.also { return it }
     }
     // Not found
     return Result.success(null)
 }
 
 private fun KSTypeReference.kdTypeOrNull(helper: KDTypeHelper): Result<KDType>? = when(toString()) {
-    KDType.Sealed::class.java.simpleName -> Result.success(KDType.Sealed.create(helper.typeName))
-    KDType.Data::class.java.simpleName -> Result.success(KDType.Data.create(helper, false))
-    KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity.create(helper))
-    KDType.Boxed::class.java.simpleName -> runCatching { KDType.Boxed.create(helper, toTypeName()) }
+    KDType.Sealed::class.java.simpleName      -> Result.success(KDType.Sealed.create(helper.typeName))
+    KDType.Data::class.java.simpleName        -> Result.success(KDType.Data.create(helper, false))
+    KDType.IEntity::class.java.simpleName     -> Result.success(KDType.IEntity.create(helper))
+    KDType.Boxed::class.java.simpleName       -> runCatching { KDType.Boxed.create(helper, toTypeName()) }
     else -> null
 }

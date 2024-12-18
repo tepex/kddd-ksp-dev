@@ -10,16 +10,28 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import ru.it_arch.kddd.ValueObject
 import java.io.File
 import java.net.URI
 import java.util.UUID
 
 public sealed interface KDType {
-    public class Sealed private constructor(public val typeName: TypeName) : KDType {
+    public val sourceTypeName: TypeName
+
+    public class Sealed private constructor(
+        override val sourceTypeName: TypeName
+    ) : KDType {
         public companion object {
             public fun create(typeName: TypeName): Sealed =
                 Sealed(typeName)
         }
+    }
+
+    public data object Abstraction : KDType {
+        override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
+        val TYPENAME: TypeName = ValueObject::class.asTypeName()
+
+        override fun toString(): String = "Abstraction"
     }
 
     public interface Model : Generatable {
@@ -31,9 +43,10 @@ public sealed interface KDType {
         public val className: ClassName
         public val builder: TypeSpec.Builder
         public val parameters: List<KDParameter>
+        public val nestedTypes: Map<TypeName, KDType>
 
-        public fun addNestedType(key: TypeName, type: KDType)
-        public fun getNestedType(typeName: TypeName): KDType
+        public fun addNestedType(type: KDType)
+        public fun getKDType(typeName: TypeName): KDType
     }
 
     public class Data private constructor(
@@ -42,6 +55,9 @@ public sealed interface KDType {
 
         override val builderClassName: ClassName = ClassName.bestGuess("${className.simpleName}.$BUILDER_CLASS_NAME")
         override val dslBuilderClassName: ClassName = ClassName.bestGuess("${className.simpleName}.$DSL_BUILDER_CLASS_NAME")
+
+        override fun toString(): String =
+            "Data($className)"
 
         public companion object {
             public const val BUILDER_CLASS_NAME: String = "Builder"
@@ -55,7 +71,7 @@ public sealed interface KDType {
     }
 
     public class IEntity private constructor(private val data: Data) : Model by data {
-        public fun build() {
+        public fun generateBaseContract() {
             val paramId = parameters.find { it.name.simpleName == ID_NAME }
                 ?: error("ID parameter not found for Entity $className")
 
@@ -110,14 +126,14 @@ public sealed interface KDType {
         override fun toString(): String =
             "KDType.Boxed<$boxedType>"
 
-        public val isCommonType: Boolean =
-            COMMON_TYPES.containsKey(boxedType)
+        public val isParsable: Boolean =
+            PARSABLES.containsKey(boxedType)
 
         public val fabricMethod: String =
-            FABRIC_PARSE_METHOD.takeIf { isCommonType } ?: FABRIC_CREATE_METHOD
+            FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD
 
-        public val boxedTypeOrCommon: TypeName =
-            boxedType.takeUnless { isCommonType } ?: String::class.asTypeName()//.toNullable()
+        public val rawTypeName: TypeName =
+            boxedType.takeUnless { isParsable } ?: String::class.asTypeName()
 
         public companion object {
             public const val PARAM_NAME: String = "boxed"
@@ -125,18 +141,17 @@ public sealed interface KDType {
             public const val FABRIC_PARSE_METHOD: String = "parse"
             public const val CREATE_METHOD: String = "copy"
 
-            public val COMMON_TYPES: Map<ClassName, String> = mapOf(
+            public val PARSABLES: Map<ClassName, String> = mapOf(
                 URI::class.asTypeName() to ".create",
                 UUID::class.asTypeName() to ".fromString",
                 File::class.asTypeName() to ""
             )
 
-            public fun create(helper: KDTypeHelper, superInterfaceName: TypeName): Boxed {
+            public fun create(helper: KDTypeHelper, superInterfaceName: TypeName): Boxed = run {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
-                val boxed = superInterfaceName.typeArguments.first()
-                return Boxed(KDTypeForGeneration(helper, boxed), boxed)
+                superInterfaceName.typeArguments.first().let { Boxed(KDTypeForGeneration(helper, it), it) }
             }
         }
     }
