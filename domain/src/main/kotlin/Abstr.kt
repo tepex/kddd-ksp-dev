@@ -5,7 +5,7 @@ import ru.it_arch.kddd.ValueObject
 public interface Abstr : ValueObject.Data {
 
     public val name: Name
-    public val some: ValueObject
+    public val some: ValueObject?
 
     override fun validate() {}
 
