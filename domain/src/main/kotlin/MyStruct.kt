@@ -9,7 +9,7 @@ public interface MyStruct : ValueObject.Data {
     public val name: Name
     public val optName: Name?
     public val count: Count
-    public val uri: Uri
+    public val uri: Uri?
     public val names: List<Name>
     public val nullableNames: List<Name?>
     public val indexes: Set<Index>

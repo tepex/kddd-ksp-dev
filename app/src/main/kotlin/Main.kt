@@ -90,6 +90,7 @@ fun abstr1() {
     val abs = abstr {
         name = "Abstr"
         //some = AbstrImpl.NameImpl.create("qqq")
+        someList += AbstrImpl.NameImpl.create("qqq")
     }
 
     println("abstr = $abs")
