@@ -5,6 +5,7 @@ import ru.it_arch.kddd.ValueObject
 public interface TestCollections : ValueObject.Data {
     //public val name: Name
     public val list: List<Name>
+    //public val nestedList: List<List<Name>>
 
     override fun validate() {}
 

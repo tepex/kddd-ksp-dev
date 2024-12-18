@@ -97,7 +97,7 @@ internal class KDTypeForGeneration(
     }
 
     override fun getKDType(typeName: TypeName) = typeName.toNullable(false).let { key ->
-        if (key == KDType.Abstraction.TYPENAME) KDType.Abstraction
+        if (key == KDType.Abstraction.TYPENAME) /*KDType.Abstraction */error("${helper.typeName}: WIP. Abstraction not supported yet.")
         else _nestedTypes[key] ?: run {
             error("Can't find implementation for $key in $className")
         }

@@ -125,8 +125,7 @@ public class KDTypeBuilderBuilder private constructor(
                     }
                 } else { // has BOXED && isDSL
                     toBuildersFun.map(name.simpleName, parametrized)
-                    // BOXED: 1 or 2. Collect Impl class names for Impl.create(BOXED)
-                    logger.log("${name.simpleName}, parametrized: $parametrized")
+                    //logger.log("${name.simpleName}, parametrized: $parametrized")
                     +Chunk(".entries.associate { ")
                     +parametrized[0].toStatementTemplate("it.key")
                     +Chunk(" to ")
@@ -158,10 +157,13 @@ public class KDTypeBuilderBuilder private constructor(
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
             is KDReference.Collection -> {
-                val newArgs = ref.parameterizedTypeName.typeArguments.map { param ->
-                    val voType = holder.getKDType(param)
-                    // ValueObject.Boxed<BOXED> -> BOXED
-                    if (voType is KDType.Boxed && isDsl) voType.rawTypeName.toNullable(param.isNullable) else param
+                // ValueObject.Boxed<BOXED> -> BOXED for DSL
+                val newArgs = ref.parameterizedTypeName.typeArguments.map { paramTypeName ->
+
+                    val kdType = holder.getKDType(paramTypeName)
+                    if (kdType is KDType.Boxed && isDsl) kdType.rawTypeName.toNullable(paramTypeName.isNullable) else paramTypeName
+
+
                 }
                 ref.parameterizedTypeName.typeArguments
                     // Если есть хоть один ValueObject.Data, то нужно готовить mutableCollection для ф-ции DSL-build

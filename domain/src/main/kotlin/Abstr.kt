@@ -5,10 +5,11 @@ import ru.it_arch.kddd.ValueObject
 public interface Abstr : ValueObject.Data {
 
     public val name: Name
+    /*
     public val some: ValueObject?
     public val someList: List<ValueObject>
     public val someListNullable: List<ValueObject?>
-    public val someMap: Map<Name, ValueObject?>
+    public val someMap: Map<Name, ValueObject?>*/
     public val myEnum: MyEnum
     public val enumList: List<MyEnum>
 
