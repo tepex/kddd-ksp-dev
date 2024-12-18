@@ -96,11 +96,12 @@ internal class KDTypeForGeneration(
         if (type is Generatable) builder.addType(type.builder.build())
     }
 
-    override fun getKDType(typeName: TypeName) =
-        if (typeName == KDType.Abstraction.TYPENAME) KDType.Abstraction
-        else _nestedTypes[typeName.toNullable(false)] ?: run {
-            error("Can't find implementation for $typeName in $className")
+    override fun getKDType(typeName: TypeName) = typeName.toNullable(false).let { key ->
+        if (key == KDType.Abstraction.TYPENAME) KDType.Abstraction
+        else _nestedTypes[key] ?: run {
+            error("Can't find implementation for $key in $className")
         }
+    }
 
     private fun createConstructor(parameters: List<KDParameter>) {
         parameters.map { param ->

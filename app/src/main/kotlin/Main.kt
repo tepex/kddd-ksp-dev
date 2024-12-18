@@ -89,7 +89,7 @@ class Main {
 fun abstr1() {
     val abs = abstr {
         name = "Abstr"
-        some = AbstrImpl.NameImpl.create("qqq")
+        //some = AbstrImpl.NameImpl.create("qqq")
     }
 
     println("abstr = $abs")
