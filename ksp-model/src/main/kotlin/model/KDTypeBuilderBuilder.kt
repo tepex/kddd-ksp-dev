@@ -91,6 +91,8 @@ public class KDTypeBuilderBuilder private constructor(
         }
     }
 
+    // return constructor(...)
+    // recursive to immutable
     private fun FunSpecStatement.addParameterForCollection(
         name: MemberName,
         collectionType: KDParameter.KDReference.Collection.CollectionType,
@@ -107,13 +109,13 @@ public class KDTypeBuilderBuilder private constructor(
                     if (collectionType == SET) toSet()
                 } else { // !Boxed || !isDsl
                     if (isDsl) {
-                        if (wrapper.type is KDType.Model) toBuildersHolder.mutableListOrSet(name.simpleName, collectionType == SET)
+                        if (wrapper.type is KDType.Model) {
+                            toBuildersHolder.mutableListOrSet(name.simpleName, collectionType == SET)
+                            createDslBuilder(name, wrapper, true).also(innerBuilder::addFunction)
+                        }
                         else toBuildersHolder.asIs(name.simpleName)
-                    } else toBuildersHolder.asIs(name.simpleName)
-
-                    if (isDsl && wrapper.type is KDType.Data) createDslBuilder(name, wrapper, true).also(innerBuilder::addFunction)
-                    if (isDsl)
                         if (collectionType == LIST) toList() else toSet()
+                    } else toBuildersHolder.asIs(name.simpleName)
                 }
             }
             MAP -> {
@@ -161,6 +163,9 @@ public class KDTypeBuilderBuilder private constructor(
             is KDParameter.KDReference.Collection -> {
                 // ValueObject.Boxed<BOXED> -> BOXED for DSL
                 val newArgs = ref.parameterizedTypeName.typeArguments.map { paramTypeName ->
+
+                    // recursion search and replace
+
                     holder.getKDType(paramTypeName).let { kdType ->
                         if (kdType is KDType.Boxed && isDsl) kdType.rawTypeName.toNullable(paramTypeName.isNullable)
                         else paramTypeName
@@ -170,6 +175,9 @@ public class KDTypeBuilderBuilder private constructor(
                     // Если есть хоть один ValueObject.Data, то нужно готовить mutableCollection для ф-ции DSL-build
                     .takeIf { args -> /*args.any { holder.getKDType(it) is KDType.Data } &&*/ isDsl }
                     ?.let {
+
+                        // recursive to mutable
+
                         ref.parameterizedTypeName.rawType
                             .toMutableCollection()
                             .parameterizedBy(newArgs)
