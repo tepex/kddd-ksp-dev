@@ -55,6 +55,7 @@ public class KDTypeBuilderBuilder private constructor(
             }
         //nestedList = nestedList.map { it.map(NameImpl::create) }
 
+        /*
         val funSpecStatement = FunSpecStatement(Chunk("return %T(", holder.className))
         holder.propertyHolders.forEach { param ->
             when (param.typeReference) {
@@ -63,13 +64,11 @@ public class KDTypeBuilderBuilder private constructor(
 
                 is KDPropertyHolder.KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
                      // recursive
-                    .map { NullableHolder.create(holder, it) }
-
                     .also { funSpecStatement.addParameterForCollection(param.name, param.typeReference.collectionType, it) }
             }
         }
         funSpecStatement.final()
-        funSpecStatement.add(builderFunBuild)
+        funSpecStatement.add(builderFunBuild)*/
     }
 
     public fun build(): TypeSpec =
@@ -83,8 +82,7 @@ public class KDTypeBuilderBuilder private constructor(
      *    DslBuilder.build(): <name> = <T>.parse(<name>!!), <name> = <name>?.let(<T>::parse),
      * 2. fun to<Dsl>Builder() { <name> = <name> }
      **/
-    private fun FunSpecStatement.addParameterForElement(name: MemberName, nullableHolder: NullableHolder/*typeName: TypeName nestedType: KDType, isNullable: Boolean*/) {
-        //val nestedType = holder.getKDType(typeName)
+    private fun FunSpecStatement.addParameterForElement(name: MemberName, nullableHolder: NullableHolder) {
         +Chunk("%N = ", name)
         if (nullableHolder.type is KDType.Boxed && isDsl) {
             if (nullableHolder.isNullable) +Chunk("%N?.let(%T::${nullableHolder.type.fabricMethod}),", name, nullableHolder.type.className)
@@ -103,8 +101,11 @@ public class KDTypeBuilderBuilder private constructor(
     private fun FunSpecStatement.addParameterForCollection(
         name: MemberName,
         collectionType: KDPropertyHolder.KDReference.Collection.CollectionType,
-        parametrized: List<NullableHolder>,
+        //parametrized: List<NullableHolder>,
+        _parametrized: List<TypeName>,
     ) {
+        val parametrized = _parametrized.map { NullableHolder.create(holder, it) }
+
         +Chunk("%N = %N", name, name)
         when (collectionType) {
             LIST, SET -> parametrized.first().also { wrapper ->
@@ -186,21 +187,6 @@ public class KDTypeBuilderBuilder private constructor(
                 .toMutableCollection()
                 .parameterizedBy(newArgs)
         }
-
-/*
-        val newArgs = node.typeArguments.map { paramTypeName ->
-
-            // recursion search and replace
-
-            holder.getKDType(paramTypeName)
-                .let { if (it is KDType.Boxed) it.rawTypeName.toNullable(paramTypeName.isNullable) else paramTypeName }
-        }
-
-        // recursive to mutable
-
-        return node.rawType
-            .toMutableCollection()
-            .parameterizedBy(newArgs)*/
     }
 
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
