@@ -6,9 +6,9 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 
 @ConsistentCopyVisibility
-public data class KDParameter private constructor(
+public data class KDPropertyHolder private constructor(
     val name: MemberName,
-    public val typeReference: KDReference
+    val typeReference: KDReference
 ) {
 
     public sealed interface KDReference {
@@ -60,10 +60,10 @@ public data class KDParameter private constructor(
     }
 
     public companion object {
-        public fun create(name: MemberName, propertyTypeName: TypeName): KDParameter =
-            KDParameter(name, KDReference.create(propertyTypeName))
+        public fun create(name: MemberName, propertyTypeName: TypeName): KDPropertyHolder =
+            KDPropertyHolder(name, KDReference.create(propertyTypeName))
 
-        public fun create(property: KDTypeHelper.Property): KDParameter =
-            KDParameter(property.name, KDReference.create(property.typeName))
+        public fun create(property: KDTypeHelper.Property): KDPropertyHolder =
+            KDPropertyHolder(property.name, KDReference.create(property.typeName))
     }
 }

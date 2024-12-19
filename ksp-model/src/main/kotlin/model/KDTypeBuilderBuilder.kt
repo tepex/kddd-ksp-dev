@@ -12,9 +12,9 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.ksp.model.KDParameter.KDReference.Collection.CollectionType.LIST
-import ru.it_arch.clean_ddd.ksp.model.KDParameter.KDReference.Collection.CollectionType.MAP
-import ru.it_arch.clean_ddd.ksp.model.KDParameter.KDReference.Collection.CollectionType.SET
+import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.LIST
+import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.MAP
+import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.SET
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
@@ -36,11 +36,11 @@ public class KDTypeBuilderBuilder private constructor(
         .returns(holder.className)
 
     init {
-        holder.parameters.map(::toBuilderPropertySpec).also(innerBuilder::addProperties)
+        holder.propertyHolders.map(::toBuilderPropertySpec).also(innerBuilder::addProperties)
 
         // Check nulls statements
-        holder.parameters
-            .filter { it.typeReference is KDParameter.KDReference.Element && !it.typeReference.typeName.isNullable }
+        holder.propertyHolders
+            .filter { it.typeReference is KDPropertyHolder.KDReference.Element && !it.typeReference.typeName.isNullable }
             .forEach { p ->
                 builderFunBuild
                     .addStatement(
@@ -52,12 +52,12 @@ public class KDTypeBuilderBuilder private constructor(
             }
 
         val funSpecStatement = FunSpecStatement(Chunk("return %T(", holder.className))
-        holder.parameters.forEach { param ->
+        holder.propertyHolders.forEach { param ->
             when (param.typeReference) {
-                is KDParameter.KDReference.Element -> holder.getKDType(param.typeReference.typeName)
+                is KDPropertyHolder.KDReference.Element -> holder.getKDType(param.typeReference.typeName)
                     .also { funSpecStatement.addParameterForElement(param.name, it, param.typeReference.typeName.isNullable) }
 
-                is KDParameter.KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
+                is KDPropertyHolder.KDReference.Collection -> param.typeReference.parameterizedTypeName.typeArguments
                      // recursive
                     .map { NullableHolder(holder.getKDType(it), it.isNullable) }
 
@@ -98,7 +98,7 @@ public class KDTypeBuilderBuilder private constructor(
     // recursive to immutable
     private fun FunSpecStatement.addParameterForCollection(
         name: MemberName,
-        collectionType: KDParameter.KDReference.Collection.CollectionType,
+        collectionType: KDPropertyHolder.KDReference.Collection.CollectionType,
         parametrized: List<NullableHolder>,
     ) {
         +Chunk("%N = %N", name, name)
@@ -157,38 +157,31 @@ public class KDTypeBuilderBuilder private constructor(
      * Map<KDType{ValueObject}, KDType{ValueObjectSingle<BOXED>}> -> MutableMap<ValueObject, ValueObjectSingle<BOXED>>
      * Map<KDType{ValueObjectSingle<BOXED>, KDType{ValueObject}>  -> MutableMap<ValueObjectSingle<BOXED>, ValueObject>
      * */
-    private fun toBuilderPropertySpec(param: KDParameter) = param.typeReference.let { ref ->
+    private fun toBuilderPropertySpec(param: KDPropertyHolder) = param.typeReference.let { ref ->
         when (ref) {
-            is KDParameter.KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
+            is KDPropertyHolder.KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
                 if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
-            is KDParameter.KDReference.Collection -> {
+            is KDPropertyHolder.KDReference.Collection -> if (isDsl) {
                 // ValueObject.Boxed<BOXED> -> BOXED for DSL
                 val newArgs = ref.parameterizedTypeName.typeArguments.map { paramTypeName ->
 
-                    // recursion search and replace
+                        // recursion search and replace
 
-                    holder.getKDType(paramTypeName).let { kdType ->
-                        if (kdType is KDType.Boxed && isDsl) kdType.rawTypeName.toNullable(paramTypeName.isNullable)
-                        else paramTypeName
-                    }
+                    holder.getKDType(paramTypeName)
+                        .let { if (it is KDType.Boxed) it.rawTypeName.toNullable(paramTypeName.isNullable) else paramTypeName }
                 }
-                ref.parameterizedTypeName.typeArguments
-                    // Если есть хоть один ValueObject.Data, то нужно готовить mutableCollection для ф-ции DSL-build
-                    .takeIf { args -> /*args.any { holder.getKDType(it) is KDType.Data } &&*/ isDsl }
-                    ?.let {
 
-                        // recursive to mutable
+                // recursive to mutable
 
-                        ref.parameterizedTypeName.rawType
-                            .toMutableCollection()
-                            .parameterizedBy(newArgs)
-                            .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
-                    }
-                    ?: ref.parameterizedTypeName.copy(typeArguments = newArgs)
-                        .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.initializer) }
-            }
+                ref.parameterizedTypeName.rawType
+                    .toMutableCollection()
+                    .parameterizedBy(newArgs)
+                    .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
+
+            } else //  no dsl: as is
+                PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
         }.mutable().build()
     }
 

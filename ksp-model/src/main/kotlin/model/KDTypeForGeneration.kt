@@ -21,7 +21,7 @@ internal class KDTypeForGeneration(
 ) : Generatable {
     override val className = helper.toBeGenerated
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(helper.typeName)
-    override val parameters: List<KDParameter>
+    override val propertyHolders: List<KDPropertyHolder>
     override val sourceTypeName: TypeName = helper.typeName
 
     private val _nestedTypes = mutableMapOf<TypeName, KDType>()
@@ -29,9 +29,9 @@ internal class KDTypeForGeneration(
         get() = _nestedTypes.toMap()
 
     init {
-        parameters = boxedType?.let {
+        propertyHolders = boxedType?.let {
             boxedType(boxedType)
-            listOf(KDParameter.create(className.member(Boxed.PARAM_NAME), boxedType)).also(::createConstructor)
+            listOf(KDPropertyHolder.create(className.member(Boxed.PARAM_NAME), boxedType)).also(::createConstructor)
         } ?: run {
             // not Boxed
             if (!isEntity) {
@@ -39,7 +39,7 @@ internal class KDTypeForGeneration(
                 builder.addAnnotation(ConsistentCopyVisibility::class)
             }
             helper.properties
-                .map(KDParameter::create)
+                .map(KDPropertyHolder::create)
                 .also(::createConstructor)
         }
     }
@@ -106,7 +106,7 @@ internal class KDTypeForGeneration(
         }
     }
 
-    private fun createConstructor(parameters: List<KDParameter>) {
+    private fun createConstructor(parameters: List<KDPropertyHolder>) {
         parameters.map { param ->
             PropertySpec
                 .builder(param.name.simpleName, param.typeReference.typeName, KModifier.OVERRIDE)

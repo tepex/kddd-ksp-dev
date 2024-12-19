@@ -70,7 +70,7 @@ public sealed interface KDType {
     public interface Generatable : KDType {
         public val className: ClassName
         public val builder: TypeSpec.Builder
-        public val parameters: List<KDParameter>
+        public val propertyHolders: List<KDPropertyHolder>
         public val nestedTypes: Map<TypeName, KDType>
 
         public fun addNestedType(type: KDType)
@@ -119,7 +119,7 @@ public sealed interface KDType {
 
     public class IEntity private constructor(private val data: Data) : Model by data {
         public fun generateBaseContract() {
-            val paramId = parameters.find { it.name.simpleName == ID_NAME }
+            val paramId = propertyHolders.find { it.name.simpleName == ID_NAME }
                 ?: error("ID parameter not found for Entity $className")
 
             FunSpec.builder("hashCode").apply {
@@ -141,7 +141,7 @@ public sealed interface KDType {
 
             // override fun toString()
 
-            parameters.filter { it.name.simpleName != ID_NAME }
+            propertyHolders.filter { it.name.simpleName != ID_NAME }
                 .fold(mutableListOf<Pair<String, MemberName>>()) { acc, param -> acc.apply { add("%N: $%N" to param.name) } }
                 .let { it.joinToString { pair -> pair.first } to it.fold(mutableListOf(paramId.name)) { acc, pair ->
                     acc.apply {
