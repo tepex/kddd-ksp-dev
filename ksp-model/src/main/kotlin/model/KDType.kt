@@ -62,22 +62,6 @@ import java.util.UUID
 public sealed interface KDType {
     public val sourceTypeName: TypeName
 
-    public class Sealed private constructor(
-        override val sourceTypeName: TypeName
-    ) : KDType {
-        public companion object {
-            public fun create(typeName: TypeName): Sealed =
-                Sealed(typeName)
-        }
-    }
-
-    public data object Abstraction : KDType {
-        override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
-        val TYPENAME: TypeName = ValueObject::class.asTypeName()
-
-        override fun toString(): String = "Abstraction"
-    }
-
     public interface Model : Generatable {
         public val builderClassName: ClassName
         public val dslBuilderClassName: ClassName
@@ -91,6 +75,25 @@ public sealed interface KDType {
 
         public fun addNestedType(type: KDType)
         public fun getKDType(typeName: TypeName): KDType
+    }
+
+
+    @JvmInline
+    public value class Sealed private constructor(
+        override val sourceTypeName: TypeName
+    ) : KDType {
+
+        public companion object {
+            public fun create(typeName: TypeName): Sealed =
+                Sealed(typeName)
+        }
+    }
+
+    public data object Abstraction : KDType {
+        override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
+        val TYPENAME: TypeName = ValueObject::class.asTypeName()
+
+        override fun toString(): String = "Abstraction"
     }
 
     public class Data private constructor(
