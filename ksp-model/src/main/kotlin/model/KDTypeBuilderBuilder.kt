@@ -169,47 +169,28 @@ public class KDTypeBuilderBuilder private constructor(
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
             is KDPropertyHolder.KDReference.Collection ->
-                if (isDsl) {
-                    substituteForDsl(0, logger, ref.parameterizedTypeName)
-                        .let {PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
-                } else //  no dsl: as is
-                    PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
+                if (isDsl) substituteForDsl(ref.parameterizedTypeName)
+                    .let {PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
+                else PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
         }.mutable().build()
     }
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun substituteForDsl(recursive: Int, logger: KDLogger, node: ParameterizedTypeName, args: List<TypeName> = node.typeArguments, isSubstituted: Boolean = false): ParameterizedTypeName {
-        val sp = StringBuilder().apply {
-            for (i in 0..<recursive) append('\t')
-        }.toString()
-
-            logger.log("$sp$recursive start node: $node, args(sust: $isSubstituted): $args")
-            //logger.log("$sp  has mutable collections: ${args.any { it.isMutableCollection }}")
-            logger.log("$sp  has parametrized args: ${args.any { it is ParameterizedTypeName }}")
-            //logger.log("$sp  has Substituted in args: ${args.any { it is Substituted }}")
-
-        // no immutable Collections , but can have Mutable Collections, MyType, Raw
-        if (args.all { !it.isImmutableCollection }) { // A
-            logger.log("$sp$recursive A: args: no collections found. Substituting args($isSubstituted): $args")
-            val newArgs = args.takeIf { isSubstituted } ?: args.map(::substituteArg)
-            logger.log("$sp$recursive A: args: no collections found. Create mutable with args: $newArgs")
-            return node.rawType.toMutableCollection().parameterizedBy(newArgs)
-        } else { // B Immutable Collection or MyTypeName
-            logger.log("$sp$recursive B: args: found immutable collections or MyType")
-            val newArgs = args.map { arg ->
-                @Suppress("NON_TAIL_RECURSIVE_CALL")
-                if (arg is ParameterizedTypeName) {
-                    logger.log("$sp$recursive     B: found Parametrized arg $arg. Recursion")
-                    substituteForDsl(recursive + 1, logger, arg, arg.typeArguments)
-                } else {
-                    logger.log("$sp$recursive     B: found MyType arg $arg. Substitute")
-                    substituteArg(arg)
-                }
-            }
-            logger.log("$sp$recursive prepare for return, newArgs: $newArgs")
-            return substituteForDsl(recursive, logger, node, newArgs, true)
-        }
+    private tailrec fun substituteForDsl(node: ParameterizedTypeName, args: List<TypeName> = node.typeArguments, isSubstituted: Boolean = false): ParameterizedTypeName {
+        // no immutable Collections, but can have Mutable Collections, MyType, Raw
+        return if (args.all { !it.isImmutableCollection })  // A
+            node.rawType.toMutableCollection()
+                .parameterizedBy(args.takeIf { isSubstituted } ?: args.map(::substituteArg))
+        else // B Immutable Collection or MyTypeName
+            substituteForDsl(
+                node,
+                args.map { arg ->
+                    @Suppress("NON_TAIL_RECURSIVE_CALL")
+                    if (arg is ParameterizedTypeName) substituteForDsl(arg, arg.typeArguments) else substituteArg(arg)
+                 },
+                true
+            )
     }
 
 
