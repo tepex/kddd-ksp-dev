@@ -17,7 +17,6 @@ import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.LIST
 import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.MAP
 import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.SET
-import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder.Companion.toMutableCollection
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
@@ -163,31 +162,68 @@ public class KDTypeBuilderBuilder private constructor(
      * Map<KDType{ValueObjectSingle<BOXED>, KDType{ValueObject}>  -> MutableMap<ValueObjectSingle<BOXED>, ValueObject>
      * */
     private fun toBuilderPropertySpec(param: KDPropertyHolder) = param.typeReference.let { ref ->
+        if (param.name.simpleName == "nestedList" && isDsl) logger.log("===============")
         when (ref) {
             is KDPropertyHolder.KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
                 if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
             is KDPropertyHolder.KDReference.Collection ->
-                if (isDsl) substituteForDsl(ref.parameterizedTypeName)
-                    .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
-                else //  no dsl: as is
+                if (isDsl) {
+                    substituteForDsl(0, logger, ref.parameterizedTypeName)
+                        .let {PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
+                } else //  no dsl: as is
                     PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
         }.mutable().build()
     }
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
-    private fun substituteForDsl(node: TypeName): TypeName {
-        if (node !is ParameterizedTypeName) {
-            val ret = holder.getKDType(node)
-            return if (ret is KDType.Boxed) ret.rawTypeName.toNullable(node.isNullable) else node
-        } else {
-            val newArgs = node.typeArguments.map { arg -> substituteForDsl(arg) }
-            return node.rawType
-                .toMutableCollection()
-                .parameterizedBy(newArgs)
+    // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
+    private tailrec fun substituteForDsl(recursive: Int, logger: KDLogger, node: ParameterizedTypeName, args: List<TypeName> = node.typeArguments, isSubstituted: Boolean = false): ParameterizedTypeName {
+        val sp = StringBuilder().apply {
+            for (i in 0..<recursive) append('\t')
+        }.toString()
+
+            logger.log("$sp$recursive start node: $node, args(sust: $isSubstituted): $args")
+            //logger.log("$sp  has mutable collections: ${args.any { it.isMutableCollection }}")
+            logger.log("$sp  has parametrized args: ${args.any { it is ParameterizedTypeName }}")
+            //logger.log("$sp  has Substituted in args: ${args.any { it is Substituted }}")
+
+        // no immutable Collections , but can have Mutable Collections, MyType, Raw
+        if (args.all { !it.isImmutableCollection }) { // A
+            logger.log("$sp$recursive A: args: no collections found. Substituting args($isSubstituted): $args")
+            val newArgs = args.takeIf { isSubstituted } ?: args.map(::substituteArg)
+            logger.log("$sp$recursive A: args: no collections found. Create mutable with args: $newArgs")
+            return node.rawType.toMutableCollection().parameterizedBy(newArgs)
+        } else { // B Immutable Collection or MyTypeName
+            logger.log("$sp$recursive B: args: found immutable collections or MyType")
+            val newArgs = args.map { arg ->
+                @Suppress("NON_TAIL_RECURSIVE_CALL")
+                if (arg is ParameterizedTypeName) {
+                    logger.log("$sp$recursive     B: found Parametrized arg $arg. Recursion")
+                    substituteForDsl(recursive + 1, logger, arg, arg.typeArguments)
+                } else {
+                    logger.log("$sp$recursive     B: found MyType arg $arg. Substitute")
+                    substituteArg(arg)
+                }
+            }
+            logger.log("$sp$recursive prepare for return, newArgs: $newArgs")
+            return substituteForDsl(recursive, logger, node, newArgs, true)
         }
     }
+
+
+    private val TypeName.isImmutableCollection: Boolean
+        get() = if (this !is ParameterizedTypeName) false
+            else com.squareup.kotlinpoet.MAP == rawType || com.squareup.kotlinpoet.SET == rawType || com.squareup.kotlinpoet.LIST == rawType
+
+    private val TypeName.isMutableCollection: Boolean
+        get() = if (this !is ParameterizedTypeName) false
+            else MUTABLE_MAP == rawType || MUTABLE_SET == rawType || MUTABLE_LIST == rawType
+
+    private fun substituteArg(arg: TypeName): TypeName =
+        if (arg.isMutableCollection) arg else
+            holder.getKDType(arg).let { if (it is KDType.Boxed) it.rawTypeName.toNullable(arg.isNullable) else arg }
 
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
         private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")
