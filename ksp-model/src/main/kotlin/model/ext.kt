@@ -17,19 +17,3 @@ internal fun TypeName.toNullable(nullable: Boolean = true) =
 
 internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
     addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build())
-
-internal val TypeName.isMutableCollection: Boolean
-    get() = if (this !is ParameterizedTypeName) false
-    else MUTABLE_MAP == rawType || MUTABLE_SET == rawType || MUTABLE_LIST == rawType
-
-internal fun ClassName.toMutableCollection() = when (this) {
-    LIST -> MUTABLE_LIST
-    SET -> MUTABLE_SET
-    MAP -> MUTABLE_MAP
-    else -> error("Unsupported collection for mutable: $this")
-}
-
-internal fun TypeName.substituteArg(holder: KDType.Model): TypeName =
-    if (isMutableCollection) this else
-        holder.getKDType(this).let { if (it is KDType.Boxed) it.rawTypeName.toNullable(isNullable) else this }
-

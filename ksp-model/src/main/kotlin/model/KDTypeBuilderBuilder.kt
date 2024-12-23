@@ -3,13 +3,9 @@ package ru.it_arch.clean_ddd.ksp.model
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
-import com.squareup.kotlinpoet.MUTABLE_LIST
-import com.squareup.kotlinpoet.MUTABLE_MAP
-import com.squareup.kotlinpoet.MUTABLE_SET
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
@@ -311,31 +307,16 @@ public class KDTypeBuilderBuilder private constructor(
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun substituteForDsl(node: KDParameterized): KDParameterized {
-        // no immutable Collections, but can have Mutable Collections, MyType, Raw
-        return if (node.args.all { !it.isImmutableCollection })  // A
-            node.terminate(holder)
-        else {// B Immutable Collection or MyTypeName
-            /*
-            node.substitute { arg ->
+    private tailrec fun substituteForDsl(parametrized: KDParameterized): KDParameterized {
+        return if (parametrized.isSubstituted) parametrized.terminate()
+        else substituteForDsl(parametrized.apply {
+            substitute { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
                 if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
-                else arg.substituteArg(holder)
-            }*/
-            substituteForDsl(node.apply {
-                substitute { arg ->
-                    @Suppress("NON_TAIL_RECURSIVE_CALL")
-                    if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
-                    else arg.substituteArg(holder)
-                }
-            })
-        }
+                else holder.getKDType(arg).let { if (it is KDType.Boxed) it.rawTypeName.toNullable(arg.isNullable) else arg }
+            }
+        })
     }
-
-
-    private val TypeName.isImmutableCollection: Boolean
-        get() = if (this !is ParameterizedTypeName) false
-            else com.squareup.kotlinpoet.MAP == rawType || com.squareup.kotlinpoet.SET == rawType || com.squareup.kotlinpoet.LIST == rawType
 
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
         private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")
