@@ -9,10 +9,11 @@ internal class KDParameterized(
 ) {
     var args: List<TypeName> = node.typeArguments
 
-    var isSubstituted = false
+    private var isSubstituted = false
 
     fun substitute(transform: (TypeName) -> TypeName) {
         args = args.map(transform)
+        isSubstituted = true
     }
 
     fun terminate(holder: KDType.Model): KDParameterized =

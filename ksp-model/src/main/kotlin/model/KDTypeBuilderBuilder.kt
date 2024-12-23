@@ -317,18 +317,18 @@ public class KDTypeBuilderBuilder private constructor(
             node.terminate(holder)
         else {// B Immutable Collection or MyTypeName
             /*
-            node.args = node.args.map { arg ->
-                @Suppress("NON_TAIL_RECURSIVE_CALL")
-                if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
-                else arg.substituteArg(holder)
-            }*/
             node.substitute { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
                 if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
                 else arg.substituteArg(holder)
-            }
-            node.isSubstituted = true
-            substituteForDsl(node)
+            }*/
+            substituteForDsl(node.apply {
+                substitute { arg ->
+                    @Suppress("NON_TAIL_RECURSIVE_CALL")
+                    if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
+                    else arg.substituteArg(holder)
+                }
+            })
         }
     }
 
