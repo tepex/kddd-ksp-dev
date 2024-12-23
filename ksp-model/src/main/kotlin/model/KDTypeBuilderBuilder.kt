@@ -303,7 +303,7 @@ public class KDTypeBuilderBuilder private constructor(
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
             is KDPropertyHolder.KDReference.Collection ->
-                if (isDsl) substituteForDsl(ref.parameterizedTypeName)
+                if (isDsl) substituteForDsl(KDParameterized(ref.parameterizedTypeName)).node
                     .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
                 else PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
         }.mutable().build()
@@ -311,34 +311,31 @@ public class KDTypeBuilderBuilder private constructor(
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun substituteForDsl(node: ParameterizedTypeName, args: List<TypeName> = node.typeArguments, isSubstituted: Boolean = false): ParameterizedTypeName {
+    private tailrec fun substituteForDsl(node: KDParameterized): KDParameterized {
         // no immutable Collections, but can have Mutable Collections, MyType, Raw
-        return if (args.all { !it.isImmutableCollection })  // A
-            node.rawType.toMutableCollection()
-                .parameterizedBy(args.takeIf { isSubstituted } ?: args.map(::substituteArg))
-        else // B Immutable Collection or MyTypeName
-            substituteForDsl(
-                node,
-                args.map { arg ->
-                    @Suppress("NON_TAIL_RECURSIVE_CALL")
-                    if (arg is ParameterizedTypeName) substituteForDsl(arg, arg.typeArguments) else substituteArg(arg)
-                 },
-                true
-            )
+        return if (node.args.all { !it.isImmutableCollection })  // A
+            node.terminate(holder)
+        else {// B Immutable Collection or MyTypeName
+            /*
+            node.args = node.args.map { arg ->
+                @Suppress("NON_TAIL_RECURSIVE_CALL")
+                if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
+                else arg.substituteArg(holder)
+            }*/
+            node.substitute { arg ->
+                @Suppress("NON_TAIL_RECURSIVE_CALL")
+                if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
+                else arg.substituteArg(holder)
+            }
+            node.isSubstituted = true
+            substituteForDsl(node)
+        }
     }
 
 
     private val TypeName.isImmutableCollection: Boolean
         get() = if (this !is ParameterizedTypeName) false
             else com.squareup.kotlinpoet.MAP == rawType || com.squareup.kotlinpoet.SET == rawType || com.squareup.kotlinpoet.LIST == rawType
-
-    private val TypeName.isMutableCollection: Boolean
-        get() = if (this !is ParameterizedTypeName) false
-            else MUTABLE_MAP == rawType || MUTABLE_SET == rawType || MUTABLE_LIST == rawType
-
-    private fun substituteArg(arg: TypeName): TypeName =
-        if (arg.isMutableCollection) arg else
-            holder.getKDType(arg).let { if (it is KDType.Boxed) it.rawTypeName.toNullable(arg.isNullable) else arg }
 
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
         private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")
@@ -478,13 +475,6 @@ public class KDTypeBuilderBuilder private constructor(
 
         public fun create(holder: KDType.Model, isDsl: Boolean, logger: KDLogger): KDTypeBuilderBuilder =
             KDTypeBuilderBuilder(holder, isDsl, logger)
-
-        private fun ClassName.toMutableCollection() = when (this) {
-            com.squareup.kotlinpoet.LIST -> MUTABLE_LIST
-            com.squareup.kotlinpoet.SET -> MUTABLE_SET
-            com.squareup.kotlinpoet.MAP -> MUTABLE_MAP
-            else -> error("Unsupported collection for mutable: $this")
-        }
 
         private fun createDslInnerBuilder(innerType: KDType.Generatable): FunSpec =
             FunSpec.builder(innerType.dslBuilderFunName).apply {
