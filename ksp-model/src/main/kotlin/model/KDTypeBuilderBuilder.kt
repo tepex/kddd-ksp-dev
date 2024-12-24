@@ -13,6 +13,7 @@ import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection
 import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.LIST as KDLIST
 import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.MAP as KDMAP
 import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.SET as KDSET
@@ -53,7 +54,7 @@ public class KDTypeBuilderBuilder private constructor(
                         }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
                     }
 
-                    is KDPropertyHolder.KDReference.Collection -> {
+                    is Collection -> {
                         if (isDsl) {
                             // Builder().return
                             // funSpecStatement.addCollectionParameter(param.name, param.typeReference.collectionType, it)
@@ -61,7 +62,7 @@ public class KDTypeBuilderBuilder private constructor(
                                 funSpecStatement.processCollectionParameter(property)
 
 
-                            substituteForDsl(KDParameterized(ref.parameterizedTypeName)).node
+                            substituteForDsl(Collection.create(ref.parameterizedTypeName)).parameterizedTypeName
                                 .let {
                                     PropertySpec.builder(property.name.simpleName, it)
                                         .initializer(ref.collectionType.mutableInitializer)
@@ -120,7 +121,7 @@ public class KDTypeBuilderBuilder private constructor(
         // create collection:  .map { or .entries.associate {
         logger.log("For: ${param.typeReference.typeName}")
         logger.log("${param.name.simpleName} = ${param.name.simpleName}")
-        recursive((param.typeReference as KDPropertyHolder.KDReference.Collection).parameterizedTypeName)
+        recursive((param.typeReference as Collection).parameterizedTypeName)
         // close collection: }
         logger.log("")
         endStatement()
@@ -136,7 +137,7 @@ public class KDTypeBuilderBuilder private constructor(
     // nestedList = nestedList.map { it.map(NameImpl::create) }
     private fun FunSpecStatement.addCollectionParameter(
         name: MemberName,
-        collectionType: KDPropertyHolder.KDReference.Collection.CollectionType,
+        collectionType: Collection.CollectionType,
         _parametrized: List<TypeName>,
     ) {
 
@@ -196,7 +197,7 @@ public class KDTypeBuilderBuilder private constructor(
         val args = node.typeArguments
         // finish recursion
         if (args.all { it !is ParameterizedTypeName }) {
-            if (node.rawType == com.squareup.kotlinpoet.MAP) {
+            if (node.rawType == MAP) {
                 processMapArgs(args)
             } else {
                 processListOrSetArg(args.first()).also {
@@ -250,9 +251,13 @@ public class KDTypeBuilderBuilder private constructor(
     // ret.list = list.map { it?.boxed }.toMutableList()
     // src:
     // var nestedList:              MutableSet< MutableList<String>                    > = mutableSetOf()
+    //                              Set       < List<Name>                             >
     // var nestedList:              MutableSet< MutableList<String?>                   > = mutableSetOf()
+    //                              Set       < List<Name?>                            >
     // var nestedList:              MutableSet< MutableList<Inner>                     > = mutableSetOf()
+    //                              Set       < List<Inner>                            >
     // var nestedList:              MutableSet< MutableList<Inner?>                    > = mutableSetOf()
+    //                              Set       < List<Inner?>                           >
 
     // toBuilder: as is
 
@@ -263,8 +268,8 @@ public class KDTypeBuilderBuilder private constructor(
     // ret.nestedList = nestedList  .map      { it                                   .toMutable()   }.toMutable() // null
 
     // DslBuilder.return:
-    // nestedList = nestedList      .map      { it.map(NameImpl::create)             .toImmutable()  }.toImmutable()
-    // nestedList = nestedList      .map      { it.map { it?.let(NameImpl::create) } .toImmutable()  }.toImmutable() // null
+    // nestedList = nestedList      .map      { it.map(::name)                       .toImmutable()  }.toImmutable()
+    // nestedList = nestedList      .map      { it.map { it?.let(::name) }           .toImmutable()  }.toImmutable() // null
     // nestedList = nestedList      .map      { it                                   .toImmutable()  }.toImmutable()
     // nestedList = nestedList      .map      { it                                   .toImmutable()  }.toImmutable() // null
 
@@ -314,8 +319,8 @@ public class KDTypeBuilderBuilder private constructor(
                 if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
-            is KDPropertyHolder.KDReference.Collection ->
-                if (isDsl) substituteForDsl(KDParameterized(ref.parameterizedTypeName)).node
+            is Collection ->
+                if (isDsl) substituteForDsl(Collection.create(ref.parameterizedTypeName)).parameterizedTypeName
                     .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
                 else PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
         }.mutable().build()
@@ -323,12 +328,12 @@ public class KDTypeBuilderBuilder private constructor(
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun substituteForDsl(parametrized: KDParameterized): KDParameterized {
-        return if (parametrized.isSubstituted) parametrized.terminate()
-        else substituteForDsl(parametrized.apply {
+    private tailrec fun substituteForDsl(collection: Collection): Collection {
+        return if (collection.isSubstituted) collection.terminate()
+        else substituteForDsl(collection.apply {
             substitute { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
-                if (arg is ParameterizedTypeName) substituteForDsl(KDParameterized(arg)).node
+                if (arg is ParameterizedTypeName) substituteForDsl(Collection.create(arg)).parameterizedTypeName
                 else holder.getKDType(arg).let { if (it is KDType.Boxed) it.rawTypeName.toNullable(arg.isNullable) else arg }
             }
         })

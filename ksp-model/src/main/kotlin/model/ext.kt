@@ -17,3 +17,6 @@ internal fun TypeName.toNullable(nullable: Boolean = true) =
 
 internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
     addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build())
+
+internal val TypeName.dslBuilderFunName: String
+    get() = toString().substringAfterLast('.').replaceFirstChar { it.lowercaseChar() }

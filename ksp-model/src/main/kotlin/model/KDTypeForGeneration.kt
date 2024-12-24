@@ -29,7 +29,7 @@ internal class KDTypeForGeneration(
         get() = _nestedTypes.toMap()
 
     override val dslBuilderFunName: String =
-        sourceTypeName.toString().substringAfterLast('.').replaceFirstChar { it.lowercaseChar() }
+        sourceTypeName.dslBuilderFunName
 
     init {
         propertyHolders = boxedType?.let {
