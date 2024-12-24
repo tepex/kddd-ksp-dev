@@ -13,10 +13,10 @@ import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection
-import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.LIST as KDLIST
-import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.MAP as KDMAP
-import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.SET as KDSET
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.LIST as KDLIST
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.MAP as KDMAP
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType.SET as KDSET
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
@@ -43,7 +43,7 @@ public class KDTypeBuilderBuilder private constructor(
         holder.propertyHolders.forEach { property ->
             property.typeReference.let { ref ->
                 when (ref) {
-                    is KDPropertyHolder.KDReference.Element -> {
+                    is KDReference.Element -> {
                         // Builder().return
                         NullableHolder.create(holder, property.typeReference.typeName)
                             .also { funSpecStatement.addParameterForElement(property.name, it) }
@@ -75,7 +75,7 @@ public class KDTypeBuilderBuilder private constructor(
             }
 
             // Check nulls statements
-            if (property.typeReference  is KDPropertyHolder.KDReference.Element && !property.typeReference.typeName.isNullable )
+            if (property.typeReference  is KDReference.Element && !property.typeReference.typeName.isNullable )
                 builderFunBuild.addStatement(
                     """requireNotNull(%N) { "Property '%T.%N' is not set!" }""", property.name, holder.className, property.name)
         }
@@ -315,7 +315,7 @@ public class KDTypeBuilderBuilder private constructor(
     private fun toBuilderPropertySpec(param: KDPropertyHolder) = param.typeReference.let { ref ->
         if (param.name.simpleName == "nestedList" && isDsl) logger.log("===============")
         when (ref) {
-            is KDPropertyHolder.KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
+            is KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
                 if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
