@@ -2,17 +2,20 @@ package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.LambdaTypeName
+import com.squareup.kotlinpoet.MAP
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.LIST
-import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.MAP
-import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.SET
+import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.LIST as KDLIST
+import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.MAP as KDMAP
+import ru.it_arch.clean_ddd.ksp.model.KDPropertyHolder.KDReference.Collection.CollectionType.SET as KDSET
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
@@ -34,7 +37,47 @@ public class KDTypeBuilderBuilder private constructor(
         .returns(holder.className)
 
     init {
-        holder.propertyHolders.map(::toBuilderPropertySpec).also(innerBuilder::addProperties)
+        val funSpecStatement = FunSpecStatement(Chunk("return %T(", holder.className))
+        //holder.propertyHolders.map(::toBuilderPropertySpec).also(innerBuilder::addProperties)
+        holder.propertyHolders.forEach { property ->
+            property.typeReference.let { ref ->
+                when (ref) {
+                    is KDPropertyHolder.KDReference.Element -> {
+                        // Builder().return
+                        NullableHolder.create(holder, property.typeReference.typeName)
+                            .also { funSpecStatement.addParameterForElement(property.name, it) }
+
+                        // return new PropertySpec
+                        holder.getKDType(ref.typeName).let { nestedType ->
+                            if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
+                        }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
+                    }
+
+                    is KDPropertyHolder.KDReference.Collection -> {
+                        if (isDsl) {
+                            // Builder().return
+                            // funSpecStatement.addCollectionParameter(param.name, param.typeReference.collectionType, it)
+                            if (holder.className.simpleName == "AATestCollectionsImpl")
+                                funSpecStatement.processCollectionParameter(property)
+
+
+                            substituteForDsl(KDParameterized(ref.parameterizedTypeName)).node
+                                .let {
+                                    PropertySpec.builder(property.name.simpleName, it)
+                                        .initializer(ref.collectionType.mutableInitializer)
+                                }
+                            // return new PropertySpec
+                        } else PropertySpec.builder(property.name.simpleName, ref.parameterizedTypeName)
+                            .initializer(ref.collectionType.initializer)
+                    }
+                }.mutable().build().also(innerBuilder::addProperty)
+            }
+
+            // Check nulls statements
+            if (property.typeReference  is KDPropertyHolder.KDReference.Element && !property.typeReference.typeName.isNullable )
+                builderFunBuild.addStatement(
+                    """requireNotNull(%N) { "Property '%T.%N' is not set!" }""", property.name, holder.className, property.name)
+        }
 
         if (isDsl) {
             logger.log("Processing: ${holder.className.simpleName}")
@@ -42,34 +85,6 @@ public class KDTypeBuilderBuilder private constructor(
                 .forEach { createDslInnerBuilder(it).also(innerBuilder::addFunction) }
         }
 
-        // Check nulls statements
-        holder.propertyHolders
-            .filter { it.typeReference is KDPropertyHolder.KDReference.Element && !it.typeReference.typeName.isNullable }
-            .forEach { p ->
-                builderFunBuild
-                    .addStatement(
-                        """requireNotNull(%N) { "Property '%T.%N' is not set!" }""",
-                        p.name,
-                        holder.className,
-                        p.name
-                    )
-            }
-
-        val funSpecStatement = FunSpecStatement(Chunk("return %T(", holder.className))
-        holder.propertyHolders.forEach { param ->
-            when (param.typeReference) {
-                is KDPropertyHolder.KDReference.Element -> NullableHolder.create(holder, param.typeReference.typeName)
-                    .also { funSpecStatement.addParameterForElement(param.name, it) }
-
-                is KDPropertyHolder.KDReference.Collection -> {
-                    //param.typeReference.parameterizedTypeName.typeArguments
-                    // recursive
-                    //.also { funSpecStatement.addCollectionParameter(param.name, param.typeReference.collectionType, it) }
-                    if (holder.className.simpleName == "AATestCollectionsImpl" && isDsl)
-                        funSpecStatement.processCollectionParameter(param)
-                }
-            }
-        }
         funSpecStatement.final()
         funSpecStatement.add(builderFunBuild)
     }
@@ -127,14 +142,15 @@ public class KDTypeBuilderBuilder private constructor(
 
         +Chunk("%N = %N", name, name)
         when (collectionType) {
-            LIST, SET -> {
+            KDLIST, KDSET -> {
                 val nullableHolder = NullableHolder.create(holder, _parametrized.first())
 
                 if (isDsl) {
                     if (nullableHolder.type is KDType.Boxed) {
                         +Chunk(".map")
                         // recursive
-                        toBuildersHolder.listOrSet(name.simpleName, nullableHolder.isNullable, nullableHolder.type.isParsable,collectionType == SET)
+                        toBuildersHolder
+                            .listOrSet(name.simpleName, nullableHolder.isNullable, nullableHolder.type.isParsable,collectionType == KDSET)
 
                         // recursive
                         if (nullableHolder.isNullable)
@@ -142,17 +158,17 @@ public class KDTypeBuilderBuilder private constructor(
                         else +Chunk("(%T::${nullableHolder.type.fabricMethod})", nullableHolder.type.className)
 
                     } else if (nullableHolder.type is KDType.Model) {
-                        toBuildersHolder.mutableListOrSet(name.simpleName, collectionType == SET)
+                        toBuildersHolder.mutableListOrSet(name.simpleName, collectionType == KDSET)
                         createDslBuilderFunction(name, nullableHolder, true).also(innerBuilder::addFunction)
                     } else toBuildersHolder.asIs(name.simpleName)
 
-                    if (collectionType == LIST) toList() else toSet()
+                    if (collectionType == KDLIST) toList() else toSet()
 
                 } else { // !Boxed
                     toBuildersHolder.asIs(name.simpleName) // !isDsl
                 }
             }
-            MAP -> {
+            KDMAP -> {
                 val parametrized = _parametrized.map { NullableHolder.create(holder, it) }
                 if (parametrized.any { it.type is KDType.Data } && isDsl)
                     createDslBuilderForMap(name, parametrized[0], parametrized[1]).also(innerBuilder::addFunction)
@@ -225,9 +241,9 @@ public class KDTypeBuilderBuilder private constructor(
     }
 
     private fun ParameterizedTypeName.toImmutable() = when(rawType) {
-        com.squareup.kotlinpoet.MAP -> ".toMap()"
-        com.squareup.kotlinpoet.LIST -> ".toList()"
-        com.squareup.kotlinpoet.SET -> ".toSet()"
+        MAP -> ".toMap()"
+        LIST -> ".toList()"
+        SET -> ".toSet()"
         else -> error("Unsupported collection type: $rawType")
     }
 
@@ -511,19 +527,9 @@ public class KDTypeBuilderBuilder private constructor(
                     addParameter(blockParam)
                     val dslBuilderClassName = (nullableHolder.type as KDType.Data).dslBuilderClassName
                     if (isCollection)
-                        addStatement(
-                            "${KDType.Data.APPLY_BUILDER}.also(%N::add)",
-                            dslBuilderClassName,
-                            blockParam,
-                            name
-                        )
+                        addStatement("${KDType.Data.APPLY_BUILDER}.also(%N::add)", dslBuilderClassName, blockParam, name)
                     else
-                        addStatement(
-                            "%N = ${KDType.Data.APPLY_BUILDER}",
-                            name,
-                            dslBuilderClassName,
-                            blockParam
-                        )
+                        addStatement("%N = ${KDType.Data.APPLY_BUILDER}", name, dslBuilderClassName, blockParam)
                 }.build()
             }
 
