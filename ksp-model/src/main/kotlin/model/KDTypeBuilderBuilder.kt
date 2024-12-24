@@ -333,8 +333,7 @@ public class KDTypeBuilderBuilder private constructor(
         else substituteForDsl(collection.apply {
             substitute { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
-                if (arg is ParameterizedTypeName) substituteForDsl(Collection.create(arg)).parameterizedTypeName
-                else holder.getKDType(arg).let { if (it is KDType.Boxed) it.rawTypeName.toNullable(arg.isNullable) else arg }
+                arg.toKDReference(holder).let { if (it is Collection) substituteForDsl(it) else it }
             }
         })
     }

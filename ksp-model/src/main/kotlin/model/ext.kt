@@ -11,6 +11,7 @@ import com.squareup.kotlinpoet.MUTABLE_SET
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection
 
 internal fun TypeName.toNullable(nullable: Boolean = true) =
     if (isNullable != nullable) copy(nullable = nullable) else this
@@ -20,3 +21,10 @@ internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
 
 internal val TypeName.dslBuilderFunName: String
     get() = toString().substringAfterLast('.').replaceFirstChar { it.lowercaseChar() }
+
+internal fun TypeName.toKDReference(holder: KDType.Model): KDReference = when(this) {
+    is ParameterizedTypeName -> Collection.create(this)
+    else -> holder.getKDType(this)
+        .let { (if (it is KDType.Boxed) it.rawTypeName.toNullable(isNullable) else this) }
+        .let(KDReference.Element::create)
+}

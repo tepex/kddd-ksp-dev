@@ -33,7 +33,7 @@ public sealed interface KDReference {
     ) : KDReference {
         override val typeName: TypeName = parameterizedTypeName
 
-        private var args = parameterizedTypeName.typeArguments
+        private lateinit var args: List<KDReference>
         private val unDslArgs = mutableListOf<String>()
         private lateinit var unDslMapper: String
 
@@ -63,8 +63,8 @@ public sealed interface KDReference {
                        MutableMap  <String, MutableMap<String, Inner>>                           -> | <name>.entries.associate {   name(it.key)        to       it.value   .entries.associate { name(it.key) to it.value }  },
 
          */
-        internal fun substitute(transform: (TypeName) -> TypeName) {
-            args = args.map { arg ->
+        internal fun substitute(transform: (TypeName) -> KDReference) {
+            args = parameterizedTypeName.typeArguments.map { arg ->
                 /*
                 if (arg is ParameterizedTypeName) {
 
@@ -79,9 +79,16 @@ public sealed interface KDReference {
         }
 
         internal fun terminate(): Collection =
-            parameterizedTypeName.rawType.toMutableCollection().parameterizedBy(args)
+            parameterizedTypeName.rawType.toMutableCollection()
                 .let { copy(parameterizedTypeName = it) }
                 .also { _isSubstituted = true }
+
+        private fun ClassName.toMutableCollection() = when(this) {
+            LIST -> MUTABLE_LIST
+            SET -> MUTABLE_SET
+            MAP -> MUTABLE_MAP
+            else -> error("Unsupported collection for mutable: $this")
+        }.parameterizedBy(args.map { it.typeName })
 
         public enum class CollectionType(
             public val className: ClassName,
@@ -98,13 +105,6 @@ public sealed interface KDReference {
                 .find { it.className == typeName.rawType }
                 ?.let { Collection(typeName, it) }
                 ?: error("Not supported collection type $typeName")
-
-            private fun ClassName.toMutableCollection() = when (this) {
-                LIST -> MUTABLE_LIST
-                SET -> MUTABLE_SET
-                MAP -> MUTABLE_MAP
-                else -> error("Unsupported collection for mutable: $this")
-            }
         }
     }
 
