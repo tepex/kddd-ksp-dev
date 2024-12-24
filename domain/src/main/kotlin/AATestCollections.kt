@@ -8,10 +8,12 @@ public interface AATestCollections : ValueObject.Data {
     public val list: List<Name?>
     public val _set: Set<Name>
     public val listInner: List<Inner?>
+    public val nestedList: Set<List<Inner?>>
+    public val nestedList1: Set<List<Name>>
     public val simpleMap: Map<Name, Inner>
     public val simpleMap1: Map<Name, Name?>
     /*
-    public val nestedList: Set<List<Inner?>>
+
 
     public val nestedList: Set<List<Inner?>>
     public val nestedNestedList: List<List<List<List<Name?>>>>

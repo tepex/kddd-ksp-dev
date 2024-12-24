@@ -24,7 +24,5 @@ internal val TypeName.dslBuilderFunName: String
 
 internal fun TypeName.toKDReference(holder: KDType.Model): KDReference = when(this) {
     is ParameterizedTypeName -> Collection.create(this)
-    else -> holder.getKDType(this)
-        .let { (if (it is KDType.Boxed) it.rawTypeName.toNullable(isNullable) else this) }
-        .let(KDReference.Element::create)
+    else -> holder.getKDType(this).let(KDReference.Element::create)
 }

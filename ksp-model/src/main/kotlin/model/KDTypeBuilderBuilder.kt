@@ -58,15 +58,21 @@ public class KDTypeBuilderBuilder private constructor(
                         if (isDsl) {
                             // Builder().return
                             // funSpecStatement.addCollectionParameter(param.name, param.typeReference.collectionType, it)
+                            /*
                             if (holder.className.simpleName == "AATestCollectionsImpl")
-                                funSpecStatement.processCollectionParameter(property)
+                                funSpecStatement.processCollectionParameter(property)*/
 
+                            //logger.log("processing property: $property")
+                            substituteForDsl(Collection.create(ref.parameterizedTypeName)).let { collection ->
+                                val ret = collection.parameterizedTypeName
+                                    .let { PropertySpec.builder(property.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
 
-                            substituteForDsl(Collection.create(ref.parameterizedTypeName)).parameterizedTypeName
-                                .let {
-                                    PropertySpec.builder(property.name.simpleName, it)
-                                        .initializer(ref.collectionType.mutableInitializer)
-                                }
+                                // !!!
+                                // return from Builder.build() { return T(...) }
+                                funSpecStatement.processCollectionParameter(property, collection)
+
+                                ret
+                            }
                             // return new PropertySpec
                         } else PropertySpec.builder(property.name.simpleName, ref.parameterizedTypeName)
                             .initializer(ref.collectionType.initializer)
@@ -115,7 +121,7 @@ public class KDTypeBuilderBuilder private constructor(
         }
     }
 
-    private fun FunSpecStatement.processCollectionParameter(param: KDPropertyHolder) {
+    private fun FunSpecStatement.processCollectionParameterOld(param: KDPropertyHolder) {
         +Chunk("%N = %N", param.name, param.name)
         // recursive
         // create collection:  .map { or .entries.associate {
@@ -126,6 +132,16 @@ public class KDTypeBuilderBuilder private constructor(
         logger.log("")
         endStatement()
     }
+
+    private fun FunSpecStatement.processCollectionParameter(property: KDPropertyHolder, collection: Collection) {
+        logger.log("For: ${property.name.simpleName}: ${property.typeReference.typeName}")
+        logger.log("    return: ${property.name.simpleName}${collection.unDslMapper}")
+
+
+        +Chunk("%N = %N", property.name, property.name)
+        endStatement()
+    }
+
 
     // return constructor(...)
     // toBuilder() {
@@ -320,8 +336,13 @@ public class KDTypeBuilderBuilder private constructor(
             }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
 
             is Collection ->
-                if (isDsl) substituteForDsl(Collection.create(ref.parameterizedTypeName)).parameterizedTypeName
-                    .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
+                if (isDsl) {
+                    substituteForDsl(Collection.create(ref.parameterizedTypeName)).let { collection ->
+                        logger.log("    return: ${param.name}.${collection.unDslMapper}")
+                        collection.parameterizedTypeName
+                            .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
+                    }
+                }
                 else PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
         }.mutable().build()
     }
