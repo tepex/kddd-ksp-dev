@@ -136,55 +136,6 @@ public sealed interface KDReference {
             }.toString()
         }
 
-        /*
-                                                                                          | init                       | arg[0]                     | arg[1]                                                | finish
-list:        List        <Name?>
-             MutableList <String?>                                                     -> | <name>.map {                 it?.let(::name)                                                                    | }.toList(),
-                                                                                       -> | <name>.map {                 it?.boxed                                                                          | }.toMutableList()
-_set:        Set         <Name>
-             MutableSet  <String>                                                      -> | <name>.map {                 name(it)                                                                           | }.toSet(),
-                                                                                       -> | <name>.map {                 it.boxed                                                                           | }.toMutableSet()
-listInner:   List        <Inner?>
-             MutableList <Inner?>                                                      -> | <name>                       empty                                                                              | .toList()
-                                                                                       -> | <name>                       empty                                                                              | .toMutableList()
-nestedList:  Set         <List<Inner?>>
-             MutableSet  <MutableList<Inner?>>                                         -> | <name>.map {                 it                      .toList()                                                  | }.toSet(),
-                                                                                       -> | <name>.map {                 it                      .toMutableList()                                           | }.toMutableSet()
-nestedList1: Set         <List<Name>>
-             MutableSet  <MutableList<String>>                                         -> | <name>.map {                 it     .map { name(it) }.toList()                                                  | }.toSet(),
-                                                                                       -> | <name>.map {                 it     .map { it.boxed }.toMutableList()                                           | }.toMutableSet()
-                                                                                          | init                       | arg[0]                     | arg[1]                                                     | finish
-simpleMap:   Map         <Name, Inner>
-             MutableMap  <String, Inner>                                               -> | <name>.entries.associate {   name(it.key)          to       it.value                                                    },
-                                                                                       -> | <name>.entries.associate {   it.key.boxed          to       it.value                                                    }.toMutableMap()
-simpleMap1:  Map         <Name, Name?>
-             MutableMap  <String, String?>                                             -> | <name>.entries.associate {   name(it.key)          to       it.value?.let(::name)                                                      },
-                                                                                       -> | <name>.entries.associate {   it.key.boxed          to       it.value?.boxed                                                            }.toMutableMap()
-nestedMap:   Map         <Name?, List<Name>>                                                                                                                          | arg[1][0]
-             MutableMap  <String?, MutableList<String>>                                -> | <name>.entries.associate {   it.key?.let(::name)   to       it.value   .map { name(it) }                                               },
-                                                                                       -> | <name>.entries.associate {   it.key?.boxed         to       it.value   .map { it.boxed }.toMutableList()                               }.toMutableMap()
-nestedMaps:  Map         <Map<Inner, Inner?>, List<List<Inner?>>>
-             MutableMap  <MutableMap<Inner, Inner?>, MutableList<MutableList<Inner?>>> -> | <name>.entries.associate {   it.key.toMap()        to       it.value   .map { it.toList() }                                            },
-                                                                                       -> | <name>.entries.associate {   it.key.toMutableMap() to       it.value   .map { it.toMutableList() }.toMutableList()                     }.toMutableMap()
-nestedMaps1: Map         <Name, Map<Name, Inner>>                                                                                                                                    | arg[1][0]       arg[1][1]
-             MutableMap  <String, MutableMap<String, Inner>>                           -> | <name>.entries.associate {   name(it.key)          to       it.value   .entries.associate { name(it.key) to it.value }                 },
-                                                                                       -> | <name>.entries.associate {   it.key.boxed          to       it.value   .entries.associate { it.key.boxed to it.value }.toMutableMap()  }.toMutableMap()
-
-    ret.list = list.map { it?.boxed }.toMutableList()
-    ret._set = _set.map { it.boxed }.toMutableSet()
-    ret.listInner = listInner.toMutableList()
-
-    ret.nestedList = nestedList.map { it.toMutableList() }.toMutableSet()
-    ret.nestedList1 = nestedList1.map { it.map { it.boxed }.toMutableList() }.toMutableSet()
-
-    ret.simpleMap = simpleMap.entries.associate { it.key.boxed to it.value }.toMutableMap()
-    ret.simpleMap1 = simpleMap1.entries.associate { it.key.boxed to it.value?.boxed }.toMutableMap()
-    ret.nestedMap = nestedMap.entries.associate { it.key?.boxed to it.value.map { it.boxed }.toMutableList() }.toMutableMap()
-    ret.nestedMaps = nestedMaps.entries.associate { it.key.toMutableMap() to it.value.map { it.toMutableList() }.toMutableList() }.toMutableMap()
-    ret.nestedMaps1 = nestedMaps1.entries.associate { it.key.boxed to it.value.entries.associate { it.key.boxed to it.value }.toMutableMap() }.toMutableMap()
-
-         */
-
         override fun substitute(): Parameterized =
             parameterizedTypeName.rawType.toMutableCollection()
                 .let { newType -> copy(parameterizedTypeName = newType).also {

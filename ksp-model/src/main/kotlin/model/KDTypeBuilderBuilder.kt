@@ -84,7 +84,8 @@ public class KDTypeBuilderBuilder private constructor(
             toBuildersHolder.element(name.simpleName, ref.typeName.isNullable, boxedType.isParsable)
         } else {
             if (isDsl && ref.kdType is KDType.Data)
-                createDslBuilderFunction(name, ref, false).also(innerBuilder::addFunction)
+                // <type-name>(): KDType {}
+                //createDslBuilderFunction(name, ref, false).also(innerBuilder::addFunction)
             toBuildersHolder.asIs(name.simpleName)
             +Chunk("%N${if (!ref.typeName.isNullable) "!!" else ""},", name)
         }
@@ -105,124 +106,10 @@ public class KDTypeBuilderBuilder private constructor(
         else {
             +Chunk("%N = %N", name, name)
             endStatement()
+            // toBuilder()
+            toBuildersHolder.asIs(name.simpleName)
             PropertySpec.builder(name.simpleName, collection.parameterizedTypeName).initializer(collection.collectionType.initializer)
         }
-
-
-    // return constructor(...)
-    // toBuilder() {
-    // ret.<name> = <name>
-    // ret.list = list.map { it?.boxed }.toMutableList()
-    // }
-
-    // recursive to immutable
-    // nestedList = nestedList.map { it.map(NameImpl::create) }
-    /*
-    private fun FunSpecStatement.addCollectionParameter(
-        name: MemberName,
-        collectionType: Collection.CollectionType,
-        _parametrized: List<TypeName>,
-    ) {
-
-        +Chunk("%N = %N", name, name)
-        when (collectionType) {
-            KDLIST, KDSET -> {
-                val nullableHolder = NullableHolder.create(holder, _parametrized.first())
-
-                if (isDsl) {
-                    if (nullableHolder.type is KDType.Boxed) {
-                        +Chunk(".map")
-                        // recursive
-                        toBuildersHolder
-                            .listOrSet(name.simpleName, nullableHolder.isNullable, nullableHolder.type.isParsable,collectionType == KDSET)
-
-                        // recursive
-                        if (nullableHolder.isNullable)
-                            +Chunk(" { it?.let(%T::${nullableHolder.type.fabricMethod}) }", nullableHolder.type.className)
-                        else +Chunk("(%T::${nullableHolder.type.fabricMethod})", nullableHolder.type.className)
-
-                    } else if (nullableHolder.type is KDType.Model) {
-                        toBuildersHolder.mutableListOrSet(name.simpleName, collectionType == KDSET)
-                        createDslBuilderFunction(name, nullableHolder, true).also(innerBuilder::addFunction)
-                    } else toBuildersHolder.asIs(name.simpleName)
-
-                    if (collectionType == KDLIST) toList() else toSet()
-
-                } else { // !Boxed
-                    toBuildersHolder.asIs(name.simpleName) // !isDsl
-                }
-            }
-            KDMAP -> {
-                val parametrized = _parametrized.map { NullableHolder.create(holder, it) }
-                if (parametrized.any { it.type is KDType.Data } && isDsl)
-                    createDslBuilderForMap(name, parametrized[0], parametrized[1]).also(innerBuilder::addFunction)
-
-                if (parametrized.all { it.type !is KDType.Boxed } || !isDsl) {
-                    if (isDsl) {
-                        toMap()
-                        toBuildersHolder.mutableMap(name.simpleName)
-                    }
-                } else { // has BOXED && isDSL
-                    toBuildersHolder.map(name.simpleName, parametrized)
-                    //logger.log("${name.simpleName}, parametrized: $parametrized")
-                    +Chunk(".entries.associate { ")
-                    +parametrized[0].toStatementTemplate("it.key")
-                    +Chunk(" to ")
-                    +parametrized[1].toStatementTemplate("it.value")
-                    +Chunk(" }")
-                }
-            }
-        }
-        endStatement()
-    }*/
-
-    // ret.list = list.map { it?.boxed }.toMutableList()
-    // src:
-    // var nestedList:              MutableSet< MutableList<String>                    > = mutableSetOf()
-    //                              Set       < List<Name>                             >
-    // var nestedList:              MutableSet< MutableList<String?>                   > = mutableSetOf()
-    //                              Set       < List<Name?>                            >
-    // var nestedList:              MutableSet< MutableList<Inner>                     > = mutableSetOf()
-    //                              Set       < List<Inner>                            >
-    // var nestedList:              MutableSet< MutableList<Inner?>                    > = mutableSetOf()
-    //                              Set       < List<Inner?>                           >
-
-    // toBuilder: as is
-
-    // toDslBuilder:
-    // ret.nestedList = nestedList  .map      { it.map { it.boxed }                  .toMutable()   }.toMutable()
-    // ret.nestedList = nestedList  .map      { it.map { it?.boxed }                 .toMutable()   }.toMutable() // null
-    // ret.nestedList = nestedList  .map      { it                                   .toMutable()   }.toMutable()
-    // ret.nestedList = nestedList  .map      { it                                   .toMutable()   }.toMutable() // null
-
-    // DslBuilder.return:
-    // nestedList = nestedList      .map      { it.map(::name)                       .toImmutable()  }.toImmutable()
-    // nestedList = nestedList      .map      { it.map { it?.let(::name) }           .toImmutable()  }.toImmutable() // null
-    // nestedList = nestedList      .map      { it                                   .toImmutable()  }.toImmutable()
-    // nestedList = nestedList      .map      { it                                   .toImmutable()  }.toImmutable() // null
-
-
-    // src: nestedMap: MutableMap<String?, MutableList<String>> = mutableMapOf()
-    //val qqq = nestedMap.entries.associate { it.key?.let(NameImpl::create) to it.value.map { NameImpl.create(it) }.toList() }
-    /*
-    public val nestedMaps: Map<Map<Name, Inner?>, List<List<Inner?>>>
-    nestedMaps = nestedMaps.entries.associate {
-            it.key.entries.associate {
-              NameImpl.create(it.key) as Name to it.value
-            } to it.value.map { it.toList() }.toList()
-          }
-
-    public var nestedMaps1: MutableMap< MutableMap<String, AATestCollections.Inner>, String                                     > = mutableMapOf()
-    public var nestedMaps2: MutableMap< String,                                      MutableMap<String, AATestCollections.Inner>> = mutableMapOf()
-
-    val p1: Map<Map<AATestCollections.Name, AATestCollections.Inner>, AATestCollections.Name> =
-        nestedMaps1.entries.associate { it.key.entries.associate { NameImpl.create(it.key) as AATestCollections.Name to it.value } to NameImpl.create(it.value) }
-
-    val p2: Map<AATestCollections.Name, Map<AATestCollections.Name, AATestCollections.Inner>> =
-        nestedMaps2.entries.associate { NameImpl.create(it.key)                                                                    to it.value.entries.associate { NameImpl.create(it.key) to it.value } }
-*/
-
-
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
@@ -253,40 +140,6 @@ public class KDTypeBuilderBuilder private constructor(
         fun fromDsl(name: String, str: String) {
             builder.addStatement("$RET.$name = $name$str")
         }
-
-        fun listOrSet(name: String, isNullable: Boolean, isCommonType: Boolean, isSet: Boolean) {
-            StringBuilder("$RET.$name = $name.map { it").apply {
-                commonTypeOrNot(isNullable, isCommonType)
-                append(" }")
-                if (isSet) append(".toMutableSet()") else append(".toMutableList()")
-            }.toString().also(builder::addStatement)
-        }
-
-        fun mutableListOrSet(name: String, isSet: Boolean) {
-            StringBuilder("$RET.$name = $name.").apply {
-                if (isSet) append("toMutableSet()") else append("toMutableList()")
-            }.toString().also(builder::addStatement)
-        }
-
-        fun mutableMap(name: String) {
-            builder.addStatement("$RET.$name = $name.toMutableMap()")
-        }
-
-        /*
-        fun map(name: String, parametrized: List<NullableHolder>) {
-            StringBuilder("$RET.$name = $name.entries.associate { ").apply {
-                append("it.key")
-                boxedOrNot(parametrized[0])
-                append(" to it.value")
-                boxedOrNot(parametrized[1])
-                append(" }")
-                /*if (!parametrized.all { it.type is KDType.Boxed })*/ append(".toMutableMap()")
-            }.toString().also(builder::addStatement)
-        }
-
-        private fun StringBuilder.boxedOrNot(wrapper: NullableHolder) {
-            if (wrapper.type is KDType.Boxed) commonTypeOrNot(wrapper.isNullable, wrapper.type.isParsable)
-        }*/
 
         private fun StringBuilder.commonTypeOrNot(isNullable: Boolean, isCommonType: Boolean) {
             if (isNullable) append('?')
@@ -404,6 +257,7 @@ public class KDTypeBuilderBuilder private constructor(
          *
          * @param nullableHolder type is KDValueObject
          **/
+        /*
         private fun createDslBuilderFunction(name: MemberName, ref: KDReference.Element, isCollection: Boolean) =
             createDslBuilderParameter("p1", ref).let { blockParam ->
                 FunSpec.builder(name.simpleName).apply {
@@ -415,27 +269,6 @@ public class KDTypeBuilderBuilder private constructor(
                         addStatement("%N = ${KDType.Data.APPLY_BUILDER}", name, dslBuilderClassName, blockParam)
                 }.build()
             }
-
-        private fun createDslBuilderForMap(name: MemberName, keyType: KDReference.Element, valueType: KDReference.Element) =
-            FunSpec.builder(name.simpleName).apply {
-                val p1 = createDslBuilderParameter("p1", keyType)
-                val p2 = createDslBuilderParameter("p2", valueType)
-                addParameter(p1)
-                addParameter(p2)
-                val templateArgs = mutableListOf<Any>(name)
-                StringBuilder("%N[").apply {
-                    if (keyType.kdType is KDType.Data) {
-                        append(KDType.Data.APPLY_BUILDER)
-                        templateArgs += (keyType.kdType as KDType.Data).dslBuilderClassName
-                    } else append("%N")
-                    templateArgs += p1
-                    append("] = ")
-                    if (valueType.kdType is KDType.Data) {
-                        append(KDType.Data.APPLY_BUILDER)
-                        templateArgs += (valueType.kdType as KDType.Data).dslBuilderClassName
-                    } else append("%N")
-                    templateArgs += p2
-                }.toString().also { addStatement(it, *templateArgs.toTypedArray()) }
-            }.build()
+*/
     }
 }
