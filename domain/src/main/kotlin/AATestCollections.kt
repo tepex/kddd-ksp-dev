@@ -9,7 +9,7 @@ public interface AATestCollections : ValueObject.Data {
     public val _set: Set<Name>
     public val listInner: List<Inner?>
     public val nestedList: Set<List<Inner?>>
-    public val nestedList1: Set<List<Name>>
+    public val nestedList1: List<Set<Name>>
     public val simpleMap: Map<Name, Inner>
     public val simpleMap1: Map<Name, Name?>
     /*
@@ -19,7 +19,7 @@ public interface AATestCollections : ValueObject.Data {
     public val nestedNestedList: List<List<List<List<Name?>>>>
 */
     public val nestedMap: Map<Name?, List<Name>>
-    public val nestedMaps: Map<Map<Inner, Inner?>, List<List<Inner?>>>
+    public val nestedMaps: Map<Map<Inner, Inner?>, Set<List<Inner?>>>
     public val nestedMaps1: Map<Name, Map<Name, Inner>>
 
     override fun validate() {}

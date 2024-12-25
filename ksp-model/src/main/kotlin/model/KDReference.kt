@@ -45,7 +45,8 @@ public sealed interface KDReference {
 
     public interface Parameterized : KDReference {
         public val parameterizedTypeName: ParameterizedTypeName
-        public val unDslMapper: String
+        public val fromDslMapper: String
+        public val toDslMapper: String
 
         override val typeName: TypeName
             get() = parameterizedTypeName
@@ -59,33 +60,50 @@ public sealed interface KDReference {
     public abstract class AbstractParameterized() : Parameterized {
         protected lateinit var args: List<KDReference>
         // TODO: make private
-        override lateinit var unDslMapper: String
+        override lateinit var fromDslMapper: String
+        override lateinit var toDslMapper: String
 
         private var isSubstituted: Boolean = false
 
-        protected abstract fun createUnDslMapper(lambdaArgs: List<String>): String
+        protected abstract fun createFromDslMapper(lambdaArgs: List<String>): String
+        protected abstract fun createToDslMapper(lambdaArgs: List<String>): String
         protected abstract fun substitute(): Parameterized // copy
 
         override fun substituteOrNull(): Parameterized? =
             if (isSubstituted) substitute().also { isSubstituted = true } else null
 
         override fun substituteArgs(transform: (TypeName) -> KDReference) {
-            val unDslArgs = mutableListOf<String>()
+            val fromDslArgs = mutableListOf<String>()
+            val toDslArgs = mutableListOf<String>()
             args = parameterizedTypeName.typeArguments.mapIndexed { i, arg ->
                 transform(arg).also { newArg ->
                     val localIt = getLambdaArgName(i)
                     when(newArg) {
-                        is Collection -> "$localIt${newArg.unDslMapper}"
-                        is Element ->
+                        is Collection -> {
+                            fromDslArgs += "$localIt${newArg.fromDslMapper}"
+                            toDslArgs += "$localIt${newArg.toDslMapper}"
+                        }
+                        is Element -> {
                             if (newArg.kdType is KDType.Boxed) {
                                 val dslBuilderFunName = (newArg.kdType as KDType.Boxed).dslBuilderFunName
-                                if (arg.isNullable) "$localIt?.let(::$dslBuilderFunName)" else "$dslBuilderFunName($localIt)"
-                            } else localIt
+                                if (arg.isNullable) {
+                                    fromDslArgs += "$localIt?.let(::$dslBuilderFunName)"
+                                    toDslArgs += "$localIt?.${KDType.Boxed.PARAM_NAME}"
+                                } else {
+                                    fromDslArgs += "$dslBuilderFunName($localIt)"
+                                    toDslArgs += "$localIt.${KDType.Boxed.PARAM_NAME}"
+                                }
+                            } else {
+                                fromDslArgs += localIt
+                                toDslArgs += localIt
+                            }
+                        }
                         else -> error("Unsupported KDReference type: $this")
-                    }.also(unDslArgs::add)
+                    }
                 }
             }
-            unDslMapper = createUnDslMapper(unDslArgs)
+            fromDslMapper = createFromDslMapper(fromDslArgs)
+            toDslMapper = createToDslMapper(toDslArgs)
             isSubstituted = true
         }
     }
@@ -100,7 +118,7 @@ public sealed interface KDReference {
             else               -> "it"
         }
 
-        override fun createUnDslMapper(lambdaArgs: List<String>): String = when(collectionType) {
+        override fun createFromDslMapper(lambdaArgs: List<String>): String = when(collectionType) {
             CollectionType.MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
             else -> StringBuilder().apply {
                 val arg = args.first()
@@ -109,36 +127,70 @@ public sealed interface KDReference {
             }.toString()
         }
 
+        override fun createToDslMapper(lambdaArgs: List<String>): String = when(collectionType) {
+            CollectionType.MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
+            else -> StringBuilder().apply {
+                val arg = args.first()
+                ".map { ${lambdaArgs.first()} }".takeUnless { arg is Element && arg.kdType !is KDType.Boxed }?.also(::append)
+                append(".toMutableList()".takeIf { collectionType == CollectionType.LIST } ?: ".toMutableSet()")
+            }.toString()
+        }
+
         /*
                                                                                           | init                       | arg[0]                     | arg[1]                                                | finish
 list:        List        <Name?>
              MutableList <String?>                                                     -> | <name>.map {                 it?.let(::name)                                                                    | }.toList(),
+                                                                                       -> | <name>.map {                 it?.boxed                                                                          | }.toMutableList()
 _set:        Set         <Name>
-             MutableSet  <String>                                                      -> | <name>.map {                 name(it)                                                                            | }.toSet(),
+             MutableSet  <String>                                                      -> | <name>.map {                 name(it)                                                                           | }.toSet(),
+                                                                                       -> | <name>.map {                 it.boxed                                                                           | }.toMutableSet()
 listInner:   List        <Inner?>
-             MutableList <Inner?>                                                      -> | <name>                                                                                                           | .toList()
+             MutableList <Inner?>                                                      -> | <name>                       empty                                                                              | .toList()
+                                                                                       -> | <name>                       empty                                                                              | .toMutableList()
 nestedList:  Set         <List<Inner?>>
-             MutableSet  <MutableList<Inner?>>                                         -> | <name>.map {                 it                      .toList()                                                                         | }.toSet(),
+             MutableSet  <MutableList<Inner?>>                                         -> | <name>.map {                 it                      .toList()                                                  | }.toSet(),
+                                                                                       -> | <name>.map {                 it                      .toMutableList()                                           | }.toMutableSet()
 nestedList1: Set         <List<Name>>
-             MutableSet  <MutableList<String>>                                         -> | <name>.map {                 it     .map { name(it) }.toList()                                                        | }.toSet(),
-                                                                                          | init                       | arg[0]                     | arg[1]                                                 | finish
+             MutableSet  <MutableList<String>>                                         -> | <name>.map {                 it     .map { name(it) }.toList()                                                  | }.toSet(),
+                                                                                       -> | <name>.map {                 it     .map { it.boxed }.toMutableList()                                           | }.toMutableSet()
+                                                                                          | init                       | arg[0]                     | arg[1]                                                     | finish
 simpleMap:   Map         <Name, Inner>
-             MutableMap  <String, Inner>                                               -> | <name>.entries.associate {   name(it.key)        to       it.value                                                    },
+             MutableMap  <String, Inner>                                               -> | <name>.entries.associate {   name(it.key)          to       it.value                                                    },
+                                                                                       -> | <name>.entries.associate {   it.key.boxed          to       it.value                                                    }.toMutableMap()
 simpleMap1:  Map         <Name, Name?>
-             MutableMap  <String, String?>                                             -> | <name>.entries.associate {   name(it.key)        to       it.value?.let(::name)                                       },
-
+             MutableMap  <String, String?>                                             -> | <name>.entries.associate {   name(it.key)          to       it.value?.let(::name)                                                      },
+                                                                                       -> | <name>.entries.associate {   it.key.boxed          to       it.value?.boxed                                                            }.toMutableMap()
 nestedMap:   Map         <Name?, List<Name>>                                                                                                                          | arg[1][0]
-             MutableMap  <String?, MutableList<String>>                                -> | <name>.entries.associate {   it.key?.let(::name) to       it.value   .map { name(it) }                                },
+             MutableMap  <String?, MutableList<String>>                                -> | <name>.entries.associate {   it.key?.let(::name)   to       it.value   .map { name(it) }                                               },
+                                                                                       -> | <name>.entries.associate {   it.key?.boxed         to       it.value   .map { it.boxed }.toMutableList()                               }.toMutableMap()
 nestedMaps:  Map         <Map<Inner, Inner?>, List<List<Inner?>>>
-             MutableMap  <MutableMap<Inner, Inner?>, MutableList<MutableList<Inner?>>> -> | <name>.entries.associate {   it.key.toMap()      to       it.value   .map { it.toList() }                             },
+             MutableMap  <MutableMap<Inner, Inner?>, MutableList<MutableList<Inner?>>> -> | <name>.entries.associate {   it.key.toMap()        to       it.value   .map { it.toList() }                                            },
+                                                                                       -> | <name>.entries.associate {   it.key.toMutableMap() to       it.value   .map { it.toMutableList() }.toMutableList()                     }.toMutableMap()
 nestedMaps1: Map         <Name, Map<Name, Inner>>                                                                                                                                    | arg[1][0]       arg[1][1]
-             MutableMap  <String, MutableMap<String, Inner>>                           -> | <name>.entries.associate {   name(it.key)        to       it.value   .entries.associate { name(it.key) to it.value }  },
+             MutableMap  <String, MutableMap<String, Inner>>                           -> | <name>.entries.associate {   name(it.key)          to       it.value   .entries.associate { name(it.key) to it.value }                 },
+                                                                                       -> | <name>.entries.associate {   it.key.boxed          to       it.value   .entries.associate { it.key.boxed to it.value }.toMutableMap()  }.toMutableMap()
+
+    ret.list = list.map { it?.boxed }.toMutableList()
+    ret._set = _set.map { it.boxed }.toMutableSet()
+    ret.listInner = listInner.toMutableList()
+
+    ret.nestedList = nestedList.map { it.toMutableList() }.toMutableSet()
+    ret.nestedList1 = nestedList1.map { it.map { it.boxed }.toMutableList() }.toMutableSet()
+
+    ret.simpleMap = simpleMap.entries.associate { it.key.boxed to it.value }.toMutableMap()
+    ret.simpleMap1 = simpleMap1.entries.associate { it.key.boxed to it.value?.boxed }.toMutableMap()
+    ret.nestedMap = nestedMap.entries.associate { it.key?.boxed to it.value.map { it.boxed }.toMutableList() }.toMutableMap()
+    ret.nestedMaps = nestedMaps.entries.associate { it.key.toMutableMap() to it.value.map { it.toMutableList() }.toMutableList() }.toMutableMap()
+    ret.nestedMaps1 = nestedMaps1.entries.associate { it.key.boxed to it.value.entries.associate { it.key.boxed to it.value }.toMutableMap() }.toMutableMap()
 
          */
 
         override fun substitute(): Parameterized =
             parameterizedTypeName.rawType.toMutableCollection()
-                .let { newType -> copy(parameterizedTypeName = newType).also { it.unDslMapper = unDslMapper } }
+                .let { newType -> copy(parameterizedTypeName = newType).also {
+                    it.fromDslMapper = fromDslMapper
+                    it.toDslMapper = toDslMapper
+                } }
 
         private fun ClassName.toMutableCollection() = when(this) {
             LIST -> MUTABLE_LIST

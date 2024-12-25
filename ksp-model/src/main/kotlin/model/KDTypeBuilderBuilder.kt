@@ -6,7 +6,6 @@ import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection
@@ -38,7 +37,6 @@ public class KDTypeBuilderBuilder private constructor(
                 when (ref) {
                     is KDReference.Element -> {
                         // Builder().return
-                        //NullableHolder.create(holder, property.typeReference.typeName)
                         property.typeReference.typeName.toKDReference(holder)
                             .also { funSpecStatement.addParameterForElement(property.name, it as KDReference.Element) }
 
@@ -75,8 +73,6 @@ public class KDTypeBuilderBuilder private constructor(
         toBuildersHolder.build()
 
     /**
-     * 1. <Dsl>Builder.build() { return T(<name> = <name>) }
-     *    DslBuilder.build(): <name> = <T>.parse(<name>!!), <name> = <name>?.let(<T>::parse),
      * 2. fun to<Dsl>Builder() { <name> = <name> }
      **/
     private fun FunSpecStatement.addParameterForElement(name: MemberName, ref: KDReference.Element) {
@@ -97,13 +93,17 @@ public class KDTypeBuilderBuilder private constructor(
     private fun FunSpecStatement.addParameterForCollection(name: MemberName, collection: Collection) =
         if (isDsl) traverseParameterizedTypes(Collection.create(collection.parameterizedTypeName)).let { substituted ->
             // return from Builder.build() { return T(...) }
-            +Chunk("%N = %N${substituted.unDslMapper}", name, name)
+            +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
             endStatement()
             substituted.parameterizedTypeName
                 .let { PropertySpec.builder(name.simpleName, it).initializer(collection.collectionType.mutableInitializer) }
         }
         // return new PropertySpec
-        else PropertySpec.builder(name.simpleName, collection.parameterizedTypeName).initializer(collection.collectionType.initializer)
+        else {
+            +Chunk("%N = %N", name, name)
+            endStatement()
+            PropertySpec.builder(name.simpleName, collection.parameterizedTypeName).initializer(collection.collectionType.initializer)
+        }
 
 
     // return constructor(...)
