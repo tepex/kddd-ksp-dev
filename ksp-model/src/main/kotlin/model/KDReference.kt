@@ -10,7 +10,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
-import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType
 
 public sealed interface KDReference {
     public val typeName: TypeName
@@ -23,8 +22,7 @@ public sealed interface KDReference {
         public val kdType: KDType
             get() = _kdType ?: error("KDType is not resolved for $typeName")
 
-        override fun toString(): String =
-            typeName.toString()
+        override fun toString(): String = typeName.toString()
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -33,73 +31,61 @@ public sealed interface KDReference {
             return true
         }
 
-        override fun hashCode(): Int =
-            typeName.hashCode()
+        override fun hashCode(): Int = typeName.hashCode()
 
         public companion object {
-            public fun create(typeName: TypeName): Element =
-                Element(typeName)
-            public fun create(kdType: KDType): Element =
-                Element(
-                    if (kdType is KDType.Boxed) kdType.rawTypeName.toNullable(kdType.sourceTypeName.isNullable) else kdType.sourceTypeName,
-                    kdType
-                )
+            public fun create(typeName: TypeName): Element = Element(typeName)
+
+            public fun create(kdType: KDType, isNullable: Boolean): Element = Element(
+                (if (kdType is KDType.Boxed) kdType.rawTypeName else kdType.sourceTypeName).toNullable(isNullable),
+                kdType
+            )
         }
     }
 
     public interface Parameterized : KDReference {
         public val parameterizedTypeName: ParameterizedTypeName
-        public val args: List<KDReference>
         public val unDslMapper: String
 
         override val typeName: TypeName
             get() = parameterizedTypeName
 
-        public fun getArgLocalName(i: Int): String
+        public fun getLambdaArgName(i: Int): String
 
         public fun substituteArgs(transform: (TypeName) -> KDReference)
         public fun substituteOrNull(): Parameterized?
     }
 
     public abstract class AbstractParameterized() : Parameterized {
-        override lateinit var args: List<KDReference>
+        protected lateinit var args: List<KDReference>
         // TODO: make private
         override lateinit var unDslMapper: String
-        private val unDslArgs = mutableListOf<String>()
 
-        protected var isSubstituted: Boolean = false
+        private var isSubstituted: Boolean = false
 
-        protected abstract fun createUnDslMapper(): String
+        protected abstract fun createUnDslMapper(lambdaArgs: List<String>): String
         protected abstract fun substitute(): Parameterized // copy
 
         override fun substituteOrNull(): Parameterized? =
             if (isSubstituted) substitute().also { isSubstituted = true } else null
 
         override fun substituteArgs(transform: (TypeName) -> KDReference) {
+            val unDslArgs = mutableListOf<String>()
             args = parameterizedTypeName.typeArguments.mapIndexed { i, arg ->
                 transform(arg).also { newArg ->
-                    /*
-                    val localIt = if (collectionType == CollectionType.MAP) {
-                        if (i == 0) "it.key"
-                        else if (i == 1) "it.value"
-                        else error("Unsupported parameter index $i for collection: $this")
-                    } else "it"
+                    val localIt = getLambdaArgName(i)
                     when(newArg) {
-                        is Collection -> {
-                            "$"
-                        }
-                        is Element -> {
-                            //val dslBuilderFunName = arg.dslBuilderFunName
+                        is Collection -> "$localIt${newArg.unDslMapper}"
+                        is Element ->
                             if (newArg.kdType is KDType.Boxed) {
-                                if (newArg.kdType.sourceTypeName.isNullable) "" else ""
-                            }
-                            else {}
-                        }
-                    }
-                    unDslArgs.add()*/
+                                val dslBuilderFunName = (newArg.kdType as KDType.Boxed).dslBuilderFunName
+                                if (arg.isNullable) "$localIt?.let(::$dslBuilderFunName)" else "$dslBuilderFunName($localIt)"
+                            } else localIt
+                        else -> error("Unsupported KDReference type: $this")
+                    }.also(unDslArgs::add)
                 }
             }
-            unDslMapper = createUnDslMapper()
+            unDslMapper = createUnDslMapper(unDslArgs)
             isSubstituted = true
         }
     }
@@ -109,17 +95,19 @@ public sealed interface KDReference {
         val collectionType: CollectionType,
     ) : AbstractParameterized() {
 
-        override fun getArgLocalName(i: Int): String =
-            if (collectionType == CollectionType.MAP)
-                if (i == 0) "it.key" else "it.value"
-            else "it"
+        override fun getLambdaArgName(i: Int): String = when(collectionType) {
+            CollectionType.MAP -> "it.key".takeIf { i == 0 } ?: "it.value"
+            else               -> "it"
+        }
 
-        override fun createUnDslMapper(): String =
-            if (collectionType == CollectionType.MAP) ".entries.associate { $1 to $2 }"
-            else { // LIST or SET
+        override fun createUnDslMapper(lambdaArgs: List<String>): String = when(collectionType) {
+            CollectionType.MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
+            else -> StringBuilder().apply {
                 val arg = args.first()
-                (if (arg is Element && arg.kdType !is KDType.Boxed) "" else  ".map { $1 }") + if (collectionType == CollectionType.LIST) ".toList()" else ".toSet()"
-            }
+                ".map { ${lambdaArgs.first()} }".takeUnless { arg is Element && arg.kdType !is KDType.Boxed }?.also(::append)
+                append(".toList()".takeIf { collectionType == CollectionType.LIST } ?: ".toSet()")
+            }.toString()
+        }
 
         /*
                                                                                           | init                       | arg[0]                     | arg[1]                                                | finish

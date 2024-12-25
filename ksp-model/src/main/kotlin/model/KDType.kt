@@ -180,6 +180,7 @@ public sealed interface KDType {
         public val fabricMethod: String =
             FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD
 
+        /** Тип источника создания объекта через DSL. String, если [Parsable] или непосредственно. */
         public val rawTypeName: TypeName =
             boxedType.takeUnless { isParsable } ?: String::class.asTypeName()
 

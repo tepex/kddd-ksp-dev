@@ -50,34 +50,7 @@ public class KDTypeBuilderBuilder private constructor(
                         }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
                     }
 
-                    is KDReference.Parameterized -> {
-                        (ref as Collection).let {
-                            if (isDsl) {
-                                // Builder().return
-                                // funSpecStatement.addCollectionParameter(param.name, param.typeReference.collectionType, it)
-                                /*
-                            if (holder.className.simpleName == "AATestCollectionsImpl")
-                                funSpecStatement.processCollectionParameter(property)*/
-
-                                //logger.log("processing property: $property")
-                                traverseParameterizedTypes(Collection.create(ref.parameterizedTypeName)).let { collection ->
-                                    val ret = collection.parameterizedTypeName
-                                        .let {
-                                            PropertySpec.builder(property.name.simpleName, it)
-                                                .initializer(ref.collectionType.mutableInitializer)
-                                        }
-
-                                    // !!!
-                                    // return from Builder.build() { return T(...) }
-                                    funSpecStatement.processCollectionParameter(property, collection)
-
-                                    ret
-                                }
-                                // return new PropertySpec
-                            } else PropertySpec.builder(property.name.simpleName, ref.parameterizedTypeName)
-                                .initializer(ref.collectionType.initializer)
-                        }
-                    }
+                    is KDReference.Parameterized -> funSpecStatement.addParameterForCollection(property.name, ref as Collection)
                 }.mutable().build().also(innerBuilder::addProperty)
             }
 
@@ -88,7 +61,7 @@ public class KDTypeBuilderBuilder private constructor(
         }
 
         if (isDsl) {
-            logger.log("Processing: ${holder.className.simpleName}")
+            //logger.log("Processing: ${holder.className.simpleName}")
             holder.nestedTypes.values.filterIsInstance<KDType.Generatable>()
                 .forEach { createDslInnerBuilder(it).also(innerBuilder::addFunction) }
         }
@@ -122,27 +95,16 @@ public class KDTypeBuilderBuilder private constructor(
         }
     }
 
-
-    private fun FunSpecStatement.processCollectionParameterOld(param: KDPropertyHolder) {
-        +Chunk("%N = %N", param.name, param.name)
-        // recursive
-        // create collection:  .map { or .entries.associate {
-        logger.log("For: ${param.typeReference.typeName}")
-        logger.log("${param.name.simpleName} = ${param.name.simpleName}")
-        //recursive((param.typeReference as Collection).parameterizedTypeName)
-        // close collection: }
-        logger.log("")
-        endStatement()
-    }
-
-    private fun FunSpecStatement.processCollectionParameter(property: KDPropertyHolder, parameterized: KDReference.Parameterized) {
-        logger.log("For: ${property.name.simpleName}: ${property.typeReference.typeName}")
-        logger.log("    return: ${property.name.simpleName}${parameterized.unDslMapper}")
-
-
-        +Chunk("%N = %N", property.name, property.name)
-        endStatement()
-    }
+    private fun FunSpecStatement.addParameterForCollection(name: MemberName, collection: Collection) =
+        if (isDsl) traverseParameterizedTypes(Collection.create(collection.parameterizedTypeName)).let { substituted ->
+            // return from Builder.build() { return T(...) }
+            +Chunk("%N = %N${substituted.unDslMapper}", name, name)
+            endStatement()
+            substituted.parameterizedTypeName
+                .let { PropertySpec.builder(name.simpleName, it).initializer(collection.collectionType.mutableInitializer) }
+        }
+        // return new PropertySpec
+        else PropertySpec.builder(name.simpleName, collection.parameterizedTypeName).initializer(collection.collectionType.initializer)
 
 
     // return constructor(...)
