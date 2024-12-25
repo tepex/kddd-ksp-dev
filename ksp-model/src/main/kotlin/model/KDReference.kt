@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
+import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection.CollectionType
 
 public sealed interface KDReference {
     public val typeName: TypeName
@@ -46,21 +47,79 @@ public sealed interface KDReference {
         }
     }
 
-    public data class Collection private constructor(
-        val parameterizedTypeName: ParameterizedTypeName,
-        val collectionType: CollectionType,
-    ) : KDReference {
+    public interface Parameterized : KDReference {
+        public val parameterizedTypeName: ParameterizedTypeName
+        public val args: List<KDReference>
+        public val unDslMapper: String
 
-        override val typeName: TypeName = parameterizedTypeName
+        override val typeName: TypeName
+            get() = parameterizedTypeName
 
-        private lateinit var args: List<KDReference>
-        private val unDslArgs = mutableListOf<String>()
+        public fun getArgLocalName(i: Int): String
+
+        public fun substituteArgs(transform: (TypeName) -> KDReference)
+        public fun substituteOrNull(): Parameterized?
+    }
+
+    public abstract class AbstractParameterized() : Parameterized {
+        override lateinit var args: List<KDReference>
         // TODO: make private
-        public lateinit var unDslMapper: String
+        override lateinit var unDslMapper: String
+        private val unDslArgs = mutableListOf<String>()
 
-        private var _isSubstituted = false
-        internal val isSubstituted: Boolean
-            get() = _isSubstituted
+        protected var isSubstituted: Boolean = false
+
+        protected abstract fun createUnDslMapper(): String
+        protected abstract fun substitute(): Parameterized // copy
+
+        override fun substituteOrNull(): Parameterized? =
+            if (isSubstituted) substitute().also { isSubstituted = true } else null
+
+        override fun substituteArgs(transform: (TypeName) -> KDReference) {
+            args = parameterizedTypeName.typeArguments.mapIndexed { i, arg ->
+                transform(arg).also { newArg ->
+                    /*
+                    val localIt = if (collectionType == CollectionType.MAP) {
+                        if (i == 0) "it.key"
+                        else if (i == 1) "it.value"
+                        else error("Unsupported parameter index $i for collection: $this")
+                    } else "it"
+                    when(newArg) {
+                        is Collection -> {
+                            "$"
+                        }
+                        is Element -> {
+                            //val dslBuilderFunName = arg.dslBuilderFunName
+                            if (newArg.kdType is KDType.Boxed) {
+                                if (newArg.kdType.sourceTypeName.isNullable) "" else ""
+                            }
+                            else {}
+                        }
+                    }
+                    unDslArgs.add()*/
+                }
+            }
+            unDslMapper = createUnDslMapper()
+            isSubstituted = true
+        }
+    }
+
+    public data class Collection private constructor(
+        override val parameterizedTypeName: ParameterizedTypeName,
+        val collectionType: CollectionType,
+    ) : AbstractParameterized() {
+
+        override fun getArgLocalName(i: Int): String =
+            if (collectionType == CollectionType.MAP)
+                if (i == 0) "it.key" else "it.value"
+            else "it"
+
+        override fun createUnDslMapper(): String =
+            if (collectionType == CollectionType.MAP) ".entries.associate { $1 to $2 }"
+            else { // LIST or SET
+                val arg = args.first()
+                (if (arg is Element && arg.kdType !is KDType.Boxed) "" else  ".map { $1 }") + if (collectionType == CollectionType.LIST) ".toList()" else ".toSet()"
+            }
 
         /*
                                                                                           | init                       | arg[0]                     | arg[1]                                                | finish
@@ -88,28 +147,10 @@ nestedMaps1: Map         <Name, Map<Name, Inner>>                               
              MutableMap  <String, MutableMap<String, Inner>>                           -> | <name>.entries.associate {   name(it.key)        to       it.value   .entries.associate { name(it.key) to it.value }  },
 
          */
-        internal fun substitute(transform: (TypeName) -> KDReference) {
-            args = parameterizedTypeName.typeArguments.map { arg ->
-                transform(arg).also { newArg ->
-                    if (newArg is Collection) {
 
-                    } else {
-                        val dslBuilderFunName = arg.dslBuilderFunName
-                    }
-                }
-            }
-            unDslMapper = if (collectionType == CollectionType.MAP) ".entries.associate { $1 to $2 }"
-            else { // LIST or SET
-                val arg = args.first()
-                (if (arg is Element && arg.kdType !is KDType.Boxed) "" else  ".map { $1 }") + if (collectionType == CollectionType.LIST) ".toList()" else ".toSet()"
-            }
-            _isSubstituted = true
-        }
-
-        internal fun terminate(): Collection =
+        override fun substitute(): Parameterized =
             parameterizedTypeName.rawType.toMutableCollection()
-                .let { copy(parameterizedTypeName = it).also { it.unDslMapper = unDslMapper } }
-                .also { _isSubstituted = true }
+                .let { newType -> copy(parameterizedTypeName = newType).also { it.unDslMapper = unDslMapper } }
 
         private fun ClassName.toMutableCollection() = when(this) {
             LIST -> MUTABLE_LIST

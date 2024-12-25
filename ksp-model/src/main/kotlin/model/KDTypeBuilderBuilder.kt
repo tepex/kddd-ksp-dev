@@ -2,14 +2,10 @@ package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.LambdaTypeName
-import com.squareup.kotlinpoet.MAP
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
@@ -54,28 +50,33 @@ public class KDTypeBuilderBuilder private constructor(
                         }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
                     }
 
-                    is Collection -> {
-                        if (isDsl) {
-                            // Builder().return
-                            // funSpecStatement.addCollectionParameter(param.name, param.typeReference.collectionType, it)
-                            /*
+                    is KDReference.Parameterized -> {
+                        (ref as Collection).let {
+                            if (isDsl) {
+                                // Builder().return
+                                // funSpecStatement.addCollectionParameter(param.name, param.typeReference.collectionType, it)
+                                /*
                             if (holder.className.simpleName == "AATestCollectionsImpl")
                                 funSpecStatement.processCollectionParameter(property)*/
 
-                            //logger.log("processing property: $property")
-                            substituteForDsl(Collection.create(ref.parameterizedTypeName)).let { collection ->
-                                val ret = collection.parameterizedTypeName
-                                    .let { PropertySpec.builder(property.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
+                                //logger.log("processing property: $property")
+                                traverseParameterizedTypes(Collection.create(ref.parameterizedTypeName)).let { collection ->
+                                    val ret = collection.parameterizedTypeName
+                                        .let {
+                                            PropertySpec.builder(property.name.simpleName, it)
+                                                .initializer(ref.collectionType.mutableInitializer)
+                                        }
 
-                                // !!!
-                                // return from Builder.build() { return T(...) }
-                                funSpecStatement.processCollectionParameter(property, collection)
+                                    // !!!
+                                    // return from Builder.build() { return T(...) }
+                                    funSpecStatement.processCollectionParameter(property, collection)
 
-                                ret
-                            }
-                            // return new PropertySpec
-                        } else PropertySpec.builder(property.name.simpleName, ref.parameterizedTypeName)
-                            .initializer(ref.collectionType.initializer)
+                                    ret
+                                }
+                                // return new PropertySpec
+                            } else PropertySpec.builder(property.name.simpleName, ref.parameterizedTypeName)
+                                .initializer(ref.collectionType.initializer)
+                        }
                     }
                 }.mutable().build().also(innerBuilder::addProperty)
             }
@@ -121,21 +122,22 @@ public class KDTypeBuilderBuilder private constructor(
         }
     }
 
+
     private fun FunSpecStatement.processCollectionParameterOld(param: KDPropertyHolder) {
         +Chunk("%N = %N", param.name, param.name)
         // recursive
         // create collection:  .map { or .entries.associate {
         logger.log("For: ${param.typeReference.typeName}")
         logger.log("${param.name.simpleName} = ${param.name.simpleName}")
-        recursive((param.typeReference as Collection).parameterizedTypeName)
+        //recursive((param.typeReference as Collection).parameterizedTypeName)
         // close collection: }
         logger.log("")
         endStatement()
     }
 
-    private fun FunSpecStatement.processCollectionParameter(property: KDPropertyHolder, collection: Collection) {
+    private fun FunSpecStatement.processCollectionParameter(property: KDPropertyHolder, parameterized: KDReference.Parameterized) {
         logger.log("For: ${property.name.simpleName}: ${property.typeReference.typeName}")
-        logger.log("    return: ${property.name.simpleName}${collection.unDslMapper}")
+        logger.log("    return: ${property.name.simpleName}${parameterized.unDslMapper}")
 
 
         +Chunk("%N = %N", property.name, property.name)
@@ -209,61 +211,6 @@ public class KDTypeBuilderBuilder private constructor(
         endStatement()
     }
 
-    private fun FunSpecStatement.recursive(node: ParameterizedTypeName) {
-        val args = node.typeArguments
-        // finish recursion
-        if (args.all { it !is ParameterizedTypeName }) {
-            if (node.rawType == MAP) {
-                processMapArgs(args)
-            } else {
-                processListOrSetArg(args.first()).also {
-                    logger.log("$it${node.toImmutable()}")
-                    +Chunk(node.toImmutable())
-                }
-            }
-        } else {
-            logger.log("recursion for args: $args")
-        }
-    }
-
-    private fun FunSpecStatement.processMapArgs(args: List<TypeName>) {
-        logger.log(".entries.associate { convert MAP args }")
-        /*
-        +Chunk(".entries.associate { ")
-        +parametrized[0].toStatementTemplate("it.key")
-        +Chunk(" to ")
-        +parametrized[1].toStatementTemplate("it.value")
-        +Chunk(" }")*/
-
-    }
-
-    // ValueObject.Boxed or ValueObject.Data
-    private fun FunSpecStatement.processListOrSetArg(arg: TypeName): String {
-        return holder.getKDType(arg).let { kdType ->
-            if (kdType is KDType.Boxed) {
-                if (arg.isNullable) {
-                    +Chunk(".map { it?.let(::${kdType.dslBuilderFunName}) }")
-                    ".map { it?.let(::${kdType.dslBuilderFunName}) }"
-                }
-                else {
-                    +Chunk(".map(::${kdType.dslBuilderFunName})")
-                    ".map(::${kdType.dslBuilderFunName})"
-                }
-            } else if (kdType is KDType.Model) {
-                // TODO: generate fabric method only for 0-level
-                // createDslBuilderFunction(name, nullableHolder, true).also(innerBuilder::addFunction)
-                ""
-            } else ""
-        }
-    }
-
-    private fun ParameterizedTypeName.toImmutable() = when(rawType) {
-        MAP -> ".toMap()"
-        LIST -> ".toList()"
-        SET -> ".toSet()"
-        else -> error("Unsupported collection type: $rawType")
-    }
-
     // ret.list = list.map { it?.boxed }.toMutableList()
     // src:
     // var nestedList:              MutableSet< MutableList<String>                    > = mutableSetOf()
@@ -312,52 +259,15 @@ public class KDTypeBuilderBuilder private constructor(
 
 
 
-
-
-
-    /**
-     * KDType{ValueObjectSingle<BOXED>} -> BOXED
-     * KDType{ValueObject} -> ValueObject
-     *
-     * List<KDType{ValueObjectSingle<BOXED>}>, Set<KDType{ValueObjectSingle<BOXED>}> -> List<BOXED>, Set<BOXED>
-     * Map<KDType{ValueObjectSingle<BOXED1>}, KDType{ValueObjectSingle<BOXED2>}> -> Map<BOXED1, BOXED2>
-     *
-     * List<KDType{ValueObject}>, Set<KDType{ValueObject}>        -> MutableList<ValueObject>, MutableSet<ValueObject>
-     * Map<KDType{ValueObject}, KDType{ValueObject}>              -> MutableMap<ValueObject, ValueObject>
-     * !!!
-     * Map<KDType{ValueObject}, KDType{ValueObjectSingle<BOXED>}> -> MutableMap<ValueObject, ValueObjectSingle<BOXED>>
-     * Map<KDType{ValueObjectSingle<BOXED>, KDType{ValueObject}>  -> MutableMap<ValueObjectSingle<BOXED>, ValueObject>
-     * */
-    private fun toBuilderPropertySpec(param: KDPropertyHolder) = param.typeReference.let { ref ->
-        if (param.name.simpleName == "nestedList" && isDsl) logger.log("===============")
-        when (ref) {
-            is KDReference.Element -> holder.getKDType(ref.typeName).let { nestedType ->
-                if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
-            }.let { PropertySpec.builder(param.name.simpleName, it.toNullable()).initializer("null") }
-
-            is Collection ->
-                if (isDsl) {
-                    substituteForDsl(Collection.create(ref.parameterizedTypeName)).let { collection ->
-                        logger.log("    return: ${param.name}.${collection.unDslMapper}")
-                        collection.parameterizedTypeName
-                            .let { PropertySpec.builder(param.name.simpleName, it).initializer(ref.collectionType.mutableInitializer) }
-                    }
-                }
-                else PropertySpec.builder(param.name.simpleName, ref.parameterizedTypeName).initializer(ref.collectionType.initializer)
-        }.mutable().build()
-    }
-
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun substituteForDsl(collection: Collection): Collection {
-        return if (collection.isSubstituted) collection.terminate()
-        else substituteForDsl(collection.apply {
-            substitute { arg ->
+    private tailrec fun traverseParameterizedTypes(node: KDReference.Parameterized): KDReference.Parameterized =
+        node.substituteOrNull() ?: traverseParameterizedTypes(node.apply {
+            substituteArgs { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
-                arg.toKDReference(holder).let { if (it is Collection) substituteForDsl(it) else it }
+                arg.toKDReference(holder).let { if (it is Collection) traverseParameterizedTypes(it) else it }
             }
         })
-    }
 
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
         private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")
