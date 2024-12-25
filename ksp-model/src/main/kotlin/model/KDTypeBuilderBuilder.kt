@@ -95,6 +95,9 @@ public class KDTypeBuilderBuilder private constructor(
             // return from Builder.build() { return T(...) }
             +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
             endStatement()
+
+            toBuildersHolder.fromDsl(name.simpleName, substituted.toDslMapper)
+
             substituted.parameterizedTypeName
                 .let { PropertySpec.builder(name.simpleName, it).initializer(collection.collectionType.mutableInitializer) }
         }
@@ -245,6 +248,10 @@ public class KDTypeBuilderBuilder private constructor(
 
         fun asIs(name: String) {
             builder.addStatement("$RET.$name = $name")
+        }
+
+        fun fromDsl(name: String, str: String) {
+            builder.addStatement("$RET.$name = $name$str")
         }
 
         fun listOrSet(name: String, isNullable: Boolean, isCommonType: Boolean, isSet: Boolean) {

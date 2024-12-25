@@ -128,7 +128,7 @@ public sealed interface KDReference {
         }
 
         override fun createToDslMapper(lambdaArgs: List<String>): String = when(collectionType) {
-            CollectionType.MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
+            CollectionType.MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }.toMutableMap()"
             else -> StringBuilder().apply {
                 val arg = args.first()
                 ".map { ${lambdaArgs.first()} }".takeUnless { arg is Element && arg.kdType !is KDType.Boxed }?.also(::append)
