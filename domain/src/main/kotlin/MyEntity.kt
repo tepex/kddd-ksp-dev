@@ -7,6 +7,7 @@ public interface MyEntity : IEntity {
     // Surrogate
     override val id: Id
     public val name: Name
+    //public val point: Point
 
     override fun validate() {}
 

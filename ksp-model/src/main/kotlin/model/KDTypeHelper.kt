@@ -6,6 +6,7 @@ import com.squareup.kotlinpoet.TypeName
 
 public data class KDTypeHelper(
     val logger : KDLogger,
+    val globalKDTypes: Map<TypeName, KDType>,
     val toBeGenerated: ClassName,
     val typeName: TypeName,
     val properties: List<Property>

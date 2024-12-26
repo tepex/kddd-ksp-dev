@@ -2,6 +2,7 @@ package ru.it_arch.clean_ddd.app
 
 import ru.it_arch.clean_ddd.domain.MySimple
 import ru.it_arch.clean_ddd.domain.impl.AbstrImpl
+import ru.it_arch.clean_ddd.domain.impl.MySimpleImpl
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
 import ru.it_arch.clean_ddd.domain.impl.abstr
 import ru.it_arch.clean_ddd.domain.impl.mySimple
@@ -18,18 +19,19 @@ val testStruct = myStruct {
     count = 12
     uri = "https://ya.ru"
     names += "another name"
-    nullableNames = listOf(null, null)
+    nullableNames += listOf(null, null)
     indexes += 2
-    myMap = mapOf(3 to null, 4 to "asdf")
+    myMap[3] = null
+    myMap[4] = "asdf"
     inner {
         innerLong = 33
         innerStr = "fsdfsd"
     }
-    innerList {
+    innerList += inner {
         innerLong = 11
         innerStr = "11"
     }
-    innerList {
+    innerList += inner {
         innerLong = 22
         innerStr = "22"
     }
@@ -45,7 +47,7 @@ fun main() {
         file = "~/.bashrc"
         listUri += "http://google.com"
         nullableListUri += null
-        mapUUID = mapOf("my uuid" to UUID.randomUUID().toString())
+        mapUUID["my uuid"] = UUID.randomUUID().toString()
         myEnum = MySimple.MyEnum.A
     }
     println("mySimple: $simple, file: ${simple.file.boxed.canonicalFile}")
@@ -90,7 +92,7 @@ fun abstr1() {
     val abs = abstr {
         name = "Abstr"
         //some = AbstrImpl.NameImpl.create("qqq")
-        someList += AbstrImpl.NameImpl.create("qqq")
+        //someList += AbstrImpl.NameImpl.create("qqq")
     }
 
     println("abstr = $abs")

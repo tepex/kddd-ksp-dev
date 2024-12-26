@@ -10,9 +10,11 @@ public data class KDPropertyHolder private constructor(
 ) {
 
     public companion object {
+        /** For KDType.BOXED */
         public fun create(name: MemberName, propertyTypeName: TypeName): KDPropertyHolder =
             KDPropertyHolder(name, KDReference.create(propertyTypeName))
 
+        /** For other */
         public fun create(property: KDTypeHelper.Property): KDPropertyHolder =
             KDPropertyHolder(property.name, KDReference.create(property.typeName))
     }

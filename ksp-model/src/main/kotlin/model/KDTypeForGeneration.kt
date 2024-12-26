@@ -45,6 +45,7 @@ internal class KDTypeForGeneration(
                 .map(KDPropertyHolder::create)
                 .also(::createConstructor)
         }
+        //propertyHolders.filter { it in  }
     }
 
     private fun boxedType(boxedType: TypeName) {
@@ -101,10 +102,8 @@ internal class KDTypeForGeneration(
 
     override fun getKDType(typeName: TypeName) = typeName.toNullable(false).let { key ->
         if (key == KDType.Abstraction.TYPENAME) /*KDType.Abstraction */error("${helper.typeName}: WIP. Abstraction not supported yet.")
-        else _nestedTypes[key] ?: run {
-
+        else _nestedTypes[key] ?: helper.globalKDTypes[key] ?: run {
             // to KDType.List, KDType.Set, KDType.Map
-
             error("Can't find implementation for $key in $className")
         }
     }

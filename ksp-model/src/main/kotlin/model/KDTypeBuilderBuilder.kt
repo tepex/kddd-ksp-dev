@@ -47,6 +47,7 @@ public class KDTypeBuilderBuilder private constructor(
                     }
 
                     is KDReference.Parameterized -> funSpecStatement.addParameterForCollection(property.name, ref as Collection)
+
                 }.mutable().build().also(innerBuilder::addProperty)
             }
 
@@ -83,9 +84,6 @@ public class KDTypeBuilderBuilder private constructor(
             else +Chunk("${boxedType.dslBuilderFunName}(%N!!),", name)
             toBuildersHolder.element(name.simpleName, ref.typeName.isNullable, boxedType.isParsable)
         } else {
-            if (isDsl && ref.kdType is KDType.Data)
-                // <type-name>(): KDType {}
-                //createDslBuilderFunction(name, ref, false).also(innerBuilder::addFunction)
             toBuildersHolder.asIs(name.simpleName)
             +Chunk("%N${if (!ref.typeName.isNullable) "!!" else ""},", name)
         }

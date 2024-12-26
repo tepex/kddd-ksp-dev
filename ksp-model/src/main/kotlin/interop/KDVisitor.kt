@@ -1,24 +1,27 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
+import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName.Companion.member
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
-import com.squareup.kotlinpoet.ksp.toTypeVariableName
 import ru.it_arch.clean_ddd.ksp.model.KDLogger
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper
 
 public abstract class KDVisitor(
-    protected val resolver: Resolver,
-    protected val globalKDTypes: MutableMap<TypeName, KDType>,
+    private val resolver: Resolver,
+    private val globalKDTypes: MutableMap<TypeName, KDType>,
+    private val options: KDOptions,
+    private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
     private val generateClassName: KSClassDeclaration.() -> ClassName
 ) : KSDefaultVisitor<KDType.Generatable, Unit>() {
@@ -27,7 +30,22 @@ public abstract class KDVisitor(
 
     public abstract fun createBuilder(model: KDType.Model)
 
-    public fun visitKDDeclaration(declaration: KSClassDeclaration): KDType? {
+    public fun generate(symbols: Sequence<KSFile>) {
+        symbols.flatMap { file ->
+            file.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .filter { it.classKind == ClassKind.INTERFACE }
+                .map { declaration ->
+                    visitKDDeclaration(declaration)?.let { kdType ->
+                        KDOutputFile.create(declaration, options.getPackage(declaration), kdType, file, generateClassName)
+                    }
+                }.filterNotNull()
+        }.forEach { file ->
+            file.generate(codeGenerator)
+        }
+    }
+
+    private fun visitKDDeclaration(declaration: KSClassDeclaration): KDType? {
 
         //val typeParams = declaration.typeParameters.flatMap { it.toTypeVariableName().bounds }
 
@@ -45,6 +63,7 @@ public abstract class KDVisitor(
         //val typeName = declaration.asType(declaration.typeParameters.map { it.toTypeVariableName() }).toTypeName()
         val helper = KDTypeHelper(
             kdLogger,
+            globalKDTypes,
             toBeGenerated,
             typeName,
             declaration.getAllProperties()
@@ -58,7 +77,6 @@ public abstract class KDVisitor(
                 kdLogger.log("skip: $typeName")
             } else {
                 globalKDTypes[typeName] = kdType
-                //kdLogger.log("added global: ${globalKDTypes.keys}")
                 if (kdType is KDType.Generatable) declaration.accept(this, kdType)
             }
         }
@@ -87,6 +105,12 @@ public abstract class KDVisitor(
             kdLogger.log("${data.sourceTypeName}: params: $params")
             kdLogger.log("         nested: $nested")
         }*/
+
+        if (data.sourceTypeName.toString() == "ru.it_arch.clean_ddd.domain.MyEntity") {
+            kdLogger.log("params: ${data.propertyHolders.map { it.typeReference }}")
+            kdLogger.log("nested types: ${data.nestedTypes}")
+            kdLogger.log("global: ${globalKDTypes.keys}")
+        }
 
         if (data is KDType.Model) {
             createBuilder(data)
