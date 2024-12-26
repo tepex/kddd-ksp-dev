@@ -85,14 +85,8 @@ public sealed interface KDReference {
                         }
                         is Element -> {
                             if (newArg.kdType is KDType.Boxed) {
-                                val dslBuilderFunName = (newArg.kdType as KDType.Boxed).dslBuilderFunName
-                                if (arg.isNullable) {
-                                    fromDslArgs += "$localIt?.let(::$dslBuilderFunName)"
-                                    toDslArgs += "$localIt?.${KDType.Boxed.PARAM_NAME}"
-                                } else {
-                                    fromDslArgs += "$dslBuilderFunName($localIt)"
-                                    toDslArgs += "$localIt.${KDType.Boxed.PARAM_NAME}"
-                                }
+                                fromDslArgs += (newArg.kdType as KDType.Boxed).fromString(localIt, arg.isNullable)
+                                toDslArgs += (newArg.kdType as KDType.Boxed).asString(localIt, arg.isNullable)
                             } else {
                                 fromDslArgs += localIt
                                 toDslArgs += localIt

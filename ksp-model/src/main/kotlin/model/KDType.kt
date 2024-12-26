@@ -171,9 +171,6 @@ public sealed interface KDType {
         private val boxedType: TypeName,
     ) : Generatable by forGeneration, KDType {
 
-        override fun toString(): String =
-            "KDType.Boxed<$boxedType>"
-
         public val isParsable: Boolean =
             PARSABLES.containsKey(boxedType)
 
@@ -183,6 +180,18 @@ public sealed interface KDType {
         /** Тип источника создания объекта через DSL. String, если [Parsable] или непосредственно. */
         public val rawTypeName: TypeName =
             boxedType.takeUnless { isParsable } ?: String::class.asTypeName()
+
+        public fun asString(variable: String, isNullable: Boolean): String =
+            StringBuilder().apply {
+                append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
+                if (isParsable) append(".toString()")
+            }.toString()
+
+        public fun fromString(variable: String, isNullable: Boolean): String =
+            if (isNullable) "$variable?.let(::$dslBuilderFunName)" else "$dslBuilderFunName($variable)"
+
+        override fun toString(): String =
+            "KDType.Boxed<$boxedType>"
 
         public companion object {
             public const val PARAM_NAME: String = "boxed"
