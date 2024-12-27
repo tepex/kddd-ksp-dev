@@ -10,14 +10,14 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
-import java.lang.System.Logger
 
 internal sealed interface DSLType {
     val typeName: TypeName
 
     class Element private constructor(
         override val typeName: TypeName,
-        val kdType: KDType
+        val kdType: KDType,
+        val isInner: Boolean
     ) : DSLType {
 
         override fun toString(): String = typeName.toString()
@@ -32,10 +32,13 @@ internal sealed interface DSLType {
         override fun hashCode(): Int = typeName.hashCode()
 
         companion object {
-            fun create(kdType: KDType, isNullable: Boolean): Element = Element(
-                (if (kdType is KDType.Boxed) kdType.rawTypeName else kdType.sourceTypeName).toNullable(isNullable),
-                kdType
-            )
+            fun create(kdTypeSearchResult: KDTypeSearchResult, typeName: TypeName): Element =
+                Element(
+                    (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawTypeName
+                    else kdTypeSearchResult.first.sourceTypeName).toNullable(typeName.isNullable),
+                    kdTypeSearchResult.first,
+                    kdTypeSearchResult.second,
+                )
         }
     }
 
@@ -81,8 +84,8 @@ internal sealed interface DSLType {
                         }
                         is Element -> {
                             if (newArg.kdType is KDType.Boxed) {
-                                fromDslArgs += (newArg.kdType as KDType.Boxed).fromString(localIt, arg.isNullable)
-                                toDslArgs += (newArg.kdType as KDType.Boxed).asString(localIt, arg.isNullable)
+                                fromDslArgs += newArg.kdType.fromString(localIt, newArg.isInner, arg.isNullable)
+                                toDslArgs += newArg.kdType.asString(localIt, arg.isNullable)
                             } else {
                                 fromDslArgs += localIt
                                 toDslArgs += localIt

@@ -9,7 +9,9 @@ public data class KDTypeHelper(
     val globalKDTypes: Map<TypeName, KDType>,
     val toBeGenerated: ClassName,
     val typeName: TypeName,
-    val properties: List<Property>
+    val packageName: String,
+    val properties: List<Property>,
+    val generateClassName: String.() -> String
 ) {
 
     /* Property(toBeGenerated.member(it.simpleName.asString()), it.type.toTypeName())*/

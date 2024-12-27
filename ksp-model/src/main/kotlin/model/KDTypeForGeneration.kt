@@ -23,13 +23,20 @@ internal class KDTypeForGeneration(
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(helper.typeName)
     override val propertyHolders: List<KDPropertyHolder>
     override val sourceTypeName: TypeName = helper.typeName
+    override val packageName: String = helper.packageName
 
     private val _nestedTypes = mutableMapOf<TypeName, KDType>()
     override val nestedTypes: Map<TypeName, KDType>
         get() = _nestedTypes.toMap()
 
-    override val dslBuilderFunName: String =
-        sourceTypeName.toString().substringAfterLast('.').replaceFirstChar { it.lowercaseChar() }
+    override fun dslBuilderFunName(isInner: Boolean): String =
+        sourceTypeName.toString().substringAfterLast('.').let { name ->
+            val impl = with(helper) {
+                sourceTypeName.toString().substringAfterLast("$packageName.").substringBefore(".$name").generateClassName()
+            }
+            ("$impl.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
+                .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
+        }
 
     init {
         propertyHolders = boxedType?.let {
@@ -101,7 +108,7 @@ internal class KDTypeForGeneration(
 
     override fun getKDType(typeName: TypeName) = typeName.toNullable(false).let { key ->
         if (key == KDType.Abstraction.TYPENAME) /*KDType.Abstraction */error("${helper.typeName}: WIP. Abstraction not supported yet.")
-        else _nestedTypes[key] ?: helper.globalKDTypes[key] ?: run {
+        else _nestedTypes[key]?.let { it to true } ?: helper.globalKDTypes[key]?.let { it to false } ?: run {
             // to KDType.List, KDType.Set, KDType.Map
             error("Can't find implementation for $key in $className")
         }

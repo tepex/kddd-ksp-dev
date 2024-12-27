@@ -29,8 +29,8 @@ internal class DddProcessor(
         logger.warn("options: $options, isTesting: $isTesting")
         logger.warn("symbols: ${symbols.toList()}")
 
-        val classNameGenerator: KSClassDeclaration.() -> ClassName = {
-            options.generateClassName(simpleName.asString()).let(ClassName::bestGuess)
+        val classNameGenerator: String.() -> String = {
+            options.generateClassName(this)
         }
 
         val globalKDTypes = mutableMapOf<TypeName, KDType>()
@@ -50,7 +50,7 @@ internal class DddProcessor(
     private inner class DomainLayerVisitor(
         resolver: Resolver,
         globalKDTypes: MutableMap<TypeName, KDType>,
-        generateClassName: KSClassDeclaration.() -> ClassName
+        generateClassName: String.() -> String
     ) : KDVisitor(resolver, globalKDTypes, options, codeGenerator, logger, generateClassName) {
 
         override fun createBuilder(model: KDType.Model) {

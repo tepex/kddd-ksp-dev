@@ -23,7 +23,7 @@ public abstract class KDVisitor(
     private val options: KDOptions,
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
-    private val generateClassName: KSClassDeclaration.() -> ClassName
+    private val generateClassName: String.() -> String
 ) : KSDefaultVisitor<KDType.Generatable, Unit>() {
 
     protected val kdLogger: KDLogger = KDLoggerImpl(logger)
@@ -71,7 +71,7 @@ public abstract class KDVisitor(
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> kdLogger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
         } else emptyList()
-        val toBeGenerated = declaration.generateClassName()
+        val toBeGenerated = declaration.simpleName.asString().generateClassName().let(ClassName::bestGuess)
 
         val typeName = declaration.asType(typeArgs).toTypeName()
         val helper = KDTypeHelper(
@@ -79,8 +79,10 @@ public abstract class KDVisitor(
             globalKDTypes,
             toBeGenerated,
             typeName,
+            declaration.packageName.asString(),
             declaration.getAllProperties()
-                .map { KDTypeHelper.Property(toBeGenerated.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
+                .map { KDTypeHelper.Property(toBeGenerated.member(it.simpleName.asString()), it.type.toTypeName()) }.toList(),
+            generateClassName
         )
         return declaration.kdTypeOrNull(helper).getOrElse {
             logger.warn(it.message ?: "Cant parse parent type", declaration)

@@ -19,7 +19,7 @@ public fun KSClassDeclaration.kdTypeOrNull(helper: KDTypeHelper): Result<KDType?
 }
 
 private fun KSTypeReference.kdTypeOrNull(helper: KDTypeHelper): Result<KDType>? = when(toString()) {
-    KDType.Sealed::class.java.simpleName      -> Result.success(KDType.Sealed.create(helper.typeName))
+    KDType.Sealed::class.java.simpleName      -> Result.success(KDType.Sealed.create(helper))
     KDType.Data::class.java.simpleName        -> Result.success(KDType.Data.create(helper, false))
     KDType.IEntity::class.java.simpleName     -> Result.success(KDType.IEntity.create(helper))
     KDType.Boxed::class.java.simpleName       -> runCatching { KDType.Boxed.create(helper, toTypeName()) }

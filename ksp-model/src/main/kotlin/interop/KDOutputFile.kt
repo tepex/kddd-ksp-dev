@@ -100,11 +100,11 @@ public data class KDOutputFile private constructor(
             packageName: String,
             kdType: KDType,
             srcFile: KSFile,
-            generateClassName: KSClassDeclaration.() -> ClassName
+            generateClassName: String.() -> String
         ): KDOutputFile = KDOutputFile(
             kdType,
             PackageName.create(packageName),
-            declaration.generateClassName(),
+            declaration.simpleName.asString().generateClassName().let(ClassName::bestGuess),
             declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() }.let(BuilderFunctionName::create),
             Dependencies(false, srcFile)
         )

@@ -61,6 +61,7 @@ import java.util.UUID
  * */
 public sealed interface KDType {
     public val sourceTypeName: TypeName
+    public val packageName: String
 
     public interface Model : Generatable {
         public val builderClassName: ClassName
@@ -72,26 +73,26 @@ public sealed interface KDType {
         public val builder: TypeSpec.Builder
         public val propertyHolders: List<KDPropertyHolder>
         public val nestedTypes: Map<TypeName, KDType>
-        public val dslBuilderFunName: String
 
+        public fun dslBuilderFunName(isInner: Boolean): String
         public fun addNestedType(type: KDType)
-        public fun getKDType(typeName: TypeName): KDType
+        public fun getKDType(typeName: TypeName): KDTypeSearchResult
     }
 
-
-    @JvmInline
-    public value class Sealed private constructor(
-        override val sourceTypeName: TypeName
+    public data class Sealed private constructor(
+        override val sourceTypeName: TypeName,
+        override val packageName: String
     ) : KDType {
 
         public companion object {
-            public fun create(typeName: TypeName): Sealed =
-                Sealed(typeName)
+            public fun create(helper: KDTypeHelper): Sealed =
+                Sealed(helper.typeName, helper.packageName)
         }
     }
 
     public data object Abstraction : KDType {
         override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
+        override val packageName: String = "TODO"
         val TYPENAME: TypeName = ValueObject::class.asTypeName()
 
         override fun toString(): String = "Abstraction"
@@ -191,8 +192,8 @@ public sealed interface KDType {
                 if (isParsable) append(".toString()")
             }.toString()
 
-        public fun fromString(variable: String, isNullable: Boolean): String =
-            if (isNullable) "$variable?.let(::$dslBuilderFunName)" else "$dslBuilderFunName($variable)"
+        public fun fromString(variable: String, isInner: Boolean, isNullable: Boolean): String =
+            if (isNullable) "$variable?.let(::${dslBuilderFunName(isInner)})" else "${dslBuilderFunName(isInner)}($variable)"
 
         override fun toString(): String =
             "KDType.Boxed<$boxedType>"

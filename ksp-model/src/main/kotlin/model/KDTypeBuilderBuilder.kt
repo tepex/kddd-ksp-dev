@@ -36,7 +36,7 @@ public class KDTypeBuilderBuilder private constructor(
             if (property.typeName is ParameterizedTypeName) {
                 funSpecStatement.addParameterForCollection(property.name, property.typeName)
             } else {
-                funSpecStatement.addParameterForElement(property.name, property)
+                funSpecStatement.addParameterForElement(property)
 
                 // Check nulls statements
                 if (!property.typeName.isNullable)
@@ -49,7 +49,7 @@ public class KDTypeBuilderBuilder private constructor(
 
                 // return new PropertySpec
                 holder.getKDType(property.typeName).let { nestedType ->
-                    if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else property.typeName
+                    if (nestedType.first is KDType.Boxed && isDsl) (nestedType.first as KDType.Boxed).rawTypeName else property.typeName
                 }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
             }.mutable().build().also(innerBuilder::addProperty)
 
@@ -74,18 +74,23 @@ public class KDTypeBuilderBuilder private constructor(
     /**
      * 2. fun to<Dsl>Builder() { <name> = <name> }
      **/
-    private fun FunSpecStatement.addParameterForElement(name: MemberName, property: KDPropertyHolder) {
-        +Chunk("%N = ", name)
+    private fun FunSpecStatement.addParameterForElement(property: KDPropertyHolder) {
+        +Chunk("%N = ", property.name)
         val element =
-            holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName.isNullable) }
+            holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName) }
         if (element.kdType is KDType.Boxed && isDsl) {
-            val boxedType = (element.kdType as KDType.Boxed)
-            if (element.typeName.isNullable) +Chunk("%N?.let(::${boxedType.dslBuilderFunName}),", name)
-            else +Chunk("${boxedType.dslBuilderFunName}(%N!!),", name)
-            toBuildersHolder.element(name.simpleName, element.typeName.isNullable, boxedType.isParsable)
+            /*
+            if (holder.sourceTypeName.toString() == "ru.it_arch.clean_ddd.domain.B") {
+
+                logger.log("process param: $property, prefix: $outerPrefix")
+            }*/
+
+            if (element.typeName.isNullable) +Chunk("%N?.let(::${element.kdType.dslBuilderFunName(element.isInner)}),", property.name)
+            else +Chunk("${element.kdType.dslBuilderFunName(element.isInner)}(%N!!),", property.name)
+            toBuildersHolder.element(property.name.simpleName, element.typeName.isNullable, element.kdType.isParsable)
         } else {
-            toBuildersHolder.asIs(name.simpleName)
-            +Chunk("%N${if (!element.typeName.isNullable) "!!" else ""},", name)
+            toBuildersHolder.asIs(property.name.simpleName)
+            +Chunk("%N${if (!element.typeName.isNullable) "!!" else ""},", property.name)
         }
     }
 
@@ -113,6 +118,29 @@ public class KDTypeBuilderBuilder private constructor(
         }
     }
 
+    private fun createDslInnerBuilder(innerType: KDType.Generatable): FunSpec =
+        FunSpec.builder(innerType.dslBuilderFunName(true)).apply {
+            if (innerType is KDType.Boxed) {
+                ParameterSpec.builder("value", innerType.rawTypeName).build().also { param ->
+                    addParameter(param)
+                    addStatement("return %T.${innerType.fabricMethod}(%N)", innerType.className, param)
+                }
+            } else if (innerType is KDType.Model) {
+                ParameterSpec.builder(
+                    "block",
+                    LambdaTypeName.get(
+                        receiver = innerType.dslBuilderClassName,
+                        returnType = Unit::class.asTypeName()
+                    )
+                ).build().also { param ->
+                    addParameter(param)
+                    // return InnerImpl.DslBuilder().apply(block).build()
+                    addStatement("return ${KDType.Data.APPLY_BUILDER}", innerType.dslBuilderClassName, param)
+                }
+            }
+            returns(innerType.sourceTypeName)
+        }.build()
+
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
     private tailrec fun traverseParameterizedTypes(node: DSLType.Parameterized, testFlag: Boolean): DSLType.Parameterized =
@@ -120,7 +148,7 @@ public class KDTypeBuilderBuilder private constructor(
             substituteArgs { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
                 if (arg is ParameterizedTypeName) traverseParameterizedTypes(Collection.create(arg, logger, testFlag), testFlag)
-                else holder.getKDType(arg).let { DSLType.Element.create(it, arg.isNullable) }
+                else holder.getKDType(arg).let { DSLType.Element.create(it, arg) }
             }
         }, testFlag)
 
@@ -196,31 +224,7 @@ public class KDTypeBuilderBuilder private constructor(
     }
 
     public companion object {
-
         public fun create(holder: KDType.Model, isDsl: Boolean, logger: KDLogger): KDTypeBuilderBuilder =
             KDTypeBuilderBuilder(holder, isDsl, logger)
-
-        private fun createDslInnerBuilder(innerType: KDType.Generatable): FunSpec =
-            FunSpec.builder(innerType.dslBuilderFunName).apply {
-                if (innerType is KDType.Boxed) {
-                    ParameterSpec.builder("value", innerType.rawTypeName).build().also { param ->
-                        addParameter(param)
-                        addStatement("return %T.${innerType.fabricMethod}(%N)", innerType.className, param)
-                    }
-                } else if (innerType is KDType.Model) {
-                    ParameterSpec.builder(
-                        "block",
-                        LambdaTypeName.get(
-                            receiver = innerType.dslBuilderClassName,
-                            returnType = Unit::class.asTypeName()
-                        )
-                    ).build().also { param ->
-                        addParameter(param)
-                        // return InnerImpl.DslBuilder().apply(block).build()
-                        addStatement("return ${KDType.Data.APPLY_BUILDER}", innerType.dslBuilderClassName, param)
-                    }
-                }
-                returns(innerType.sourceTypeName)
-            }.build()
     }
 }

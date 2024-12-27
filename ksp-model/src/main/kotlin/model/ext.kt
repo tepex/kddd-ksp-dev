@@ -15,3 +15,5 @@ internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
 internal fun ParameterizedTypeName.toCollectionType(): CollectionType =
     CollectionType.entries.find { it.classNames.contains(rawType) }
         ?: error("Not supported collection type $this")
+
+public typealias KDTypeSearchResult = Pair<KDType, Boolean>
