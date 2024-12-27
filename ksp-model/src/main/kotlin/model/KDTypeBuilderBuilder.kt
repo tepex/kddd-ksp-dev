@@ -5,10 +5,11 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.ksp.model.KDReference.Collection
+import ru.it_arch.clean_ddd.ksp.model.DSLType.Collection
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
@@ -31,30 +32,27 @@ public class KDTypeBuilderBuilder private constructor(
 
     init {
         val funSpecStatement = FunSpecStatement(Chunk("return %T(", holder.className))
-        //holder.propertyHolders.map(::toBuilderPropertySpec).also(innerBuilder::addProperties)
         holder.propertyHolders.forEach { property ->
-            property.typeReference.let { ref ->
-                when (ref) {
-                    is KDReference.Element -> {
-                        // Builder().return
-                        property.typeReference.typeName.toKDReference(holder)
-                            .also { funSpecStatement.addParameterForElement(property.name, it as KDReference.Element) }
+            if (property.typeName is ParameterizedTypeName) {
+                funSpecStatement.addParameterForCollection(property.name, property.typeName)
+            } else {
+                funSpecStatement.addParameterForElement(property.name, property)
 
-                        // return new PropertySpec
-                        holder.getKDType(ref.typeName).let { nestedType ->
-                            if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else ref.typeName
-                        }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
-                    }
+                // Check nulls statements
+                if (!property.typeName.isNullable)
+                    builderFunBuild.addStatement(
+                        """requireNotNull(%N) { "Property '%T.%N' is not set!" }""",
+                        property.name,
+                        holder.className,
+                        property.name
+                    )
 
-                    is KDReference.Parameterized -> funSpecStatement.addParameterForCollection(property.name, ref as Collection)
+                // return new PropertySpec
+                holder.getKDType(property.typeName).let { nestedType ->
+                    if (nestedType is KDType.Boxed && isDsl) nestedType.rawTypeName else property.typeName
+                }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
+            }.mutable().build().also(innerBuilder::addProperty)
 
-                }.mutable().build().also(innerBuilder::addProperty)
-            }
-
-            // Check nulls statements
-            if (property.typeReference  is KDReference.Element && !property.typeReference.typeName.isNullable )
-                builderFunBuild.addStatement(
-                    """requireNotNull(%N) { "Property '%T.%N' is not set!" }""", property.name, holder.className, property.name)
         }
 
         if (isDsl) {
@@ -76,46 +74,52 @@ public class KDTypeBuilderBuilder private constructor(
     /**
      * 2. fun to<Dsl>Builder() { <name> = <name> }
      **/
-    private fun FunSpecStatement.addParameterForElement(name: MemberName, ref: KDReference.Element) {
+    private fun FunSpecStatement.addParameterForElement(name: MemberName, property: KDPropertyHolder) {
         +Chunk("%N = ", name)
-        if (ref.kdType is KDType.Boxed && isDsl) {
-            val boxedType = (ref.kdType as KDType.Boxed)
-            if (ref.typeName.isNullable) +Chunk("%N?.let(::${boxedType.dslBuilderFunName}),", name)
+        val element =
+            holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName.isNullable) }
+        if (element.kdType is KDType.Boxed && isDsl) {
+            val boxedType = (element.kdType as KDType.Boxed)
+            if (element.typeName.isNullable) +Chunk("%N?.let(::${boxedType.dslBuilderFunName}),", name)
             else +Chunk("${boxedType.dslBuilderFunName}(%N!!),", name)
-            toBuildersHolder.element(name.simpleName, ref.typeName.isNullable, boxedType.isParsable)
+            toBuildersHolder.element(name.simpleName, element.typeName.isNullable, boxedType.isParsable)
         } else {
             toBuildersHolder.asIs(name.simpleName)
-            +Chunk("%N${if (!ref.typeName.isNullable) "!!" else ""},", name)
+            +Chunk("%N${if (!element.typeName.isNullable) "!!" else ""},", name)
         }
     }
 
-    private fun FunSpecStatement.addParameterForCollection(name: MemberName, collection: Collection) =
-        if (isDsl) traverseParameterizedTypes(Collection.create(collection.parameterizedTypeName)).let { substituted ->
-            // return from Builder.build() { return T(...) }
-            +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
-            endStatement()
+    private fun FunSpecStatement.addParameterForCollection(name: MemberName, typeName: ParameterizedTypeName): PropertySpec.Builder {
+        val collectionType = typeName.toCollectionType()
+        return if (isDsl) {
+            traverseParameterizedTypes(Collection.create(typeName)).let { substituted ->
+                // return from Builder.build() { return T(...) }
+                +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
+                endStatement()
 
-            toBuildersHolder.fromDsl(name.simpleName, substituted.toDslMapper)
+                toBuildersHolder.fromDsl(name.simpleName, substituted.toDslMapper)
 
-            substituted.parameterizedTypeName
-                .let { PropertySpec.builder(name.simpleName, it).initializer(collection.collectionType.mutableInitializer) }
-        }
-        // return new PropertySpec
-        else {
+                substituted.parameterizedTypeName
+                    .let { PropertySpec.builder(name.simpleName, it).initializer(collectionType.initializer(true)) }
+            }
+            // return new PropertySpec
+        } else {
             +Chunk("%N = %N", name, name)
             endStatement()
             // toBuilder()
             toBuildersHolder.asIs(name.simpleName)
-            PropertySpec.builder(name.simpleName, collection.parameterizedTypeName).initializer(collection.collectionType.initializer)
+            PropertySpec.builder(name.simpleName, typeName).initializer(collectionType.initializer(false))
         }
+    }
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun traverseParameterizedTypes(node: KDReference.Parameterized): KDReference.Parameterized =
+    private tailrec fun traverseParameterizedTypes(node: DSLType.Parameterized): DSLType.Parameterized =
         node.substituteOrNull() ?: traverseParameterizedTypes(node.apply {
             substituteArgs { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
-                arg.toKDReference(holder).let { if (it is Collection) traverseParameterizedTypes(it) else it }
+                if (arg is ParameterizedTypeName) traverseParameterizedTypes(Collection.create(arg))
+                else holder.getKDType(arg).let { DSLType.Element.create(it, arg.isNullable) }
             }
         })
 
@@ -217,44 +221,5 @@ public class KDTypeBuilderBuilder private constructor(
                 }
                 returns(innerType.sourceTypeName)
             }.build()
-
-        /** BOXED or Enum or lambda */
-        private fun createDslBuilderParameter(name: String, nestedType: KDReference.Element) = when (nestedType.kdType) {
-            is KDType.Sealed ->
-                ParameterSpec.builder(name, nestedType.kdType.sourceTypeName).build()
-            is KDType.Boxed ->
-                (nestedType.kdType as KDType.Boxed).rawTypeName.let { type -> type.takeIf { nestedType.typeName.isNullable }?.toNullable() ?: type }
-                    .let { ParameterSpec.builder(name, it).build() }
-
-            is KDType.Model -> ParameterSpec.builder(
-                name,
-                LambdaTypeName.get(
-                    receiver = (nestedType.kdType as KDType.Model).dslBuilderClassName,
-                    returnType = Unit::class.asTypeName()
-                )
-            ).build()
-
-            else -> error("Impossible state")
-        }
-
-        /**
-         * DSL builder for param: ValueObject, param: List<ValueObject.Boxed>
-         * `fun <t>(block: <T>Impl.DslBuilder.() -> Unit) { ... }`
-         *
-         * @param nullableHolder type is KDValueObject
-         **/
-        /*
-        private fun createDslBuilderFunction(name: MemberName, ref: KDReference.Element, isCollection: Boolean) =
-            createDslBuilderParameter("p1", ref).let { blockParam ->
-                FunSpec.builder(name.simpleName).apply {
-                    addParameter(blockParam)
-                    val dslBuilderClassName = (ref.kdType as KDType.Data).dslBuilderClassName
-                    if (isCollection)
-                        addStatement("${KDType.Data.APPLY_BUILDER}.also(%N::add)", dslBuilderClassName, blockParam, name)
-                    else
-                        addStatement("%N = ${KDType.Data.APPLY_BUILDER}", name, dslBuilderClassName, blockParam)
-                }.build()
-            }
-*/
     }
 }

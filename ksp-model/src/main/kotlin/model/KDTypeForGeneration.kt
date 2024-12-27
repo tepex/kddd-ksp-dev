@@ -110,14 +110,14 @@ internal class KDTypeForGeneration(
     private fun createConstructor(parameters: List<KDPropertyHolder>) {
         parameters.map { param ->
             PropertySpec
-                .builder(param.name.simpleName, param.typeReference.typeName, KModifier.OVERRIDE)
+                .builder(param.name.simpleName, param.typeName, KModifier.OVERRIDE)
                 .initializer(param.name.simpleName)
                 .build()
         }.also(builder::addProperties)
 
         FunSpec.constructorBuilder()
             .addModifiers(KModifier.PRIVATE)
-            .addParameters(parameters.map { ParameterSpec(it.name.simpleName, it.typeReference.typeName) })
+            .addParameters(parameters.map { ParameterSpec(it.name.simpleName, it.typeName) })
             .addStatement("validate()")
             .build()
             .also(builder::primaryConstructor)

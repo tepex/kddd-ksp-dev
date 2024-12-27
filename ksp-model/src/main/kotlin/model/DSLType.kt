@@ -11,16 +11,13 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
 
-public sealed interface KDReference {
-    public val typeName: TypeName
+internal sealed interface DSLType {
+    val typeName: TypeName
 
-    public class Element private constructor(
+    class Element private constructor(
         override val typeName: TypeName,
-        private val _kdType: KDType? = null
-    ) : KDReference {
-
-        public val kdType: KDType
-            get() = _kdType ?: error("KDType is not resolved for $typeName")
+        val kdType: KDType
+    ) : DSLType {
 
         override fun toString(): String = typeName.toString()
 
@@ -33,32 +30,30 @@ public sealed interface KDReference {
 
         override fun hashCode(): Int = typeName.hashCode()
 
-        public companion object {
-            public fun create(typeName: TypeName): Element = Element(typeName)
-
-            public fun create(kdType: KDType, isNullable: Boolean): Element = Element(
+        companion object {
+            fun create(kdType: KDType, isNullable: Boolean): Element = Element(
                 (if (kdType is KDType.Boxed) kdType.rawTypeName else kdType.sourceTypeName).toNullable(isNullable),
                 kdType
             )
         }
     }
 
-    public interface Parameterized : KDReference {
-        public val parameterizedTypeName: ParameterizedTypeName
-        public val fromDslMapper: String
-        public val toDslMapper: String
+    interface Parameterized : DSLType {
+        val parameterizedTypeName: ParameterizedTypeName
+        val fromDslMapper: String
+        val toDslMapper: String
 
         override val typeName: TypeName
             get() = parameterizedTypeName
 
-        public fun getLambdaArgName(i: Int): String
+        fun getLambdaArgName(i: Int): String
 
-        public fun substituteArgs(transform: (TypeName) -> KDReference)
-        public fun substituteOrNull(): Parameterized?
+        fun substituteArgs(transform: (TypeName) -> DSLType)
+        fun substituteOrNull(): Parameterized?
     }
 
-    public abstract class AbstractParameterized() : Parameterized {
-        protected lateinit var args: List<KDReference>
+    abstract class AbstractParameterized : Parameterized {
+        protected lateinit var args: List<DSLType>
         // TODO: make private
         override lateinit var fromDslMapper: String
         override lateinit var toDslMapper: String
@@ -72,7 +67,7 @@ public sealed interface KDReference {
         override fun substituteOrNull(): Parameterized? =
             if (isSubstituted) substitute().also { isSubstituted = true } else null
 
-        override fun substituteArgs(transform: (TypeName) -> KDReference) {
+        override fun substituteArgs(transform: (TypeName) -> DSLType) {
             val fromDslArgs = mutableListOf<String>()
             val toDslArgs = mutableListOf<String>()
             args = parameterizedTypeName.typeArguments.mapIndexed { i, arg ->
@@ -102,32 +97,27 @@ public sealed interface KDReference {
         }
     }
 
-    public data class Collection private constructor(
+    data class Collection private constructor(
         override val parameterizedTypeName: ParameterizedTypeName,
-        val collectionType: CollectionType,
     ) : AbstractParameterized() {
 
-        override fun getLambdaArgName(i: Int): String = when(collectionType) {
-            CollectionType.MAP -> "it.key".takeIf { i == 0 } ?: "it.value"
-            else               -> "it"
-        }
+        private val collectionType = parameterizedTypeName.toCollectionType()
 
-        override fun createFromDslMapper(lambdaArgs: List<String>): String = when(collectionType) {
-            CollectionType.MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
-            else -> StringBuilder().apply {
-                val arg = args.first()
-                ".map { ${lambdaArgs.first()} }".takeUnless { arg is Element && arg.kdType !is KDType.Boxed }?.also(::append)
-                append(".toList()".takeIf { collectionType == CollectionType.LIST } ?: ".toSet()")
-            }.toString()
-        }
+        override fun getLambdaArgName(i: Int): String =
+            collectionType.getLambdaArgName(i)
 
-        override fun createToDslMapper(lambdaArgs: List<String>): String = when(collectionType) {
-            CollectionType.MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }.toMutableMap()"
-            else -> StringBuilder().apply {
-                val arg = args.first()
-                ".map { ${lambdaArgs.first()} }".takeUnless { arg is Element && arg.kdType !is KDType.Boxed }?.also(::append)
-                append(".toMutableList()".takeIf { collectionType == CollectionType.LIST } ?: ".toMutableSet()")
-            }.toString()
+        override fun createFromDslMapper(lambdaArgs: List<String>): String =
+            createDslMapper(lambdaArgs, false)
+
+        override fun createToDslMapper(lambdaArgs: List<String>): String =
+            createDslMapper(lambdaArgs, true)
+
+        private fun createDslMapper(lambdaArgs: List<String>, isMutable: Boolean): String {
+            val isNoMap = if (collectionType != CollectionType.MAP)
+                args.first() is Element && (args.first() as Element).kdType !is KDType.Boxed
+            else false
+
+            return collectionType.mapperAsString(lambdaArgs, isMutable, isNoMap)
         }
 
         override fun substitute(): Parameterized =
@@ -144,28 +134,9 @@ public sealed interface KDReference {
             else -> error("Unsupported collection for mutable: $this")
         }.parameterizedBy(args.map { it.typeName })
 
-        public enum class CollectionType(
-            public val className: ClassName,
-            public val initializer: String,
-            public val mutableInitializer: String
-        ) {
-            SET(com.squareup.kotlinpoet.SET, "emptySet()", "mutableSetOf()"),
-            LIST(com.squareup.kotlinpoet.LIST, "emptyList()", "mutableListOf()"),
-            MAP(com.squareup.kotlinpoet.MAP, "emptyMap()", "mutableMapOf()");
-        }
-
-        public companion object {
-            public fun create(typeName: ParameterizedTypeName): Collection = CollectionType.entries
-                .find { it.className == typeName.rawType }
-                ?.let { Collection(typeName, it) }
-                ?: error("Not supported collection type $typeName")
-        }
-    }
-
-    public companion object {
-        public fun create(typeName: TypeName): KDReference = when(typeName) {
-            is ParameterizedTypeName -> Collection.create(typeName)
-            else                     -> Element.create(typeName)
+        companion object {
+            fun create(typeName: ParameterizedTypeName): Collection =
+                Collection(typeName)
         }
     }
 }
