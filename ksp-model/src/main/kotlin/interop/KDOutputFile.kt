@@ -15,7 +15,7 @@ import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.kddd.ValueObject
 
 public data class KDOutputFile private constructor(
-    private val kdType: KDType,
+    public val kdType: KDType,
     private val packageName: PackageName,
     private val toBeGenerated: ClassName,
     private val builderFunName: BuilderFunctionName,

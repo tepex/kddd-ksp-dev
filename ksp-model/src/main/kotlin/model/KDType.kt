@@ -119,10 +119,14 @@ public sealed interface KDType {
     }
 
     public class IEntity private constructor(private val data: Data) : Model by data {
-        public fun generateBaseContract() {
-            val paramId = propertyHolders.find { it.name.simpleName == ID_NAME }
-                ?: error("ID parameter not found for Entity $className")
 
+        private val paramId = propertyHolders.find { it.name.simpleName == ID_NAME }
+            ?: error("ID parameter not found for Entity $className")
+
+        override fun toString(): String =
+            "IEntity[id: $paramId, data: $data]"
+
+        public fun generateBaseContract() {
             FunSpec.builder("hashCode").apply {
                 addModifiers(KModifier.OVERRIDE)
                 addStatement("return %N.hashCode()", paramId.name)

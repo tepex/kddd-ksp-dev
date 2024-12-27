@@ -170,18 +170,6 @@ public class KDTypeBuilderBuilder private constructor(
             chunks += other.chunks
         }
 
-        fun toSet() {
-            +Chunk(".toSet()")
-        }
-
-        fun toList() {
-            +Chunk(".toList()")
-        }
-
-        fun toMap() {
-            +Chunk(".toMap()")
-        }
-
         fun endStatement() {
             +Chunk(",♢")
         }

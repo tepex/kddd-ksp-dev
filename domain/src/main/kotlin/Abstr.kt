@@ -12,6 +12,7 @@ public interface Abstr : ValueObject.Data {
     public val someMap: Map<Name, ValueObject?>*/
     public val myEnum: MyEnum
     public val enumList: List<MyEnum>
+    public val point: Point
 
     override fun validate() {}
 

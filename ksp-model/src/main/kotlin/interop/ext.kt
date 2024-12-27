@@ -2,10 +2,7 @@ package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSTypeReference
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.ksp.model.KDLogger
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeHelper
 
@@ -15,13 +12,8 @@ This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
 
-public fun KSClassDeclaration.kdTypeOrNull(helper: KDTypeHelper, logger: KDLogger): Result<KDType?> {
-    superTypes.forEach { parent ->
-        /*
-        val resolved = parent.resolve()
-        logger.log("$this: parent: $resolved isKSClassDecl: ${resolved is KSClassDeclaration}")*/
-        parent.kdTypeOrNull(helper)?.also { return it }
-    }
+public fun KSClassDeclaration.kdTypeOrNull(helper: KDTypeHelper): Result<KDType?> {
+    superTypes.forEach { it.kdTypeOrNull(helper)?.also { return it } }
     // Not found
     return Result.success(null)
 }

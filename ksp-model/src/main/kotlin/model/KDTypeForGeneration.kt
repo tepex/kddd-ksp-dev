@@ -97,7 +97,6 @@ internal class KDTypeForGeneration(
 
     override fun addNestedType(type: KDType) {
         _nestedTypes[type.sourceTypeName.toNullable(false)] = type
-        if (type is Generatable) builder.addType(type.builder.build())
     }
 
     override fun getKDType(typeName: TypeName) = typeName.toNullable(false).let { key ->

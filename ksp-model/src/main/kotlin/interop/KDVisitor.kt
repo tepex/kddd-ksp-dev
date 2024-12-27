@@ -31,7 +31,7 @@ public abstract class KDVisitor(
     public abstract fun createBuilder(model: KDType.Model)
 
     public fun generate(symbols: Sequence<KSFile>) {
-        symbols.flatMap { file ->
+        val outputFiles = symbols.flatMap { file ->
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
@@ -40,27 +40,40 @@ public abstract class KDVisitor(
                         KDOutputFile.create(declaration, options.getPackage(declaration), kdType, file, generateClassName)
                     }
                 }.filterNotNull()
-        }.forEach { file ->
-            file.generate(codeGenerator)
+        }.toList()
+
+        outputFiles.forEach { file ->
+            if (file.kdType is KDType.Model) {
+                buildAndAddNestedTypes(file.kdType)
+                createBuilder(file.kdType)
+            }
+        }
+
+        outputFiles.forEach { it.generate(codeGenerator) }
+    }
+
+    private tailrec fun buildAndAddNestedTypes(model: KDType.Model, isFinish: Boolean = false) {
+        val nestedModels = model.nestedTypes.values.filterIsInstance<KDType.Model>()
+        return if (nestedModels.isEmpty() || isFinish) {
+            // append
+            model.nestedTypes.values.filterIsInstance<KDType.Generatable>().forEach { type ->
+                if (type is KDType.Model) createBuilder(type)
+                model.builder.addType(type.builder.build())
+            }
+        } else {
+            nestedModels.forEach(::buildAndAddNestedTypes)
+            buildAndAddNestedTypes(model, true)
         }
     }
 
     private fun visitKDDeclaration(declaration: KSClassDeclaration): KDType? {
-
-        //val typeParams = declaration.typeParameters.flatMap { it.toTypeVariableName().bounds }
-
         val typeArgs = if (declaration.typeParameters.isNotEmpty()) {
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> kdLogger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
         } else emptyList()
-        //declaration.typeParameters.map { resolver.createKSTypeReferenceFromKSType(it.bounds.first()) }
-        //kdLogger.log("visit: $declaration typ: $typeParams")
         val toBeGenerated = declaration.generateClassName()
 
-        //val typeName = declaration.asType(emptyList()).toTypeName()
         val typeName = declaration.asType(typeArgs).toTypeName()
-        //kdLogger.log("    typeName: $typeName")
-        //val typeName = declaration.asType(declaration.typeParameters.map { it.toTypeVariableName() }).toTypeName()
         val helper = KDTypeHelper(
             kdLogger,
             globalKDTypes,
@@ -69,16 +82,12 @@ public abstract class KDVisitor(
             declaration.getAllProperties()
                 .map { KDTypeHelper.Property(toBeGenerated.member(it.simpleName.asString()), it.type.toTypeName()) }.toList()
         )
-        return declaration.kdTypeOrNull(helper, kdLogger).getOrElse {
+        return declaration.kdTypeOrNull(helper).getOrElse {
             logger.warn(it.message ?: "Cant parse parent type", declaration)
             null
         }?.also { kdType ->
-            if (globalKDTypes.containsKey(typeName)) {
-                kdLogger.log("skip: $typeName")
-            } else {
-                globalKDTypes[typeName] = kdType
-                if (kdType is KDType.Generatable) declaration.accept(this, kdType)
-            }
+            globalKDTypes[typeName] = kdType
+            if (kdType is KDType.Generatable) declaration.accept(this, kdType)
         }
     }
 
@@ -88,35 +97,12 @@ public abstract class KDVisitor(
             .forEach { nestedDeclaration ->
                 //kdLogger.log("process declaration: $classDeclaration")
                 visitKDDeclaration(nestedDeclaration)
+                    // !!! build and add it later !!!
                     ?.also(data::addNestedType)
                     ?: logger.error("Unsupported type declaration", nestedDeclaration)
             }
 
-        // compare parameters with nested
-        /*
-        if (data is KDType.Model) {
-            val pppp = data.parameters.flatMap { param ->
-                if (param.typeReference.typeName is ClassName) listOf(param)
-                else if (param.typeReference.typeName is ParameterizedTypeName) param.typeReference.typeName.typeArguments.map {  }
-                else -> error("")
-            }
-            val params = data.parameters.map { "${it.typeReference.typeName} -> ${it.typeReference.typeName::class.java.simpleName}" }
-            val nested = data.nestedTypes.keys
-            kdLogger.log("${data.sourceTypeName}: params: $params")
-            kdLogger.log("         nested: $nested")
-        }*/
-
-        if (data.sourceTypeName.toString() == "ru.it_arch.clean_ddd.domain.MyEntity") {
-            kdLogger.log("params: ${data.propertyHolders.map { it.typeReference }}")
-            kdLogger.log("nested types: ${data.nestedTypes}")
-            kdLogger.log("global: ${globalKDTypes.keys}")
-        }
-
-        if (data is KDType.Model) {
-            createBuilder(data)
-            if (data is KDType.IEntity) data.generateBaseContract()
-        }
-        //data.finish()
+        if (data is KDType.IEntity) data.generateBaseContract()
     }
 
     override fun defaultHandler(node: KSNode, data: KDType.Generatable) {}
