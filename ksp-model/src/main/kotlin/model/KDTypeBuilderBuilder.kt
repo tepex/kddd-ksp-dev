@@ -91,8 +91,9 @@ public class KDTypeBuilderBuilder private constructor(
 
     private fun FunSpecStatement.addParameterForCollection(name: MemberName, typeName: ParameterizedTypeName): PropertySpec.Builder {
         val collectionType = typeName.toCollectionType()
+        val testFlag = name.simpleName == "nestedMaps"
         return if (isDsl) {
-            traverseParameterizedTypes(Collection.create(typeName)).let { substituted ->
+            traverseParameterizedTypes(Collection.create(typeName, logger, testFlag), testFlag).let { substituted ->
                 // return from Builder.build() { return T(...) }
                 +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
                 endStatement()
@@ -114,14 +115,14 @@ public class KDTypeBuilderBuilder private constructor(
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun traverseParameterizedTypes(node: DSLType.Parameterized): DSLType.Parameterized =
+    private tailrec fun traverseParameterizedTypes(node: DSLType.Parameterized, testFlag: Boolean): DSLType.Parameterized =
         node.substituteOrNull() ?: traverseParameterizedTypes(node.apply {
             substituteArgs { arg ->
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
-                if (arg is ParameterizedTypeName) traverseParameterizedTypes(Collection.create(arg))
+                if (arg is ParameterizedTypeName) traverseParameterizedTypes(Collection.create(arg, logger, testFlag), testFlag)
                 else holder.getKDType(arg).let { DSLType.Element.create(it, arg.isNullable) }
             }
-        })
+        }, testFlag)
 
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
         private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")

@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
+import java.lang.System.Logger
 
 internal sealed interface DSLType {
     val typeName: TypeName
@@ -60,8 +61,8 @@ internal sealed interface DSLType {
 
         private var isSubstituted: Boolean = false
 
-        protected abstract fun createFromDslMapper(lambdaArgs: List<String>): String
-        protected abstract fun createToDslMapper(lambdaArgs: List<String>): String
+        protected abstract fun createFromDslToNormalTypeMapper(lambdaArgs: List<String>): String
+        protected abstract fun createFromNormalTypeToDslMapper(lambdaArgs: List<String>): String
         protected abstract fun substitute(): Parameterized // copy
 
         override fun substituteOrNull(): Parameterized? =
@@ -91,14 +92,16 @@ internal sealed interface DSLType {
                     }
                 }
             }
-            fromDslMapper = createFromDslMapper(fromDslArgs)
-            toDslMapper = createToDslMapper(toDslArgs)
+            fromDslMapper = createFromDslToNormalTypeMapper(fromDslArgs)
+            toDslMapper = createFromNormalTypeToDslMapper(toDslArgs)
             isSubstituted = true
         }
     }
 
     data class Collection private constructor(
         override val parameterizedTypeName: ParameterizedTypeName,
+        val logger: KDLogger,
+        val testFlag: Boolean
     ) : AbstractParameterized() {
 
         private val collectionType = parameterizedTypeName.toCollectionType()
@@ -106,18 +109,17 @@ internal sealed interface DSLType {
         override fun getLambdaArgName(i: Int): String =
             collectionType.getLambdaArgName(i)
 
-        override fun createFromDslMapper(lambdaArgs: List<String>): String =
+        override fun createFromDslToNormalTypeMapper(lambdaArgs: List<String>): String =
             createDslMapper(lambdaArgs, false)
 
-        override fun createToDslMapper(lambdaArgs: List<String>): String =
+        override fun createFromNormalTypeToDslMapper(lambdaArgs: List<String>): String =
             createDslMapper(lambdaArgs, true)
 
         private fun createDslMapper(lambdaArgs: List<String>, isMutable: Boolean): String {
-            val isNoMap = if (collectionType != CollectionType.MAP)
-                args.first() is Element && (args.first() as Element).kdType !is KDType.Boxed
-            else false
-
-            return collectionType.mapperAsString(lambdaArgs, isMutable, isNoMap)
+            val isNoMap = args.all { it is Element && it.kdType !is KDType.Boxed }
+            val isNoTerminal = if (isNoMap) false
+            else if (collectionType == CollectionType.MAP) true else collectionType != CollectionType.SET
+            return collectionType.mapperAsString(lambdaArgs, isMutable, isNoMap, isNoTerminal)
         }
 
         override fun substitute(): Parameterized =
@@ -135,8 +137,8 @@ internal sealed interface DSLType {
         }.parameterizedBy(args.map { it.typeName })
 
         companion object {
-            fun create(typeName: ParameterizedTypeName): Collection =
-                Collection(typeName)
+            fun create(typeName: ParameterizedTypeName, logger: KDLogger, testFlag: Boolean): Collection =
+                Collection(typeName, logger, testFlag)
         }
     }
 }

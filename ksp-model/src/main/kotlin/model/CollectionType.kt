@@ -23,14 +23,16 @@ internal enum class CollectionType(
         else -> "it"
     }
 
-    fun mapperAsString(lambdaArgs: List<String>, isMutable: Boolean, noMap: Boolean): String = when(this) {
-        MAP  -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
-        else -> if (!noMap) ".map { ${lambdaArgs.first()} }" else ""
-    }.let { "$it${toCounterpart(isMutable)}" }
+    fun mapperAsString(lambdaArgs: List<String>, isMutable: Boolean, isNoMap: Boolean, isNoTerminal: Boolean): String =
+        ("".takeIf { isNoMap } ?: when (this) {
+            MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
+            else -> ".map { ${lambdaArgs.first()} }"
+        }).let { "$it${toCounterpart(isMutable, isNoTerminal)}" }
 
-    private fun toCounterpart(isMutable: Boolean): String = when(this) {
-        MAP  -> if (isMutable) ".toMutableMap()" else ""
-        LIST -> if (isMutable) ".toMutableList()" else ".toList()"
+    /** На последнем этапе не нужно имутабельное преобразование для list и map (если есть вложенность) */
+    private fun toCounterpart(isMutable: Boolean, isNoTerminal: Boolean): String = when(this) {
+        MAP  -> if (isMutable) ".toMutableMap()" else if (!isNoTerminal) ".toMap()" else ""
+        LIST -> if (isMutable) ".toMutableList()" else if (!isNoTerminal) ".toList()" else ""
         SET  -> if (isMutable) ".toMutableSet()" else ".toSet()"
     }
 }
