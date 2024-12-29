@@ -10,6 +10,9 @@ kotlin {
         languageSettings.enableLanguageFeature("ExplicitBackingFields")
     }*/
     explicitApi()
+    compilerOptions {
+        freeCompilerArgs = freeCompilerArgs.get() + "-Xcontext-receivers"
+    }
 }
 
 dependencies {
@@ -19,5 +22,6 @@ dependencies {
 
 ksp {
     arg("subpackage", "impl")
+    arg("contextReceivers", "true")
     //arg("generatedClassNameResult", "$1Default")
 }

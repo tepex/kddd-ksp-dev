@@ -1,6 +1,7 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.ExperimentalKotlinPoetApi
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MemberName
@@ -9,11 +10,13 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import ru.it_arch.clean_ddd.ksp.interop.KDOptions
 import ru.it_arch.clean_ddd.ksp.model.DSLType.Collection
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
     private val isDsl: Boolean,
+    private val useContextReceivers: KDOptions.UseContextReceivers,
     private val logger: KDLogger
 ) {
 
@@ -118,6 +121,7 @@ public class KDTypeBuilderBuilder private constructor(
         }
     }
 
+    @OptIn(ExperimentalKotlinPoetApi::class)
     private fun createDslInnerBuilder(innerType: KDType.Generatable): FunSpec =
         FunSpec.builder(innerType.dslBuilderFunName(true)).apply {
             if (innerType is KDType.Boxed) {
@@ -128,7 +132,10 @@ public class KDTypeBuilderBuilder private constructor(
             } else if (innerType is KDType.Model) {
                 ParameterSpec.builder(
                     "block",
-                    LambdaTypeName.get(
+                    if (useContextReceivers.boxed) LambdaTypeName.get(
+                        contextReceivers = listOf(innerType.dslBuilderClassName),
+                        returnType = Unit::class.asTypeName()
+                    ) else LambdaTypeName.get(
                         receiver = innerType.dslBuilderClassName,
                         returnType = Unit::class.asTypeName()
                     )
@@ -224,7 +231,8 @@ public class KDTypeBuilderBuilder private constructor(
     }
 
     public companion object {
+        context(KDOptions)
         public fun create(holder: KDType.Model, isDsl: Boolean, logger: KDLogger): KDTypeBuilderBuilder =
-            KDTypeBuilderBuilder(holder, isDsl, logger)
+            KDTypeBuilderBuilder(holder, isDsl, useContextReceivers, logger)
     }
 }

@@ -2,12 +2,14 @@ package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ClassName
+import ru.it_arch.clean_ddd.ksp.interop.KDOptions.ResultTemplate.Companion
 import ru.it_arch.kddd.ValueObject
 
 public class KDOptions private constructor(
     private val subpackage: Subpackage?,
     private val generatedClassNameRe: Regex,
-    private val generatedClassNameResult: ResultTemplate
+    private val generatedClassNameResult: ResultTemplate,
+    public val useContextReceivers: UseContextReceivers
 ) {
 
     public val KSClassDeclaration.implementationPackage: PackageName get() =
@@ -114,7 +116,26 @@ public class KDOptions private constructor(
         }
     }
 
+    @JvmInline
+    public value class UseContextReceivers private constructor(override val boxed: Boolean) : ValueObject.Boxed<Boolean> {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Boolean>> copy(boxed: Boolean): T =
+            UseContextReceivers.create(boxed) as T
+
+        init {
+            validate()
+        }
+
+        override fun validate() {}
+
+        public companion object {
+            public fun create(value: Boolean): UseContextReceivers =
+                UseContextReceivers(value)
+        }
+    }
+
     public companion object {
+        private const val OPTION_CONTEXT_RECEIVERS = "contextReceivers"
         private const val OPTION_SUBPACKAGE = "subpackage"
         private const val OPTION_GENERATED_CLASS_NAME_RE = "generatedClassNameRe"
         private const val OPTION_GENERATED_CLASS_NAME_RESULT = "generatedClassNameResult"
@@ -125,7 +146,8 @@ public class KDOptions private constructor(
             KDOptions(
                 src[OPTION_SUBPACKAGE]?.let(Subpackage::create),
                 (src[OPTION_GENERATED_CLASS_NAME_RE] ?: DEFAULT_RE).toRegex(),
-                (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let(ResultTemplate::create)
+                (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let(ResultTemplate::create),
+                (src[OPTION_CONTEXT_RECEIVERS]?.toBooleanStrictOrNull() ?: false).let(UseContextReceivers::create)
             )
     }
 }

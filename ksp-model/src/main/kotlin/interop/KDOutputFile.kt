@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.ExperimentalKotlinPoetApi
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
@@ -17,11 +18,13 @@ public data class KDOutputFile private constructor(
     public val dependencies: Dependencies,
     private val packageName: KDOptions.PackageName,
     private val toBeGenerated: ClassName,
-    private val builderFunName: KDOptions.BuilderFunctionName
+    private val builderFunName: KDOptions.BuilderFunctionName,
+    private val useContextReceivers: KDOptions.UseContextReceivers
 ) : ValueObject.Data {
 
     override fun validate() {}
 
+    @OptIn(ExperimentalKotlinPoetApi::class)
     public fun buildFileSpec(): FileSpec =
         FileSpec.builder(packageName.boxed, toBeGenerated.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
@@ -32,7 +35,8 @@ public data class KDOutputFile private constructor(
             val receiver: ClassName = ClassName(packageName.boxed, toBeGenerated.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
             ParameterSpec.builder(
                 "block",
-                LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
+                if (useContextReceivers.boxed) LambdaTypeName.get(contextReceivers = listOf(receiver), returnType = Unit::class.asTypeName())
+                else LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
             ).build().also { builderParam ->
                 FunSpec.builder(builderFunName.boxed)
                     .addParameter(builderParam)
@@ -58,6 +62,7 @@ public data class KDOutputFile private constructor(
             declaration.implementationPackage,
             declaration.implementationClassName,
             declaration.builderFunctionName,
+            useContextReceivers
         )
     }
 }
