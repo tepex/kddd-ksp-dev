@@ -5,10 +5,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.validate
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.clean_ddd.ksp.interop.KDOptions
 import ru.it_arch.clean_ddd.ksp.interop.KDVisitor
 import ru.it_arch.clean_ddd.ksp.model.KDType
@@ -29,12 +26,7 @@ internal class DddProcessor(
         logger.warn("options: $options, isTesting: $isTesting")
         logger.warn("symbols: ${symbols.toList()}")
 
-        val classNameGenerator: String.() -> String = {
-            options.generateClassName(this)
-        }
-
-        val globalKDTypes = mutableMapOf<TypeName, KDType>()
-        DomainLayerVisitor(resolver, globalKDTypes, classNameGenerator).generate(symbols)
+        DomainLayerVisitor(resolver).generate(symbols)
 
         /*
         resolver.getDeclarationsFromPackage("ru.it_arch.ddd")
@@ -48,10 +40,8 @@ internal class DddProcessor(
     }
 
     private inner class DomainLayerVisitor(
-        resolver: Resolver,
-        globalKDTypes: MutableMap<TypeName, KDType>,
-        generateClassName: String.() -> String
-    ) : KDVisitor(resolver, globalKDTypes, options, codeGenerator, logger, generateClassName) {
+        resolver: Resolver
+    ) : KDVisitor(resolver, options, codeGenerator, logger) {
 
         override fun createBuilder(model: KDType.Model) {
             KDTypeBuilderBuilder.create(model, false, kdLogger).also { builderBuilder ->

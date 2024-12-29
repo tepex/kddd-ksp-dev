@@ -1,28 +1,76 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.squareup.kotlinpoet.ClassName
 import ru.it_arch.kddd.ValueObject
 
-@ConsistentCopyVisibility
-public data class KDOptions private constructor(
+public class KDOptions private constructor(
     private val subpackage: Subpackage?,
     private val generatedClassNameRe: Regex,
     private val generatedClassNameResult: ResultTemplate
 ) {
 
-    public fun getPackage(declaration: KSClassDeclaration): String =
-        declaration.packageName.asString().let { base -> subpackage?.let { "$base.${it.boxed}" } ?: base }
+    public val KSClassDeclaration.implementationPackage: PackageName get() =
+        packageName.asString().let { base -> subpackage?.let { "$base.${it.boxed}" } ?: base }.let(::PackageName)
 
-    public fun generateClassName(src: String): String {
+    public val String.implementationName: String get() {
         var result = generatedClassNameResult.boxed
-        generatedClassNameRe.find(src)?.groupValues?.forEachIndexed() { i, group ->
+        generatedClassNameRe.find(this)?.groupValues?.forEachIndexed { i, group ->
             group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
         }
         return result
     }
 
+    public val KSClassDeclaration.implementationClassName: ClassName get() =
+        simpleName.asString().implementationName.let(ClassName::bestGuess)
+
+    public val KSClassDeclaration.builderFunctionName: BuilderFunctionName get() =
+        simpleName.asString().replaceFirstChar { it.lowercaseChar() }.let(BuilderFunctionName::create)
+
     @JvmInline
-    public value class Subpackage(override val boxed: String): ValueObject.Boxed<String> {
+    public value class PackageName(override val boxed: String): ValueObject.Boxed<String> {
+        init {
+            validate()
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
+            create(boxed) as T
+
+        override fun validate() {}
+
+        override fun toString(): String =
+            boxed
+
+        public companion object {
+            public fun create(boxed: String): PackageName =
+                PackageName(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class BuilderFunctionName(override val boxed: String): ValueObject.Boxed<String> {
+        init {
+            validate()
+        }
+
+        override fun validate() {}
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
+            create(boxed) as T
+
+        override fun toString(): String =
+            boxed
+
+        public companion object {
+            public fun create(boxed: String): BuilderFunctionName =
+                BuilderFunctionName(boxed)
+        }
+    }
+
+    @JvmInline
+    private value class Subpackage(override val boxed: String): ValueObject.Boxed<String> {
         init {
             validate()
         }
@@ -37,14 +85,14 @@ public data class KDOptions private constructor(
         override fun toString(): String =
             boxed
 
-        public companion object {
-            public fun create(boxed: String): Subpackage =
+        companion object {
+            fun create(boxed: String): Subpackage =
                 Subpackage(boxed)
         }
     }
 
     @JvmInline
-    public value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
+    private value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
             create(boxed) as T
@@ -60,8 +108,8 @@ public data class KDOptions private constructor(
         override fun toString(): String =
             boxed
 
-        public companion object {
-            public fun create(boxed: String): ResultTemplate =
+        companion object {
+            fun create(boxed: String): ResultTemplate =
                 ResultTemplate(boxed)
         }
     }

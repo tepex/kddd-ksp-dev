@@ -1,6 +1,5 @@
 package ru.it_arch.clean_ddd.ksp.interop
 
-import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
@@ -10,29 +9,27 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
-import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.kddd.ValueObject
 
 public data class KDOutputFile private constructor(
     public val kdType: KDType,
-    private val packageName: PackageName,
+    public val dependencies: Dependencies,
+    private val packageName: KDOptions.PackageName,
     private val toBeGenerated: ClassName,
-    private val builderFunName: BuilderFunctionName,
-    private val dependencies: Dependencies
+    private val builderFunName: KDOptions.BuilderFunctionName
 ) : ValueObject.Data {
 
     override fun validate() {}
 
-    private val receiver: ClassName = ClassName(packageName.boxed, toBeGenerated.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
-
-    public fun generate(codeGenerator: CodeGenerator) {
+    public fun buildFileSpec(): FileSpec =
         FileSpec.builder(packageName.boxed, toBeGenerated.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
 
             (kdType as? KDType.Generatable)?.builder?.build()?.also(fileBuilder::addType)
 
             /* Root DSL builder */
+            val receiver: ClassName = ClassName(packageName.boxed, toBeGenerated.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
             ParameterSpec.builder(
                 "block",
                 LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
@@ -47,66 +44,20 @@ public data class KDOutputFile private constructor(
                     .returns(toBeGenerated)
                     .build().also(fileBuilder::addFunction)
             }
-            fileBuilder.build().writeTo(codeGenerator, dependencies)
-        }
-    }
-
-    @JvmInline
-    private value class PackageName(override val boxed: String): ValueObject.Boxed<String> {
-        init {
-            validate()
-        }
-
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
-            create(boxed) as T
-
-        override fun validate() {}
-
-        override fun toString(): String =
-            boxed
-
-        public companion object {
-            public fun create(boxed: String): PackageName =
-                PackageName(boxed)
-        }
-    }
-
-    @JvmInline
-    private value class BuilderFunctionName(override val boxed: String): ValueObject.Boxed<String> {
-        init {
-            validate()
-        }
-
-        override fun validate() {}
-
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
-            create(boxed) as T
-
-        override fun toString(): String =
-            boxed
-
-        public companion object {
-            public fun create(boxed: String): BuilderFunctionName =
-                BuilderFunctionName(boxed)
-        }
-    }
-
+        }.build()
 
     public companion object {
+        context(KDOptions)
         public fun create(
             declaration: KSClassDeclaration,
-            packageName: String,
             kdType: KDType,
             srcFile: KSFile,
-            generateClassName: String.() -> String
-        ): KDOutputFile = KDOutputFile(
+        ): KDOutputFile =KDOutputFile(
             kdType,
-            PackageName.create(packageName),
-            declaration.simpleName.asString().generateClassName().let(ClassName::bestGuess),
-            declaration.simpleName.asString().replaceFirstChar { it.lowercaseChar() }.let(BuilderFunctionName::create),
-            Dependencies(false, srcFile)
+            Dependencies(false, srcFile),
+            declaration.implementationPackage,
+            declaration.implementationClassName,
+            declaration.builderFunctionName,
         )
     }
 }

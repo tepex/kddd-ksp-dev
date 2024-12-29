@@ -10,8 +10,10 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
+
     compilerOptions {
         apiVersion.set(KotlinVersion.KOTLIN_2_0)
+        freeCompilerArgs = freeCompilerArgs.get() + "-Xcontext-receivers"
     }
     /*
     sourceSets.all {
@@ -19,6 +21,11 @@ kotlin {
     }*/
     explicitApi()
 }
+
+/*
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).all {
+    kotlinOptions.freeCompilerArgs += "-Xcontext-receivers"
+}*/
 
 /*
 tasks.withType<Test>().configureEach {

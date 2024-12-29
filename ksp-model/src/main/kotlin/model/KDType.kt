@@ -61,7 +61,7 @@ import java.util.UUID
  * */
 public sealed interface KDType {
     public val sourceTypeName: TypeName
-    public val packageName: String
+    //public val packageName: Pac
 
     public interface Model : Generatable {
         public val builderClassName: ClassName
@@ -79,20 +79,21 @@ public sealed interface KDType {
         public fun getKDType(typeName: TypeName): KDTypeSearchResult
     }
 
-    public data class Sealed private constructor(
+    @JvmInline
+    public value class Sealed private constructor(
         override val sourceTypeName: TypeName,
-        override val packageName: String
+        //override val packageName: String
     ) : KDType {
 
         public companion object {
-            public fun create(helper: KDTypeHelper): Sealed =
-                Sealed(helper.typeName, helper.packageName)
+            context(KDTypeContext)
+            public fun create(): Sealed = Sealed(typeName)
         }
     }
 
     public data object Abstraction : KDType {
         override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
-        override val packageName: String = "TODO"
+        /*override val packageName: String = "TODO"*/
         val TYPENAME: TypeName = ValueObject::class.asTypeName()
 
         override fun toString(): String = "Abstraction"
@@ -114,8 +115,9 @@ public sealed interface KDType {
             public const val BUILDER_BUILD_METHOD_NAME: String = "build"
             public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-            public fun create(helper: KDTypeHelper, isEntity: Boolean): Data =
-                Data(KDTypeForGeneration(helper, null, isEntity))
+            context(KDTypeContext)
+            public fun create(isEntity: Boolean): Data =
+                Data(KDTypeForGeneration(this@KDTypeContext, null, isEntity))
         }
     }
 
@@ -166,8 +168,9 @@ public sealed interface KDType {
         public companion object {
             public const val ID_NAME: String = "id"
 
-            public fun create(helper: KDTypeHelper): IEntity =
-                Data.create(helper, true).let(KDType::IEntity)
+            context(KDTypeContext)
+            public fun create(): IEntity =
+                Data.create(true).let(KDType::IEntity)
         }
     }
 
@@ -210,11 +213,12 @@ public sealed interface KDType {
                 File::class.asTypeName() to ""
             )
 
-            public fun create(helper: KDTypeHelper, superInterfaceName: TypeName): Boxed = run {
+            context(KDTypeContext)
+            public fun create(superInterfaceName: TypeName): Boxed = run {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
-                superInterfaceName.typeArguments.first().let { Boxed(KDTypeForGeneration(helper, it), it) }
+                superInterfaceName.typeArguments.first().let { Boxed(KDTypeForGeneration(this@KDTypeContext, it), it) }
             }
         }
     }

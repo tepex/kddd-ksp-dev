@@ -1,7 +1,6 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.MemberName
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 
 @ConsistentCopyVisibility
@@ -16,7 +15,7 @@ public data class KDPropertyHolder private constructor(
             KDPropertyHolder(name, propertyTypeName)
 
         /** For other */
-        public fun create(property: KDTypeHelper.Property): KDPropertyHolder =
+        public fun create(property: KDTypeContext.Property): KDPropertyHolder =
             KDPropertyHolder(property.name, property.typeName)
     }
 }
