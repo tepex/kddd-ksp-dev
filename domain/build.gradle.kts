@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ksp)
@@ -9,10 +11,10 @@ kotlin {
     sourceSets.all {
         languageSettings.enableLanguageFeature("ExplicitBackingFields")
     }*/
-    explicitApi()
     compilerOptions {
         freeCompilerArgs = freeCompilerArgs.get() + "-Xcontext-receivers"
     }
+    explicitApi()
 }
 
 dependencies {
