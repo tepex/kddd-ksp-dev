@@ -8,6 +8,7 @@ public interface MyEntity : IEntity {
     override val id: Id
     public val name: Name
     public val point: Point
+    public val someInner: AATestCollections.Inner
 
     override fun validate() {}
 

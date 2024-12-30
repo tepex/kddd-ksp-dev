@@ -3,6 +3,7 @@ package ru.it_arch.clean_ddd.ksp.model
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ExperimentalKotlinPoetApi
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
@@ -41,20 +42,23 @@ public class KDTypeBuilderBuilder private constructor(
                 funSpecStatement.addParameterForElement(property)
 
                 // Check nulls statements
-                if (!property.typeName.isNullable)
+                if (!property.typeName.isNullable) {
                     builderFunBuild.addStatement(
-                        """requireNotNull(%N) { "Property '%T.%N' is not set!" }""",
+                        """${if (isDsl) "requireNotNull(%N)" else "require(::%N.isInitialized)"} { "Property '%T.%N' is not set!" }""",
                         property.name,
                         holder.className,
                         property.name
                     )
+                }
 
                 // return new PropertySpec
                 holder.getKDType(property.typeName).let { nestedType ->
                     if (nestedType.first is KDType.Boxed && isDsl) (nestedType.first as KDType.Boxed).rawTypeName else property.typeName
-                }.let { PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null") }
+                }.let {
+                    if (!isDsl && !property.typeName.isNullable) PropertySpec.builder(property.name.simpleName, it).addModifiers(KModifier.LATEINIT)
+                    else PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null")
+                }
             }.mutable().build().also(innerBuilder::addProperty)
-
         }
 
         if (isDsl) {
@@ -81,18 +85,12 @@ public class KDTypeBuilderBuilder private constructor(
         val element =
             holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName) }
         if (element.kdType is KDType.Boxed && isDsl) {
-            /*
-            if (holder.sourceTypeName.toString() == "ru.it_arch.clean_ddd.domain.B") {
-
-                logger.log("process param: $property, prefix: $outerPrefix")
-            }*/
-
             if (element.typeName.isNullable) +Chunk("%N?.let(::${element.kdType.dslBuilderFunName(element.isInner)}),", property.name)
             else +Chunk("${element.kdType.dslBuilderFunName(element.isInner)}(%N!!),", property.name)
             toBuildersHolder.element(property.name.simpleName, element.typeName.isNullable, element.kdType.isParsable)
         } else {
             toBuildersHolder.asIs(property.name.simpleName)
-            +Chunk("%N${if (!element.typeName.isNullable) "!!" else ""},", property.name)
+            +Chunk("%N${if (!element.typeName.isNullable && isDsl) "!!" else ""},", property.name)
         }
     }
 

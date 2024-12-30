@@ -12,8 +12,8 @@ public interface Point : ValueObject.Data {
     public interface X : ValueObject.Boxed<Int> {
 
         override fun validate() {   }
-        public operator fun plus(other: X): X =
-            copy(boxed + other.boxed)
+        public operator fun plus(other: X?): X =
+            copy(boxed + other!!.boxed)
     }
 
     public interface Y : ValueObject.Boxed<Int> {
@@ -24,9 +24,9 @@ public interface Point : ValueObject.Data {
 }
 
 public operator fun PointImpl.plus(other: PointImpl): PointImpl =
-    toBuilder().also { builder ->
-        builder.x = x + other.x
-        builder.y = y + other.y
+    toBuilder().apply {
+        x += other.x
+        y += other.y
     }.build()
 
 public fun String.toPoint(): Point =
