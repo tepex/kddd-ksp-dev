@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.ksp.interop
+package ru.it_arch.clean_ddd.ksp
 
 import com.google.devtools.ksp.processing.KSPLogger
 import ru.it_arch.clean_ddd.ksp.model.KDLogger

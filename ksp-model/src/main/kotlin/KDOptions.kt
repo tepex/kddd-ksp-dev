@@ -1,8 +1,6 @@
-package ru.it_arch.clean_ddd.ksp.interop
+package ru.it_arch.clean_ddd.ksp.model
 
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ClassName
-import ru.it_arch.clean_ddd.ksp.interop.KDOptions.ResultTemplate.Companion
 import ru.it_arch.kddd.ValueObject
 
 public class KDOptions private constructor(
@@ -12,22 +10,22 @@ public class KDOptions private constructor(
     public val useContextReceivers: UseContextReceivers
 ) {
 
-    public val KSClassDeclaration.implementationPackage: PackageName get() =
-        packageName.asString().let { base -> subpackage?.let { "$base.${it.boxed}" } ?: base }.let(::PackageName)
+    public fun getImplementationPackage(src: String): PackageName =
+        PackageName(subpackage?.let { "$src.${it.boxed}" } ?: src)
 
-    public val String.implementationName: String get() {
+    public fun toImplementationName(src: String): String {
         var result = generatedClassNameResult.boxed
-        generatedClassNameRe.find(this)?.groupValues?.forEachIndexed { i, group ->
+        generatedClassNameRe.find(src)?.groupValues?.forEachIndexed { i, group ->
             group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
         }
         return result
     }
 
-    public val KSClassDeclaration.implementationClassName: ClassName get() =
-        simpleName.asString().implementationName.let(ClassName::bestGuess)
+    public fun getImplementationClassName(src: String): ClassName =
+        toImplementationName(src).let(ClassName::bestGuess)
 
-    public val KSClassDeclaration.builderFunctionName: BuilderFunctionName get() =
-        simpleName.asString().replaceFirstChar { it.lowercaseChar() }.let(BuilderFunctionName::create)
+    public fun getBuilderFunctionName(src: String): BuilderFunctionName =
+        src.replaceFirstChar { it.lowercaseChar() }.let(BuilderFunctionName.Companion::create)
 
     @JvmInline
     public value class PackageName(override val boxed: String): ValueObject.Boxed<String> {
@@ -120,7 +118,7 @@ public class KDOptions private constructor(
     public value class UseContextReceivers private constructor(override val boxed: Boolean) : ValueObject.Boxed<Boolean> {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<Boolean>> copy(boxed: Boolean): T =
-            UseContextReceivers.create(boxed) as T
+            create(boxed) as T
 
         init {
             validate()
@@ -144,10 +142,10 @@ public class KDOptions private constructor(
 
         public fun create(src: Map<String, String>): KDOptions =
             KDOptions(
-                src[OPTION_SUBPACKAGE]?.let(Subpackage::create),
+                src[OPTION_SUBPACKAGE]?.let(Subpackage.Companion::create),
                 (src[OPTION_GENERATED_CLASS_NAME_RE] ?: DEFAULT_RE).toRegex(),
-                (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let(ResultTemplate::create),
-                (src[OPTION_CONTEXT_RECEIVERS]?.toBooleanStrictOrNull() ?: false).let(UseContextReceivers::create)
+                (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let(ResultTemplate.Companion::create),
+                (src[OPTION_CONTEXT_RECEIVERS]?.toBooleanStrictOrNull() ?: false).let(UseContextReceivers.Companion::create)
             )
     }
 }

@@ -6,8 +6,7 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.validate
-import ru.it_arch.clean_ddd.ksp.interop.KDOptions
-import ru.it_arch.clean_ddd.ksp.interop.KDVisitor
+import ru.it_arch.clean_ddd.ksp.model.KDOptions
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
 

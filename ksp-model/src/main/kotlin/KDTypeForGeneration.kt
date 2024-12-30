@@ -33,7 +33,7 @@ internal class KDTypeForGeneration(
         context.typeName.toString().substringAfterLast('.').let { name ->
             val impl = with(context.options) {
                 context.typeName.toString().substringAfterLast("${context.packageName}.").substringBefore(".$name")
-                    .implementationName
+                    .let(::toImplementationName)
             }
             ("$impl.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
                 .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
@@ -53,7 +53,6 @@ internal class KDTypeForGeneration(
                 .map(KDPropertyHolder::create)
                 .also(::createConstructor)
         }
-        //propertyHolders.filter { it in  }
     }
 
     private fun boxedType(boxedType: TypeName) {

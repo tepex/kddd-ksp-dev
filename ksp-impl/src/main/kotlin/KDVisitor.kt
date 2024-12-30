@@ -1,6 +1,7 @@
-package ru.it_arch.clean_ddd.ksp.interop
+package ru.it_arch.clean_ddd.ksp
 
 import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.ClassKind
@@ -13,10 +14,10 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import ru.it_arch.clean_ddd.ksp.model.KDLogger
+import ru.it_arch.clean_ddd.ksp.model.KDOptions
 import ru.it_arch.clean_ddd.ksp.model.KDType
-import ru.it_arch.clean_ddd.ksp.model.KDTypeContext
 
-public abstract class KDVisitor(
+internal abstract class KDVisitor(
     private val resolver: Resolver,
     private val options: KDOptions,
     private val codeGenerator: CodeGenerator,
@@ -26,9 +27,9 @@ public abstract class KDVisitor(
     protected val kdLogger: KDLogger = KDLoggerImpl(logger)
     protected val globalKDTypes: MutableMap<TypeName, KDType> = mutableMapOf()
 
-    public abstract fun createBuilder(model: KDType.Model)
+    abstract fun createBuilder(model: KDType.Model)
 
-    public fun generate(symbols: Sequence<KSFile>) {
+    fun generate(symbols: Sequence<KSFile>) {
         val outputFiles = symbols.flatMap { file ->
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
@@ -36,22 +37,21 @@ public abstract class KDVisitor(
                 .map { declaration ->
                     visitKDDeclaration(declaration)?.let { kdType ->
                         with(options) {
-                            KDOutputFile.create(declaration, kdType, file)
+                            createOutputFile(declaration, kdType) to file
                         }
                     }
                 }.filterNotNull()
-        }.toList()
+        }.toMap()
 
-        outputFiles.forEach { file ->
+        outputFiles.keys.forEach { file ->
             if (file.kdType is KDType.Model) {
-                buildAndAddNestedTypes(file.kdType)
-                createBuilder(file.kdType)
+                buildAndAddNestedTypes(file.kdType as KDType.Model)
+                createBuilder(file.kdType as KDType.Model)
             }
         }
 
-        outputFiles.forEach {
-            it.buildFileSpec().writeTo(codeGenerator, it.dependencies)
-        }
+        outputFiles.entries
+            .forEach { it.key.buildFileSpec().writeTo(codeGenerator, Dependencies(false, it.value)) }
     }
 
     private tailrec fun buildAndAddNestedTypes(model: KDType.Model, isFinish: Boolean = false) {
@@ -74,10 +74,10 @@ public abstract class KDVisitor(
                 .also { args -> kdLogger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
         } else emptyList()
 
-        val toBeGenerated = with(options) { declaration.implementationClassName }
+        val toBeGenerated = with(options) { getImplementationClassName(declaration.simpleName.asString()) }
         val typeName = declaration.asType(typeArgs).toTypeName()
 
-        return with(KDTypeContext.typeContext(options, kdLogger, globalKDTypes, toBeGenerated, typeName, declaration)) {
+        return with(typeContext(options, kdLogger, globalKDTypes, toBeGenerated, typeName, declaration)) {
             declaration.kdTypeOrNull().getOrElse {
                 this@KDVisitor.logger.warn(it.message ?: "Cant parse parent type", declaration)
                 null

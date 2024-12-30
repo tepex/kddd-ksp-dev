@@ -2,11 +2,13 @@ package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
+import ru.it_arch.kddd.KDSerialName
 
 @ConsistentCopyVisibility
 public data class KDPropertyHolder private constructor(
     val name: MemberName,
-    val typeName: TypeName
+    val typeName: TypeName,
+    val annotation: KDSerialName? = null
 ) {
 
     public companion object {
@@ -16,6 +18,6 @@ public data class KDPropertyHolder private constructor(
 
         /** For other */
         public fun create(property: KDTypeContext.Property): KDPropertyHolder =
-            KDPropertyHolder(property.name, property.typeName)
+            KDPropertyHolder(property.name, property.typeName, property.annotation)
     }
 }

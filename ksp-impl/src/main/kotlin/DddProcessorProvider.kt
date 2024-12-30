@@ -3,7 +3,7 @@ package ru.it_arch.clean_ddd.ksp
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
-import ru.it_arch.clean_ddd.ksp.interop.KDOptions
+import ru.it_arch.clean_ddd.ksp.model.KDOptions
 
 // ru.it_arch.clean_ddd.ksp.DddProcessorProvider
 
