@@ -80,7 +80,7 @@ public class KDTypeBuilderBuilder private constructor(
     /**
      * 2. fun to<Dsl>Builder() { <name> = <name> }
      **/
-    private fun FunSpecStatement.addParameterForElement(property: KDPropertyHolder) {
+    private fun FunSpecStatement.addParameterForElement(property: KDProperty) {
         +Chunk("%N = ", property.name)
         val element =
             holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName) }

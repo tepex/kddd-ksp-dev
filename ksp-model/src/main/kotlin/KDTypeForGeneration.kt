@@ -21,7 +21,7 @@ internal class KDTypeForGeneration(
 ) : Generatable {
     override val className = context.toBeGenerated
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(context.typeName)
-    override val propertyHolders: List<KDPropertyHolder>
+    override val propertyHolders: List<KDProperty>
     override val sourceTypeName: TypeName = context.typeName
     //override val packageName: String = helper.packageName
 
@@ -42,7 +42,7 @@ internal class KDTypeForGeneration(
     init {
         propertyHolders = boxedType?.let {
             boxedType(boxedType)
-            listOf(KDPropertyHolder.create(className.member(Boxed.PARAM_NAME), boxedType)).also(::createConstructor)
+            listOf(KDProperty.create(className.member(Boxed.PARAM_NAME), boxedType))
         } ?: run {
             // not Boxed
             if (!isEntity) {
@@ -50,9 +50,8 @@ internal class KDTypeForGeneration(
                 builder.addAnnotation(ConsistentCopyVisibility::class)
             }
             context.properties
-                .map(KDPropertyHolder::create)
-                .also(::createConstructor)
         }
+        createConstructor(context.properties)
     }
 
     private fun boxedType(boxedType: TypeName) {
@@ -114,7 +113,7 @@ internal class KDTypeForGeneration(
         }
     }
 
-    private fun createConstructor(parameters: List<KDPropertyHolder>) {
+    private fun createConstructor(parameters: List<KDProperty>) {
         parameters.map { param ->
             PropertySpec
                 .builder(param.name.simpleName, param.typeName, KModifier.OVERRIDE)

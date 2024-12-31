@@ -11,10 +11,10 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.ksp.model.KDLogger
 import ru.it_arch.clean_ddd.ksp.model.KDOptions
 import ru.it_arch.clean_ddd.ksp.model.KDOutputFile
+import ru.it_arch.clean_ddd.ksp.model.KDProperty
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeContext
 import ru.it_arch.clean_ddd.ksp.model.KDTypeContext.PackageName
-import ru.it_arch.clean_ddd.ksp.model.KDTypeContext.Property
 import ru.it_arch.kddd.KDSerialName
 
 context(KDTypeContext)
@@ -58,7 +58,7 @@ internal fun typeContext(
     typeName,
     PackageName.packageName(declaration.packageName.asString()),
     declaration.getAllProperties().map {
-        Property(
+        KDProperty.create(
             toBeGenerated.member(it.simpleName.asString()),
             it.type.toTypeName(),
             it.getAnnotationsByType(KDSerialName::class).firstOrNull()

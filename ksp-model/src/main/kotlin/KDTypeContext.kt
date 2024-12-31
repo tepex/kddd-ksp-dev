@@ -13,7 +13,7 @@ public data class KDTypeContext(
     val toBeGenerated: ClassName,
     val typeName: TypeName,
     val packageName: PackageName,
-    val properties: List<Property>
+    val properties: List<KDProperty>
 ) {
 
     @JvmInline
@@ -30,10 +30,4 @@ public data class KDTypeContext(
             public fun packageName(value: String): PackageName = PackageName(value)
         }
     }
-
-    public data class Property(
-        val name: MemberName,
-        val typeName: TypeName,
-        val annotation: KDSerialName?
-    )
 }

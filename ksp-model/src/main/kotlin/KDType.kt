@@ -71,7 +71,7 @@ public sealed interface KDType {
     public interface Generatable : KDType {
         public val className: ClassName
         public val builder: TypeSpec.Builder
-        public val propertyHolders: List<KDPropertyHolder>
+        public val propertyHolders: List<KDProperty>
         public val nestedTypes: Map<TypeName, KDType>
 
         public fun dslBuilderFunName(isInner: Boolean): String
