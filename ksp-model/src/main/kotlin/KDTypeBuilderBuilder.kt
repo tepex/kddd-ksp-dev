@@ -64,6 +64,7 @@ public class KDTypeBuilderBuilder private constructor(
         if (isDsl) {
             //logger.log("Processing: ${holder.className.simpleName}")
             holder.nestedTypes.values.filterIsInstance<KDType.Generatable>()
+                .filter { it.hasDsl }
                 .forEach { createDslInnerBuilder(it).also(innerBuilder::addFunction) }
         }
 

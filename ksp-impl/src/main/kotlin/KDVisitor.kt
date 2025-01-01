@@ -1,10 +1,12 @@
 package ru.it_arch.clean_ddd.ksp
 
+import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.ClassKind
+import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSNode
@@ -35,19 +37,18 @@ internal abstract class KDVisitor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .map { declaration ->
-                    visitKDDeclaration(declaration)?.let { kdType ->
+                    visitKDDeclaration(declaration).takeIf { it is KDType.Generatable }?.let { kdType ->
                         with(options) {
-                            createOutputFile(declaration, kdType) to file
+                            createOutputFile(declaration, kdType as KDType.Generatable) to file
                         }
                     }
+
                 }.filterNotNull()
         }.toMap()
 
-        outputFiles.keys.forEach { file ->
-            if (file.kdType is KDType.Model) {
-                buildAndAddNestedTypes(file.kdType as KDType.Model)
-                createBuilder(file.kdType as KDType.Model)
-            }
+        outputFiles.keys.map { it.generatable }.filterIsInstance<KDType.Model>().forEach { model ->
+            buildAndAddNestedTypes(model)
+            model.takeIf { model.hasDsl }?.also(::createBuilder)
         }
 
         outputFiles.entries

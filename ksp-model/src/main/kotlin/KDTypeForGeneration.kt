@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.ksp.model
 
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName.Companion.member
@@ -12,18 +13,20 @@ import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed
 import ru.it_arch.clean_ddd.ksp.model.KDType.Generatable
+import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.ValueObject
 
 internal class KDTypeForGeneration(
     private val context: KDTypeContext,
+    private val annotation: KDGeneratable? = null,
     boxedType: TypeName? = null,
     isEntity: Boolean = false
 ) : Generatable {
-    override val className = context.toBeGenerated
+    override val className =
+        annotation?.implementationName?.takeIf { it.isNotBlank() }?.let(ClassName::bestGuess) ?: context.toBeGenerated
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(context.typeName)
     override val propertyHolders: List<KDProperty>
     override val sourceTypeName: TypeName = context.typeName
-    //override val packageName: String = helper.packageName
 
     private val _nestedTypes = mutableMapOf<TypeName, KDType>()
     override val nestedTypes: Map<TypeName, KDType>
@@ -38,6 +41,9 @@ internal class KDTypeForGeneration(
             ("$impl.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
                 .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
         }
+
+    override val hasDsl = annotation?.dsl != false
+    override val hasJson = annotation?.json != false
 
     init {
         propertyHolders = boxedType?.let {

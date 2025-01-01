@@ -10,9 +10,8 @@ import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.kddd.ValueObject
 
 public data class KDOutputFile(
-    public val kdType: KDType,
+    public val generatable: KDType.Generatable,
     private val packageName: KDOptions.PackageName,
-    private val toBeGenerated: ClassName,
     private val builderFunName: KDOptions.BuilderFunctionName,
     private val useContextReceivers: KDOptions.UseContextReceivers
 ) : ValueObject.Data {
@@ -21,13 +20,13 @@ public data class KDOutputFile(
 
     @OptIn(ExperimentalKotlinPoetApi::class)
     public fun buildFileSpec(): FileSpec =
-        FileSpec.builder(packageName.boxed, toBeGenerated.simpleName).also { fileBuilder ->
+        FileSpec.builder(packageName.boxed, generatable.className.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
 
-            (kdType as? KDType.Generatable)?.builder?.build()?.also(fileBuilder::addType)
+            fileBuilder.addType(generatable.builder.build())
 
             /* Root DSL builder */
-            val receiver: ClassName = ClassName(packageName.boxed, toBeGenerated.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
+            val receiver: ClassName = ClassName(packageName.boxed, generatable.className.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
             ParameterSpec.builder(
                 "block",
                 if (useContextReceivers.boxed) LambdaTypeName.get(contextReceivers = listOf(receiver), returnType = Unit::class.asTypeName())
@@ -40,7 +39,7 @@ public data class KDOutputFile(
                         receiver,
                         builderParam
                     )
-                    .returns(toBeGenerated)
+                    .returns(generatable.className)
                     .build().also(fileBuilder::addFunction)
             }
         }.build()

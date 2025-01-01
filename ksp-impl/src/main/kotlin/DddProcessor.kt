@@ -48,9 +48,11 @@ internal class DddProcessor(
                     model.builder.addType(builderBuilder.build())
                     builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
                 }
-                KDTypeBuilderBuilder.create(model, true, kdLogger).also { builderBuilder ->
-                    model.builder.addType(builderBuilder.build())
-                    builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
+                if (model.hasDsl) {
+                    KDTypeBuilderBuilder.create(model, true, kdLogger).also { builderBuilder ->
+                        model.builder.addType(builderBuilder.build())
+                        builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
+                    }
                 }
             }
         }

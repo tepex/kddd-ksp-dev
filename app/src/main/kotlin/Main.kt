@@ -1,8 +1,6 @@
 package ru.it_arch.clean_ddd.app
 
 import ru.it_arch.clean_ddd.domain.MySimple
-import ru.it_arch.clean_ddd.domain.impl.AbstrImpl
-import ru.it_arch.clean_ddd.domain.impl.MySimpleImpl
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
 import ru.it_arch.clean_ddd.domain.impl.abstr
 import ru.it_arch.clean_ddd.domain.impl.mySimple

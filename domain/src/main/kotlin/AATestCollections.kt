@@ -1,7 +1,9 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.ValueObject
 
+@KDGeneratable("Www")
 public interface AATestCollections : ValueObject.Data {
     public val name: Name
     //public val simpleMap: Map<Name, Inner>
@@ -26,6 +28,7 @@ public interface AATestCollections : ValueObject.Data {
         override fun validate() {}
     }
 
+    @KDGeneratable(implementationName = "QInner", dsl = false)
     public interface Inner : ValueObject.Data {
         public val innerLong: InnerLong
         public val innerStr: InnerStr

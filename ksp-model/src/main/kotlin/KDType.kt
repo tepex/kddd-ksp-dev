@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.ValueObject
 import java.io.File
 import java.net.URI
@@ -61,7 +62,6 @@ import java.util.UUID
  * */
 public sealed interface KDType {
     public val sourceTypeName: TypeName
-    //public val packageName: Pac
 
     public interface Model : Generatable {
         public val builderClassName: ClassName
@@ -73,6 +73,9 @@ public sealed interface KDType {
         public val builder: TypeSpec.Builder
         public val propertyHolders: List<KDProperty>
         public val nestedTypes: Map<TypeName, KDType>
+        //public val annotation: KDGeneratable?
+        public val hasDsl: Boolean
+        public val hasJson: Boolean
 
         public fun dslBuilderFunName(isInner: Boolean): String
         public fun addNestedType(type: KDType)
@@ -82,7 +85,6 @@ public sealed interface KDType {
     @JvmInline
     public value class Sealed private constructor(
         override val sourceTypeName: TypeName,
-        //override val packageName: String
     ) : KDType {
 
         public companion object {
@@ -93,7 +95,6 @@ public sealed interface KDType {
 
     public data object Abstraction : KDType {
         override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
-        /*override val packageName: String = "TODO"*/
         val TYPENAME: TypeName = ValueObject::class.asTypeName()
 
         override fun toString(): String = "Abstraction"
@@ -116,8 +117,8 @@ public sealed interface KDType {
             public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
             context(KDTypeContext)
-            public fun create(isEntity: Boolean): Data =
-                Data(KDTypeForGeneration(this@KDTypeContext, null, isEntity))
+            public fun create(annotation: KDGeneratable?, isEntity: Boolean): Data =
+                Data(KDTypeForGeneration(this@KDTypeContext, annotation, null, isEntity))
         }
     }
 
@@ -169,8 +170,8 @@ public sealed interface KDType {
             public const val ID_NAME: String = "id"
 
             context(KDTypeContext)
-            public fun create(): IEntity =
-                Data.create(true).let(KDType::IEntity)
+            public fun create(annotation: KDGeneratable?): IEntity =
+                Data.create(annotation, true).let(KDType::IEntity)
         }
     }
 
@@ -218,7 +219,7 @@ public sealed interface KDType {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
-                superInterfaceName.typeArguments.first().let { Boxed(KDTypeForGeneration(this@KDTypeContext, it), it) }
+                superInterfaceName.typeArguments.first().let { Boxed(KDTypeForGeneration(this@KDTypeContext, null, it), it) }
             }
         }
     }
