@@ -103,8 +103,7 @@ internal sealed interface DSLType {
 
     data class Collection private constructor(
         override val parameterizedTypeName: ParameterizedTypeName,
-        val logger: KDLogger,
-        val testFlag: Boolean
+        val logger: KDLogger
     ) : AbstractParameterized() {
 
         private val collectionType = parameterizedTypeName.toCollectionType()
@@ -140,8 +139,8 @@ internal sealed interface DSLType {
         }.parameterizedBy(args.map { it.typeName })
 
         companion object {
-            fun create(typeName: ParameterizedTypeName, logger: KDLogger, testFlag: Boolean): Collection =
-                Collection(typeName, logger, testFlag)
+            fun create(typeName: ParameterizedTypeName, logger: KDLogger): Collection =
+                Collection(typeName, logger)
         }
     }
 }

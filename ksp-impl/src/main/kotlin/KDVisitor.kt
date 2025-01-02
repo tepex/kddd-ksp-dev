@@ -79,7 +79,8 @@ internal abstract class KDVisitor(
         val typeName = declaration.asType(typeArgs).toTypeName()
 
         return with(typeContext(options, kdLogger, globalKDTypes, toBeGenerated, typeName, declaration)) {
-            declaration.kdTypeOrNull().getOrElse {
+
+            declaration.kdTypeOrNull(kdLogger).getOrElse {
                 this@KDVisitor.logger.warn(it.message ?: "Cant parse parent type", declaration)
                 null
             }

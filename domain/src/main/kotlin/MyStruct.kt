@@ -1,6 +1,7 @@
 package ru.it_arch.clean_ddd.domain
 
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
+import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.ValueObject
 import java.net.URI
 
@@ -52,6 +53,7 @@ public interface MyStruct : ValueObject.Data {
         }
     }
 
+    @KDParsable(deserialization = "create")
     public interface Uri : ValueObject.Boxed<URI>/*, Parsable<URI>*/ {
 
         override fun validate() {}

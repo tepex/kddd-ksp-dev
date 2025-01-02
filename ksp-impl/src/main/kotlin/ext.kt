@@ -17,23 +17,26 @@ import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeContext
 import ru.it_arch.clean_ddd.ksp.model.KDTypeContext.PackageName
 import ru.it_arch.kddd.KDGeneratable
+import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.KDSerialName
 
 context(KDTypeContext)
 @OptIn(KspExperimental::class)
-internal fun KSClassDeclaration.kdTypeOrNull(): Result<KDType?> {
-    superTypes.forEach { item -> item.kdTypeOrNull(getAnnotationsByType(KDGeneratable::class))?.also { return it } }
+internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> {
+    val annotations = getAnnotationsByType(KDGeneratable::class) + getAnnotationsByType(KDParsable::class)
+    //logger.log("$this ${annotations.toList()}")
+    superTypes.forEach { item -> item.kdTypeOrNull(annotations)?.also { return it } }
     // Not found
     return Result.success(null)
 }
 
 context(KDTypeContext)
 @OptIn(KspExperimental::class)
-private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<KDGeneratable>): Result<KDType>? = when(toString()) {
-    KDType.Sealed::class.java.simpleName      -> Result.success(KDType.Sealed.create())
-    KDType.Data::class.java.simpleName        -> Result.success(KDType.Data.create(annotations.firstOrNull(), false))
-    KDType.IEntity::class.java.simpleName     -> Result.success(KDType.IEntity.create(annotations.firstOrNull()))
-    KDType.Boxed::class.java.simpleName       -> runCatching { KDType.Boxed.create(toTypeName()) }
+private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Result<KDType>? = when(toString()) {
+    KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed.create())
+    KDType.Data::class.java.simpleName    -> Result.success(KDType.Data.create(annotations.toList(), false))
+    KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity.create(annotations.toList()))
+    KDType.Boxed::class.java.simpleName   -> runCatching { KDType.Boxed.create(annotations.toList(), toTypeName()) }
     else -> null
 }
 

@@ -10,11 +10,8 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.kddd.KDGeneratable
+import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.ValueObject
-import java.io.File
-import java.net.URI
-import java.util.UUID
 
 /**
  * Transformations
@@ -117,8 +114,8 @@ public sealed interface KDType {
             public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
             context(KDTypeContext)
-            public fun create(annotation: KDGeneratable?, isEntity: Boolean): Data =
-                Data(KDTypeForGeneration(this@KDTypeContext, annotation, null, isEntity))
+            public fun create(annotations: List<Annotation>, isEntity: Boolean): Data =
+                Data(KDTypeForGeneration(this@KDTypeContext, annotations, null, isEntity))
         }
     }
 
@@ -170,8 +167,8 @@ public sealed interface KDType {
             public const val ID_NAME: String = "id"
 
             context(KDTypeContext)
-            public fun create(annotation: KDGeneratable?): IEntity =
-                Data.create(annotation, true).let(KDType::IEntity)
+            public fun create(annotations: List<Annotation>): IEntity =
+                Data.create(annotations, true).let(KDType::IEntity)
         }
     }
 
@@ -180,20 +177,24 @@ public sealed interface KDType {
         private val boxedType: TypeName,
     ) : Generatable by forGeneration, KDType {
 
+        public val isUseStringInDsl: Boolean =
+            forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.useStringInDsl ?: false
+
         public val isParsable: Boolean =
-            PARSABLES.containsKey(boxedType)
+            forGeneration.annotations.filterIsInstance<KDParsable>().isNotEmpty()
 
         public val fabricMethod: String =
-            FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD
+            FABRIC_PARSE_METHOD.takeIf { isParsable && isUseStringInDsl } ?: FABRIC_CREATE_METHOD
 
-        /** Тип источника создания объекта через DSL. String, если [Parsable] или непосредственно. */
+        /** Тип источника создания объекта через DSL. String, если [isParsable] или непосредственно. */
         public val rawTypeName: TypeName =
-            boxedType.takeUnless { isParsable } ?: String::class.asTypeName()
+            boxedType.takeIf { isParsable && !isUseStringInDsl } ?: String::class.asTypeName()
 
         public fun asString(variable: String, isNullable: Boolean): String =
             StringBuilder().apply {
                 append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
-                if (isParsable) append(".toString()")
+                forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization
+                    .takeIf { isUseStringInDsl }?.also{ append(".$it") }
             }.toString()
 
         public fun fromString(variable: String, isInner: Boolean, isNullable: Boolean): String =
@@ -208,18 +209,13 @@ public sealed interface KDType {
             public const val FABRIC_PARSE_METHOD: String = "parse"
             public const val CREATE_METHOD: String = "copy"
 
-            public val PARSABLES: Map<ClassName, String> = mapOf(
-                URI::class.asTypeName() to ".create",
-                UUID::class.asTypeName() to ".fromString",
-                File::class.asTypeName() to ""
-            )
-
             context(KDTypeContext)
-            public fun create(superInterfaceName: TypeName): Boxed = run {
+            public fun create(annotations: List<Annotation>, superInterfaceName: TypeName): Boxed = run {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
-                superInterfaceName.typeArguments.first().let { Boxed(KDTypeForGeneration(this@KDTypeContext, null, it), it) }
+                superInterfaceName.typeArguments.first()
+                    .let { Boxed(KDTypeForGeneration(this@KDTypeContext, annotations, it), it) }
             }
         }
     }

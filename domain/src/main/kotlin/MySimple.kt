@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.ValueObject
 import java.io.File
 import java.net.URI
@@ -22,20 +23,23 @@ public interface MySimple : ValueObject.Data {
     //public val point: Point
     //public val empty: List<ValueObject>
 
-    override fun validate() {   }
+    override fun validate() {  }
 
     public interface Name : ValueObject.Boxed<String> {
         override fun validate() {}
     }
 
+    @KDParsable(deserialization = "create", useStringInDsl = true)
     public interface SomeUri : ValueObject.Boxed<URI> {
         override fun validate() {}
     }
 
+    @KDParsable(useStringInDsl = true)
     public interface SomeFile : ValueObject.Boxed<File> {
         override fun validate() {}
     }
 
+    @KDParsable(deserialization = "fromString")
     public interface SomeUUID : ValueObject.Boxed<UUID> {
         override fun validate() {}
     }
