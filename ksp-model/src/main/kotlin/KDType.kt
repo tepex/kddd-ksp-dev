@@ -188,7 +188,7 @@ public sealed interface KDType {
 
         /** Тип источника создания объекта через DSL. String, если [isParsable] или непосредственно. */
         public val rawTypeName: TypeName =
-            boxedType.takeIf { isParsable && !isUseStringInDsl } ?: String::class.asTypeName()
+            String::class.asTypeName().takeIf { isParsable && isUseStringInDsl } ?: boxedType
 
         public fun asString(variable: String, isNullable: Boolean): String =
             StringBuilder().apply {

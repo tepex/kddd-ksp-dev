@@ -53,7 +53,7 @@ public interface MyStruct : ValueObject.Data {
         }
     }
 
-    @KDParsable(deserialization = "create")
+    @KDParsable(deserialization = "create", useStringInDsl = true)
     public interface Uri : ValueObject.Boxed<URI>/*, Parsable<URI>*/ {
 
         override fun validate() {}

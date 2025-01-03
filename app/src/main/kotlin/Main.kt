@@ -45,7 +45,7 @@ fun main() {
         file = "~/.bashrc"
         listUri += "http://google.com"
         nullableListUri += null
-        mapUUID["my uuid"] = UUID.randomUUID().toString()
+        mapUUID["my uuid"] = UUID.randomUUID()
         myEnum = MySimple.MyEnum.A
     }
     println("mySimple: $simple, file: ${simple.file.boxed.canonicalFile}")

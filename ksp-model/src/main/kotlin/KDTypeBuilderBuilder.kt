@@ -89,7 +89,8 @@ public class KDTypeBuilderBuilder private constructor(
         if (element.kdType is KDType.Boxed && isDsl) {
             if (element.typeName.isNullable) +Chunk("%N?.let(::${element.kdType.dslBuilderFunName(element.isInner)}),", property.name)
             else +Chunk("${element.kdType.dslBuilderFunName(element.isInner)}(%N!!),", property.name)
-            toBuildersHolder.element(property.name.simpleName, element.typeName.isNullable, !element.kdType.isParsable || element.kdType.isUseStringInDsl)
+            //logger.log("$property isParsable: ${element.kdType.isParsable} bozedType: ${element.kdType.boxedType} ")
+            toBuildersHolder.element(property.name.simpleName, element.typeName.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
         } else {
             toBuildersHolder.asIs(property.name.simpleName)
             +Chunk("%N${if (!element.typeName.isNullable && isDsl) "!!" else ""},", property.name)
