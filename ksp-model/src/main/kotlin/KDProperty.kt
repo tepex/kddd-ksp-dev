@@ -11,6 +11,8 @@ public data class KDProperty private constructor(
     val annotation: KDSerialName?
 ) {
 
+    val serialName: String = annotation?.value ?: name.simpleName
+
     public companion object {
         /** For KDType.BOXED */
         public fun create(name: MemberName, typeName: TypeName, annotation: KDSerialName? = null): KDProperty =

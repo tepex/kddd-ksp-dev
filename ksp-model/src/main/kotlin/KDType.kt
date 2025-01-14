@@ -174,7 +174,7 @@ public sealed interface KDType {
 
     public class Boxed private constructor(
         private val forGeneration: KDTypeForGeneration,
-        private val boxedType: TypeName,
+        public val boxedType: TypeName,
     ) : Generatable by forGeneration, KDType {
 
         public val isUseStringInDsl: Boolean =

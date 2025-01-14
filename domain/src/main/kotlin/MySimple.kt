@@ -1,16 +1,21 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.AATestCollections.Name
+import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
+import ru.it_arch.kddd.KDSerialName
 import ru.it_arch.kddd.ValueObject
 import java.io.File
 import java.net.URI
 import java.util.UUID
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
+@KDGeneratable(json = true)
 public interface MySimple : ValueObject.Data {
-    public val name: Name
-    public val uri: SomeUri
+    @KDSerialName("qqq")
+    public val nameName: Name
+    public val count: Count
+    public val inner: Inner
+    public val uri: SomeUri // String
     public val listUri: List<SomeUri>
     public val nullableListUri: List<SomeUri?>
     public val file: SomeFile
@@ -19,13 +24,19 @@ public interface MySimple : ValueObject.Data {
     public val mapUUIDNullable: Map<Name, SomeUUID?>
     public val mapUUIDAll: Map<SomeUUID, SomeUUID>
     //public val kotlinUuid: SomeUuid
-    public val myEnum: MyEnum
+    //public val myEnum: MyEnum
     //public val point: Point
     //public val empty: List<ValueObject>
+    public val nestedList1: List<Set<Name>>
+    public val nestedMap: Map<Name?, List<Name>>
 
     override fun validate() {  }
 
     public interface Name : ValueObject.Boxed<String> {
+        override fun validate() {}
+    }
+
+    public interface Count : ValueObject.Boxed<Short> {
         override fun validate() {}
     }
 
@@ -46,6 +57,24 @@ public interface MySimple : ValueObject.Data {
 
     public enum class MyEnum : ValueObject.Sealed {
         A, B, C
+    }
+
+    public interface Inner : ValueObject.Data {
+        public val innerLong: InnerLong
+        public val innerStr: InnerStr
+
+        override fun validate() {}
+
+        public interface InnerLong : ValueObject.Boxed<Long> {
+            override fun validate() {}
+            /*
+            public fun dec(): InnerLong =
+                MyStructImpl.InnerImpl.InnerLongImpl.create(boxed-1)*/
+        }
+
+        public interface InnerStr : ValueObject.Boxed<String> {
+            override fun validate() {}
+        }
     }
 
     /*

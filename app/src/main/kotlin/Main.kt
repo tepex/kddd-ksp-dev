@@ -1,11 +1,16 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.MySimple
+import com.squareup.kotlinpoet.asTypeName
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNamingStrategy
+import ru.it_arch.clean_ddd.domain.MySimpleJson
 import ru.it_arch.clean_ddd.domain.impl.MyStructImpl
 import ru.it_arch.clean_ddd.domain.impl.abstr
-import ru.it_arch.clean_ddd.domain.impl.mySimple
 import ru.it_arch.clean_ddd.domain.impl.myStruct
 import ru.it_arch.clean_ddd.domain.impl.point
+import ru.it_arch.clean_ddd.domain.mySimpleJson
 import ru.it_arch.clean_ddd.domain.plus
 import ru.it_arch.clean_ddd.domain.serialize
 import ru.it_arch.clean_ddd.domain.toPoint
@@ -21,7 +26,7 @@ val testStruct = myStruct {
     indexes += 2
     myMap[3] = null
     myMap[4] = "asdf"
-    inner {
+    inner = inner {
         innerLong = 33
         innerStr = "fsdfsd"
     }
@@ -36,22 +41,79 @@ val testStruct = myStruct {
     innerList.add(null)
 }
 
-fun main() {
-    abstr1()
+const val mySimpleJsonStr = """
+    {
+    "name-name": "json simple",
+    "count": 33,
+    "uri": "https://json.ru",
+    "list-uri": [
+        "http://json.com"
+    ],
+    "nullable-list-uri": [
+        null,
+        "http://json.ru"
+    ],
+    "file": "~/.bashrc.tmp",
+    "uuid": null,
+    "map-uuid": {
+        "my uuid": "68792b96-2a27-4336-9415-35d78c8f0903"
+    },
+    "nested-list1": [
+        [
+            "_set1",
+            "_set2"
+        ],
+        [
+            "_set11",
+            "_set12"
+        ]
+    ],
+    "nested-map": {
+        "_key.name": [
+            "_n1",
+            "_n2",
+            "_n3"
+        ]
+    }
+}"""
 
-    val simple = mySimple {
-        name = "simple"
+@OptIn(ExperimentalSerializationApi::class)
+val json = Json {
+    prettyPrint = true
+    namingStrategy = JsonNamingStrategy.KebabCase
+}
+
+fun main() {
+    //abstr1()
+    val qqq = Int::class.asTypeName()
+    val simple = mySimpleJson {
+        nameName = "simple"
+        count = 77
         uri = "https://ya.ru"
         file = "~/.bashrc"
         listUri += "http://google.com"
         nullableListUri += null
+        nullableListUri += "http://ya.ru"
         mapUUID["my uuid"] = UUID.randomUUID()
-        myEnum = MySimple.MyEnum.A
+        //myEnum = MySimple.MyEnum.A
+        nestedList1 += mutableSetOf("set1", "set2")
+        nestedList1 += mutableSetOf("set11", "set12")
+        nestedMap["key.name"] = mutableListOf("n1", "n2", "n3")
     }
     println("mySimple: $simple, file: ${simple.file.boxed.canonicalFile}")
-    println()
-    println()
-    println("myStruct: $testStruct")
+
+    val jsonStr = json.encodeToString(simple)
+    println("json: $jsonStr")
+
+    val obj = json.decodeFromString<MySimpleJson>(mySimpleJsonStr)
+    println("deserialize: $obj")
+
+
+
+    if (true) return
+
+
+    //println("myStruct: $testStruct")
     //val newCount = testStruct.count.inc()
     /*
     val cp = testStruct.copy(count = testStruct.count + 3)

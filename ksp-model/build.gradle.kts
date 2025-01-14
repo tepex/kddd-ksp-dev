@@ -41,6 +41,7 @@ dependencies {
     implementation(libs.ksp.api)
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kddd)
     testImplementation(libs.kotlin.compile.testing.ksp)

@@ -18,6 +18,10 @@ dependencies {
     implementation(project(":domain"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kddd)
+
+    implementation(libs.kotlinpoet)
+    implementation(libs.kotlinpoet.ksp)
+
 }
 
 val MAIN_CLASS = "ru.it_arch.clean_ddd.app.MainKt"

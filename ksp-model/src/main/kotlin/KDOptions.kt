@@ -3,11 +3,11 @@ package ru.it_arch.clean_ddd.ksp.model
 import com.squareup.kotlinpoet.ClassName
 import ru.it_arch.kddd.ValueObject
 
-public class KDOptions private constructor(
+public data class KDOptions private constructor(
     private val subpackage: Subpackage?,
     private val generatedClassNameRe: Regex,
     private val generatedClassNameResult: ResultTemplate,
-    public val useContextReceivers: UseContextReceivers
+    public val useContextReceivers: UseContextReceivers,
 ) {
 
     public fun getImplementationPackage(src: String): PackageName =
@@ -126,6 +126,9 @@ public class KDOptions private constructor(
 
         override fun validate() {}
 
+        override fun toString(): String =
+            boxed.toString()
+
         public companion object {
             public fun create(value: Boolean): UseContextReceivers =
                 UseContextReceivers(value)
@@ -145,7 +148,7 @@ public class KDOptions private constructor(
                 src[OPTION_SUBPACKAGE]?.let(Subpackage.Companion::create),
                 (src[OPTION_GENERATED_CLASS_NAME_RE] ?: DEFAULT_RE).toRegex(),
                 (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let(ResultTemplate.Companion::create),
-                (src[OPTION_CONTEXT_RECEIVERS]?.toBooleanStrictOrNull() ?: false).let(UseContextReceivers.Companion::create)
+                (src[OPTION_CONTEXT_RECEIVERS]?.toBooleanStrictOrNull() ?: false).let(UseContextReceivers.Companion::create),
             )
     }
 }

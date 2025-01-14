@@ -6,9 +6,12 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.validate
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.TypeSpec
 import ru.it_arch.clean_ddd.ksp.model.KDOptions
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
+import ru.it_arch.clean_ddd.ksp.model.KDTypeJsonBuilder
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -48,12 +51,11 @@ internal class DddProcessor(
                     model.builder.addType(builderBuilder.build())
                     builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
                 }
-                if (model.hasDsl) {
-                    KDTypeBuilderBuilder.create(model, true, kdLogger).also { builderBuilder ->
-                        model.builder.addType(builderBuilder.build())
-                        builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
-                    }
+                if (model.hasDsl) KDTypeBuilderBuilder.create(model, true, kdLogger).also { builderBuilder ->
+                    model.builder.addType(builderBuilder.build())
+                    builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
                 }
+                if (model.hasJson) KDTypeJsonBuilder.create(model, kdLogger).also { model.builder.addType(it.build()) }
             }
         }
     }

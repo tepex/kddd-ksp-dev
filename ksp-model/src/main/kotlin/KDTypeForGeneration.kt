@@ -35,7 +35,7 @@ internal class KDTypeForGeneration(
         get() = _nestedTypes.toMap()
 
     override val hasDsl = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.dsl != false
-    override val hasJson = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.json != false
+    override val hasJson = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.json == true
 
     init {
         propertyHolders = boxedType?.let {
