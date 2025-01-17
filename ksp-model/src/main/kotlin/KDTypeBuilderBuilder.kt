@@ -11,7 +11,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.ksp.model.DSLType.Collection
 
 public class KDTypeBuilderBuilder private constructor(
     private val holder: KDType.Model,
@@ -100,7 +99,7 @@ public class KDTypeBuilderBuilder private constructor(
     private fun FunSpecStatement.addParameterForCollection(name: MemberName, typeName: ParameterizedTypeName): PropertySpec.Builder {
         val collectionType = typeName.toCollectionType()
         return if (isDsl) {
-            traverseParameterizedTypes(Collection.create(typeName, logger)).let { substituted ->
+            traverseParameterizedTypes(DSLType.Collection.create(typeName, logger)).let { substituted ->
                 // return from Builder.build() { return T(...) }
                 +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
                 endStatement()
@@ -149,14 +148,14 @@ public class KDTypeBuilderBuilder private constructor(
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
     // https://discuss.kotlinlang.org/t/3-tailrec-questions/3981 #3
-    private tailrec fun traverseParameterizedTypes(node: DSLType.Parameterized): DSLType.Parameterized {
+    private tailrec fun traverseParameterizedTypes(node: DSLType.Collection): DSLType.Collection {
         val ret = node.substituteOrNull()
         return if (ret != null) ret
         else {
             traverseParameterizedTypes(node.apply {
                 substituteArgs { arg ->
                     @Suppress("NON_TAIL_RECURSIVE_CALL")
-                    if (arg is ParameterizedTypeName) traverseParameterizedTypes(Collection.create(arg, logger))
+                    if (arg is ParameterizedTypeName) traverseParameterizedTypes(DSLType.Collection.create(arg, logger))
                     else holder.getKDType(arg).let { DSLType.Element.create(it, arg) }
                 }
             })
