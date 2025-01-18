@@ -14,28 +14,17 @@ import com.squareup.kotlinpoet.TypeName
 internal sealed interface DSLType {
     val typeName: TypeName
 
-    class Element private constructor(
+    data class Element private constructor(
         override val typeName: TypeName,
         val kdType: KDType,
         val isInner: Boolean
     ) : DSLType {
 
-        override fun toString(): String = typeName.toString()
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is Element) return false
-            if (typeName != other.typeName) return false
-            return true
-        }
-
-        override fun hashCode(): Int = typeName.hashCode()
-
         companion object {
-            fun create(kdTypeSearchResult: KDTypeSearchResult, typeName: TypeName): Element =
+            fun create(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
                 Element(
                     (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawTypeName
-                    else kdTypeSearchResult.first.sourceTypeName).toNullable(typeName.isNullable),
+                    else kdTypeSearchResult.first.sourceTypeName).toNullable(isNullable),
                     kdTypeSearchResult.first,
                     kdTypeSearchResult.second,
                 )
@@ -48,17 +37,14 @@ internal sealed interface DSLType {
     ) : DSLType {
 
         private lateinit var args: List<DSLType>
-        private val collectionType = parameterizedTypeName.toCollectionType()
         private var isSubstituted: Boolean = false
+
+        val type = parameterizedTypeName.toCollectionType()
 
         lateinit var fromDslMapper: String
         lateinit var toDslMapper: String
 
-        override val typeName: TypeName
-            get() = parameterizedTypeName
-
-        fun getLambdaArgName(i: Int): String =
-            collectionType.getLambdaArgName(i)
+        override val typeName = parameterizedTypeName
 
         fun createFromDslToNormalTypeMapper(lambdaArgs: List<String>): String =
             createDslMapper(lambdaArgs, false)
@@ -74,7 +60,7 @@ internal sealed interface DSLType {
             val toDslArgs = mutableListOf<String>()
             args = parameterizedTypeName.typeArguments.mapIndexed { i, arg ->
                 transform(arg).also { newArg ->
-                    val localIt = getLambdaArgName(i)
+                    val localIt = type.getItArgName(i)
                     when(newArg) {
                         is Collection -> {
                             fromDslArgs += "$localIt${newArg.fromDslMapper}"
@@ -91,6 +77,7 @@ internal sealed interface DSLType {
                     }
                 }
             }
+
             fromDslMapper = createFromDslToNormalTypeMapper(fromDslArgs)
             toDslMapper = createFromNormalTypeToDslMapper(toDslArgs)
             isSubstituted = true
@@ -99,11 +86,11 @@ internal sealed interface DSLType {
         private fun createDslMapper(lambdaArgs: List<String>, isMutable: Boolean): String {
             val isNoMap = args.all { it is Element && it.kdType !is KDType.Boxed }
             val isNoTerminal = if (isNoMap) false
-            else if (collectionType == CollectionType.MAP) true else collectionType != CollectionType.SET
-            return collectionType.mapperAsString(lambdaArgs, isMutable, isNoMap, isNoTerminal)
+            else if (type == CollectionType.MAP) true else type != CollectionType.SET
+            return type.mapperAsString(lambdaArgs, isMutable, isNoMap, isNoTerminal)
         }
 
-        fun substitute(): Collection =
+        private fun substitute(): Collection =
             parameterizedTypeName.rawType.toMutableCollection()
                 .let { newType -> copy(parameterizedTypeName = newType).also {
                     it.fromDslMapper = fromDslMapper

@@ -84,7 +84,7 @@ public class KDTypeBuilderBuilder private constructor(
     private fun FunSpecStatement.addParameterForElement(property: KDProperty) {
         +Chunk("%N = ", property.name)
         val element =
-            holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName) }
+            holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName.isNullable) }
         if (element.kdType is KDType.Boxed && isDsl) {
             if (element.typeName.isNullable) +Chunk("%N?.let(::${element.kdType.dslBuilderFunName(element.isInner)}),", property.name)
             else +Chunk("${element.kdType.dslBuilderFunName(element.isInner)}(%N!!),", property.name)
@@ -156,7 +156,7 @@ public class KDTypeBuilderBuilder private constructor(
                 substituteArgs { arg ->
                     @Suppress("NON_TAIL_RECURSIVE_CALL")
                     if (arg is ParameterizedTypeName) traverseParameterizedTypes(DSLType.Collection.create(arg, logger))
-                    else holder.getKDType(arg).let { DSLType.Element.create(it, arg) }
+                    else holder.getKDType(arg).let { DSLType.Element.create(it, arg.isNullable) }
                 }
             })
         }

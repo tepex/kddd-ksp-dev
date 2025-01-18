@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MUTABLE_LIST
 import com.squareup.kotlinpoet.MUTABLE_MAP
 import com.squareup.kotlinpoet.MUTABLE_SET
+import java.util.Locale
 
 internal enum class CollectionType(
     val classNames: List<ClassName>,
@@ -12,13 +13,16 @@ internal enum class CollectionType(
     LIST(listOf(com.squareup.kotlinpoet.LIST, MUTABLE_LIST)),
     MAP(listOf(com.squareup.kotlinpoet.MAP, MUTABLE_MAP));
 
+    val originName: String =
+        name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+
     fun initializer(isMutable: Boolean): String = when(this) {
         MAP  -> if (isMutable) "mutableMapOf()" else "emptyMap()"
         LIST -> if (isMutable) "mutableListOf()" else "emptyList()"
         SET  -> if (isMutable) "mutableSetOf()" else "emptySet()"
     }
 
-    fun getLambdaArgName(i: Int): String = when(this) {
+    fun getItArgName(i: Int): String = when(this) {
         MAP  -> "it.key".takeIf { i == 0 } ?: "it.value"
         else -> "it"
     }

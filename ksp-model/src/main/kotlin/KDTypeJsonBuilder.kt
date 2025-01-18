@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
@@ -14,7 +15,6 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import ru.it_arch.clean_ddd.ksp.model.DSLType.Collection
 
 public class KDTypeJsonBuilder private constructor(
     private val holder: KDType.Model,
@@ -24,11 +24,7 @@ public class KDTypeJsonBuilder private constructor(
     private val companionBuilder = TypeSpec.companionObjectBuilder().addSuperinterface(KSerializer::class.asTypeName().parameterizedBy(holder.className))
 
     private val descriptorFun = DescriptorFun(holder.className)
-
-    private val funSerialise = FunSpec.builder("serialize")
-        .addModifiers(KModifier.OVERRIDE)
-        .addParameter("encoder", Encoder::class)
-        .addParameter("value", holder.className)
+    private val serializeFun = SerializeFun(holder.className)
 
     private val funDeserialize = FunSpec.builder("deserialize")
         .addModifiers(KModifier.OVERRIDE)
@@ -40,11 +36,9 @@ public class KDTypeJsonBuilder private constructor(
     init {
         holder.propertyHolders.forEachIndexed { index, property ->
             if (property.typeName is ParameterizedTypeName) {
-                val ct = Collection.create(property.typeName, logger)
-                processCollection(property.name, property.typeName, false)
-
-
-
+                processCollection(property.name, JsonType.Collection.create(property.typeName), false).also { jsonType ->
+                    descriptorFun.addCollection(property.serialName, jsonType)
+                }
             } else {
                 // direct to statement +Chunk
 
@@ -57,6 +51,7 @@ public class KDTypeJsonBuilder private constructor(
 
                 if (kdType is KDType.Generatable) {
                     descriptorFun.addElement(property.serialName, kdType, property.typeName.isNullable)
+                    //funSerialise
                 } else {
                     TODO()
                 }
@@ -65,36 +60,36 @@ public class KDTypeJsonBuilder private constructor(
             }
         }
 
-        companionBuilder.addProperty(descriptorFun.build())
+        val descriptor = descriptorFun.build()
+        companionBuilder.addProperty(descriptor)
 
-        companionBuilder.addFunction(funSerialise.build())
+        companionBuilder.addFunction(serializeFun.build(descriptor))
 
         companionBuilder.addFunction(funDeserialize.build())
     }
 
     /**
-     * 1. IN: ParametrizedTypeName -> KDType.Parametrized
+     * 1. IN: ParametrizedTypeName ->
      * 2. For `descriptorFun`: simple names: List<Set<String>> with null
      * 3. For `funSerialize`: List/Set/Map Serializer + mapper type -> String :
      *     encodeSerializableElement(descriptor, 9, ListSerializer(SetSerializer(String.serializer())),
      *                     value.nestedList1.map { it.map { it.boxed }.toSet() })
      * 4. For `funDeserialize`:
      * */
-    private tailrec fun processCollection(name: MemberName, parameterized: ParameterizedTypeName, isFinish: Boolean) {
-        if (isFinish) {
+    // Создаем свою тяжелую иерархию для разных кейсов
+    private tailrec fun processCollection(name: MemberName, collection: JsonType.Collection, isFinish: Boolean): JsonType {
+        return if (isFinish) {
             // закрываем скобочки?
-            return
+            collection
         }
         else {
-            val collectionType = parameterized.toCollectionType()
-            val sb = StringBuilder("$collectionType<")
-            //logger.log("${name.simpleName}: $collectionType<")
-            parameterized.typeArguments.forEachIndexed { index, typeName ->
-                sb.append("$typeName, ")
+            collection.parameterizedTypeName.typeArguments.forEachIndexed { index, arg ->
+                @Suppress("NON_TAIL_RECURSIVE_CALL")
+                (if (arg is ParameterizedTypeName) processCollection(name, JsonType.Collection.create(arg), false)
+                else holder.getKDType(arg).let { JsonType.Element.create(it, arg.isNullable) })
+                    .also(collection::addForDescriptor)
             }
-            sb.append('>')
-            logger.log("${name.simpleName}: $sb")
-            return processCollection(name, parameterized, true)
+            processCollection(name, collection, true)
         }
     }
 
@@ -124,17 +119,34 @@ public class KDTypeJsonBuilder private constructor(
                 else error("Property `$name` type must have parameterized type primitive or parsable")
             } else kdType.className
             args += param
-            /*
-            if (isNullable) sb.append("%M<String?>(\"$name\", isOptional = true)\n")
-            else sb.append("%M<String>(\"$name\")\n")
+        }
 
-            args += MemberName("kotlinx.serialization.descriptors", "element")*/
+        fun addCollection(name: String, jsonType: JsonType) {
+            sb.append("%M<${jsonType.asString()}>")
+            sb.append("(\"$name\")\n")
+            args += MemberName("kotlinx.serialization.descriptors", "element")
         }
 
         fun build() =
             descriptorProperty
                 .initializer("$sb»}", *args.toTypedArray())
                 .build()
+    }
+
+    private class SerializeFun(
+        private val className: ClassName
+    ) {
+        private val funSerialise = FunSpec.builder("serialize")
+            .addModifiers(KModifier.OVERRIDE)
+
+        fun build(descriptor: PropertySpec): FunSpec {
+            val encoder = ParameterSpec.builder("encoder", Encoder::class).build()
+            val encoderStructure = MemberName("kotlinx.serialization.encoding", "encodeStructure")
+            funSerialise.addParameter(encoder)
+                .addParameter("value", className)
+                .addStatement("%N.%M(%N) {}", encoder, encoderStructure, descriptor)
+            return funSerialise.build()
+        }
     }
 
     public companion object {
