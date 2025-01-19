@@ -62,7 +62,7 @@ internal sealed interface DSLType {
                         }
                         is Element ->
                             if (newArg.kdType is KDType.Boxed) {
-                                fromDslArgs += newArg.kdType.fromString(localIt, newArg.isInner, arg.isNullable)
+                                fromDslArgs += newArg.kdType.asDeserialize(localIt, newArg.isInner, arg.isNullable)
                                 toDslArgs += newArg.kdType.asIsOrSerialize(localIt, arg.isNullable)
                             } else {
                                 fromDslArgs += localIt
@@ -72,16 +72,10 @@ internal sealed interface DSLType {
                 }
             }
 
-            fromDslMapper = createDslMapper(fromDslArgs, false)
-            toDslMapper = createDslMapper(toDslArgs, true)
+            val hasNotContainsBoxed = args.all { it is Element && it.kdType !is KDType.Boxed }
+            fromDslMapper = fromDslArgs.createMapper(type, false, hasNotContainsBoxed)
+            toDslMapper = toDslArgs.createMapper(type, true, hasNotContainsBoxed)
             isSubstituted = true
-        }
-
-        private fun createDslMapper(lambdaArgs: List<String>, isMutable: Boolean): String {
-            val isNoMap = args.all { it is Element && it.kdType !is KDType.Boxed }
-            val isNoTerminal = if (isNoMap) false
-            else if (type == CollectionType.MAP) true else type != CollectionType.SET
-            return type.mapperAsString(lambdaArgs, isMutable, isNoMap, isNoTerminal)
         }
 
         private fun substitute(): Collection =

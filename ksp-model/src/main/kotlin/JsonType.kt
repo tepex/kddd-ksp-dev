@@ -42,16 +42,16 @@ internal sealed interface JsonType {
         val serializerTemplate: String
             get() = _serializerTemplate
         // for addStatement("", *varargs)
-        private val _serializerParameters = mutableListOf<Any>(
+        private val _serializerVarargs = mutableListOf<Any>(
             MemberName("kotlinx.serialization.builtins", "${type.originName}Serializer")
         )
-        val serializerParameters: List<Any>
-            get() = _serializerParameters.toList()
+        val serializerVarargs: List<Any>
+            get() = _serializerVarargs.toList()
 
-        private val _toStringMappers = mutableListOf<String>()
-        private lateinit var _toStringMapper: String
-        val toStringMapper: String
-            get() = _toStringMapper
+        private val _serializationMappers = mutableListOf<String>()
+        private lateinit var _serializationMapper: String
+        val serializationMapper: String
+            get() = _serializationMapper
 
         override val typeName: TypeName = parameterizedTypeName
 
@@ -62,28 +62,26 @@ internal sealed interface JsonType {
             _serializerTemplate = if (type == CollectionType.MAP) _serializerTemplate.replace("${TMPL_SIGN}$i", serializerReplacement(node))
             else _serializerTemplate.replace(TMPL_SIGN, serializerReplacement(node))
             val localIt = type.getItArgName(i)
-            _toStringMappers += when(node) {
+            _serializationMappers += when(node) {
                 is Element -> if (node.kdType is KDType.Boxed) node.kdType.asSerialize(localIt, node.typeName.isNullable) else localIt
-                is Collection -> "$localIt${node.toStringMapper}"
+                is Collection -> "$localIt${node.serializationMapper}"
             }
             // for deserializer
         }
 
         fun finish() {
-            val isNoMap = args.all { it is Element && it.kdType !is KDType.Boxed }
-            val isNoTerminal = if (isNoMap) false
-            else if (type == CollectionType.MAP) true else type != CollectionType.SET
-            _toStringMapper = type.mapperAsString(_toStringMappers.toList(), false, isNoMap, isNoTerminal)
+            val hasNotContainsBoxed = args.all { it is Element && it.kdType !is KDType.Boxed }
+            _serializationMapper = _serializationMappers.toList().createMapper(type, false, hasNotContainsBoxed)
         }
 
         private fun serializerReplacement(node: JsonType): String = when(node) {
             is Element -> {
-                _serializerParameters += MemberName("kotlinx.serialization.builtins", "serializer")
+                _serializerVarargs += MemberName("kotlinx.serialization.builtins", "serializer")
                 "String.%M().%M".takeIf { node.typeName.isNullable }
-                    ?.also { _serializerParameters += MemberName("kotlinx.serialization.builtins", "nullable") }
+                    ?.also { _serializerVarargs += MemberName("kotlinx.serialization.builtins", "nullable") }
                     ?: "String.%M()"
             }
-            is Collection -> node.serializerTemplate.also { _serializerParameters.addAll(node.serializerParameters) }
+            is Collection -> node.serializerTemplate.also { _serializerVarargs.addAll(node.serializerVarargs) }
         }
 
         override fun encodeXElement(): String =

@@ -23,15 +23,4 @@ internal enum class CollectionType(
         MAP  -> "it.key".takeIf { i == 0 } ?: "it.value"
         else -> "it"
     }
-
-    fun mapperAsString(lambdaArgs: List<String>, isMutable: Boolean, isNoMap: Boolean, isNoTerminal: Boolean): String =
-        ("".takeIf { isNoMap } ?: when (this) {
-            MAP -> ".entries.associate { ${lambdaArgs[0]} to ${lambdaArgs[1]} }"
-            else -> ".map { ${lambdaArgs.first()} }"
-        }).let { "$it${toCounterpart(isMutable, isNoTerminal)}" }
-
-    /** На последнем этапе не нужно имутабельное преобразование для list и map (если есть вложенность) */
-    private fun toCounterpart(isMutable: Boolean, isNoTerminal: Boolean): String =
-        if (isMutable) ".toMutable${originName}()" else
-            if (this == SET) ".toSet()" else ".to${originName}()".takeUnless { isNoTerminal } ?: ""
 }

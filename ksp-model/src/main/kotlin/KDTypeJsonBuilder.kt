@@ -139,18 +139,18 @@ public class KDTypeJsonBuilder private constructor(
             .addModifiers(KModifier.OVERRIDE)
 
         private val elements = mutableListOf<Pair<String, JsonType>>()
-        //
-        fun addElement(name: String, element: JsonType) {
-            elements += name to element
+
+        fun addElement(propertyName: String, type: JsonType) {
+            elements += propertyName to type
         }
 
         fun build(descriptor: PropertySpec): FunSpec {
-            val encoder = ParameterSpec.builder("encoder", Encoder::class).build()
+            val encoderParam = ParameterSpec.builder("encoder", Encoder::class).build()
             val valueParam = ParameterSpec.builder("value", className).build()
             val encoderStructure = MemberName("kotlinx.serialization.encoding", "encodeStructure")
-            return funSerialise.addParameter(encoder).apply {
+            return funSerialise.addParameter(encoderParam).apply {
                 addParameter(valueParam)
-                addStatement("%N.%M(%N) {⇥", encoder, encoderStructure, descriptor)
+                addStatement("%N.%M(%N) {⇥", encoderParam, encoderStructure, descriptor)
                 elements.forEachIndexed { i, el -> when(val jsonType = el.second) {
                     is JsonType.Element -> {
                         if (jsonType.typeName.isNullable)
@@ -168,8 +168,8 @@ public class KDTypeJsonBuilder private constructor(
                         } else { TODO() }
                     }
                     is JsonType.Collection -> {
-                        addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.${el.first}${jsonType.toStringMapper})",
-                            *(listOf<Any>(descriptor) + jsonType.serializerParameters + valueParam).toTypedArray()
+                        addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.${el.first}${jsonType.serializationMapper})",
+                            *(listOf<Any>(descriptor) + jsonType.serializerVarargs + valueParam).toTypedArray()
                         )
                     }
                 } }

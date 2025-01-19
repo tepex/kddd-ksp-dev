@@ -204,7 +204,7 @@ public sealed interface KDType {
                     ?.also { append(".$it") }
             }.toString()
 
-        public fun fromString(variable: String, isInner: Boolean, isNullable: Boolean): String =
+        public fun asDeserialize(variable: String, isInner: Boolean, isNullable: Boolean): String =
             if (isNullable) "$variable?.let(::${dslBuilderFunName(isInner)})" else "${dslBuilderFunName(isInner)}($variable)"
 
         override fun toString(): String =
