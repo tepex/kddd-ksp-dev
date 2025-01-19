@@ -364,7 +364,6 @@ public data class MySimpleJson private constructor(
             decoder.decodeStructure(descriptor) {
                 val builder = Builder()
                 loop@ while (true) {
-
                     when (val i = decodeElementIndex(descriptor)) {
                         0 -> builder.nameName = decodeStringElement(descriptor, 0).let(NameImpl::create)
                         11 -> builder.count = decodeShortElement(descriptor, 11).let(CountImpl::create)

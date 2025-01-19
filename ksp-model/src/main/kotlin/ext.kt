@@ -15,6 +15,8 @@ import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.clean_ddd.ksp.model.CollectionType.MAP
 import ru.it_arch.clean_ddd.ksp.model.CollectionType.SET
+import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed.Companion.FABRIC_CREATE_METHOD
+import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed.Companion.FABRIC_PARSE_METHOD
 import java.util.Locale
 
 internal fun TypeName.toNullable(nullable: Boolean = true) =
@@ -37,6 +39,17 @@ internal val KDType.Boxed.isPrimitive: Boolean get() =
         boxedType == INT ||
         boxedType == LONG ||
         boxedType == SHORT
+
+internal fun KDType.Boxed.asSimplePrimitive(): String {
+    check(isPrimitive)
+    return rawTypeName.toString().substringAfterLast('.')
+}
+
+internal fun KDType.Boxed.asDeserialize(isInner: Boolean): String =
+    if (isInner)
+        (FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let(${className.simpleName}::$it)" }
+    else TODO()
+
 
 internal typealias KDTypeSearchResult = Pair<KDType, Boolean>
 

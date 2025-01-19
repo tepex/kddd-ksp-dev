@@ -37,6 +37,9 @@ internal class KDTypeForGeneration(
     override val hasDsl = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.dsl != false
     override val hasJson = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.json == true
 
+    var isParsable: Boolean = false
+        private set
+
     init {
         propertyHolders = boxedType?.let {
             boxedType(boxedType)
@@ -52,8 +55,8 @@ internal class KDTypeForGeneration(
         createConstructor(context.properties)
     }
 
-    override fun dslBuilderFunName(isInner: Boolean): String =
-        context.typeName.toString().substringAfterLast('.').let { name ->
+    override fun dslBuilderFunName(isInner: Boolean): String {
+        val ret = context.typeName.toString().substringAfterLast('.').let { name ->
             val impl = with(context.options) {
                 context.typeName.toString()
                     .substringAfterLast("${context.packageName}.")
@@ -63,6 +66,9 @@ internal class KDTypeForGeneration(
             ("$impl.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
                 .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
         }
+        //context.logger.log("name: $ret")
+        return ret
+    }
 
     private fun boxedType(boxedType: TypeName) {
         builder.addModifiers(KModifier.VALUE)
@@ -99,7 +105,10 @@ internal class KDTypeForGeneration(
                 addStatement("return %T(%N)", className, boxedParam)
             }.build().let(::addFunction)
             this@KDTypeForGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()
-                ?.also { createParseFun(boxedType, it).let(::addFunction) }
+                ?.also {
+                    createParseFun(boxedType, it).let(::addFunction)
+                    isParsable = true
+                }
 
         }.build().also(builder::addType)
     }

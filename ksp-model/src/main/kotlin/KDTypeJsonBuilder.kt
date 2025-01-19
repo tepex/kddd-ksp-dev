@@ -12,6 +12,7 @@ import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
@@ -24,14 +25,8 @@ public class KDTypeJsonBuilder private constructor(
     private val companionBuilder = TypeSpec.companionObjectBuilder().addSuperinterface(KSerializer::class.asTypeName().parameterizedBy(holder.className))
 
     private val descriptorFun = DescriptorFun(holder.className)
-    private val serializeFun = SerializeFun(holder.className, logger)
-
-    private val funDeserialize = FunSpec.builder("deserialize")
-        .addModifiers(KModifier.OVERRIDE)
-        .addParameter("decoder", Decoder::class)
-        .returns(holder.className)
-
-    //private val sb
+    private val serializeFun = SerializeFun(holder.className)
+    private val deserializeFun = DeserializeFun(holder.className)
 
     init {
         holder.propertyHolders.forEachIndexed { index, property ->
@@ -39,30 +34,24 @@ public class KDTypeJsonBuilder private constructor(
                 processCollection(property.name, JsonType.Collection.create(property.typeName), false).also { jsonType ->
                     descriptorFun.addCollection(property.serialName, jsonType)
                     serializeFun.addElement(property.serialName, jsonType)
+                    deserializeFun.addElement(property.serialName, jsonType)
                 }
             } else {
-                // direct to statement +Chunk
-
-                // It works for scalar types
-
                 val result = holder.getKDType(property.typeName)
                 if (result.first is KDType.Generatable) {
                     descriptorFun.addElement(property.serialName, result.first as KDType.Generatable, property.typeName.isNullable)
                     serializeFun.addElement(property.name.simpleName, JsonType.Element.create(result, property.typeName.isNullable))
+                    deserializeFun.addElement(property.name.simpleName, JsonType.Element.create(result, property.typeName.isNullable))
                 } else {
                     TODO()
                 }
-                // funSerialize.add
-                // funDeserialize.add
             }
         }
 
         val descriptor = descriptorFun.build()
         companionBuilder.addProperty(descriptor)
-
         companionBuilder.addFunction(serializeFun.build(descriptor))
-
-        companionBuilder.addFunction(funDeserialize.build())
+        companionBuilder.addFunction(deserializeFun.build(descriptor))
     }
 
     /**
@@ -133,7 +122,6 @@ public class KDTypeJsonBuilder private constructor(
 
     private class SerializeFun(
         private val className: ClassName,
-        private val logger: KDLogger
     ) {
         private val funSerialise = FunSpec.builder("serialize")
             .addModifiers(KModifier.OVERRIDE)
@@ -161,19 +149,86 @@ public class KDTypeJsonBuilder private constructor(
                             )
                         else if (jsonType.kdType is KDType.Boxed) {
                             // неявно полагается, что тип `Parsable`
-                            addStatement("${jsonType.encodeXElement()}(%N, $i, %N.${jsonType.kdType.asIsOrSerialize(el.first, false)})",
+                            addStatement("${jsonType.encodePrimitiveElement()}(%N, $i, %N.${jsonType.kdType.asIsOrSerialize(el.first, false)})",
                                 descriptor,
                                 valueParam
                             )
-                        } else { TODO() }
+                        } else { /*addStatement("TODO()")*/ }
                     }
-                    is JsonType.Collection -> {
+                    is JsonType.Collection ->
                         addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.${el.first}${jsonType.serializationMapper})",
                             *(listOf<Any>(descriptor) + jsonType.serializerVarargs + valueParam).toTypedArray()
                         )
-                    }
                 } }
                 addStatement("}")
+            }.build()
+        }
+    }
+
+    private class DeserializeFun(
+        private val className: ClassName,
+    ) {
+
+        private val elements = mutableListOf<Pair<String, JsonType>>()
+
+        private val funDeserialize = FunSpec.builder("deserialize")
+            .addModifiers(KModifier.OVERRIDE)
+            .returns(className)
+
+        fun addElement(propertyName: String, type: JsonType) {
+            elements += propertyName to type
+        }
+
+        fun build(descriptor: PropertySpec): FunSpec {
+            val decoderParam = ParameterSpec.builder("decoder", Decoder::class).build()
+            val decoderStructure = MemberName("kotlinx.serialization.encoding", "decodeStructure")
+            return funDeserialize.addParameter(decoderParam).apply {
+                addStatement("val ret = %N.%M(%N) {⇥", decoderParam, decoderStructure, descriptor)
+                addStatement("val builder = Builder()")
+                addStatement("loop@ while (true) {⇥")
+                addStatement("when (val i = decodeElementIndex(%N)) {⇥", descriptor)
+                elements.forEachIndexed { index, el ->
+                    val prefix = "$index -> builder.${el.first} ="
+                    when(val jsonType = el.second) {
+                        is JsonType.Element -> {
+                            if (jsonType.typeName.isNullable) {
+                                if (jsonType.kdType is KDType.Boxed) {
+                                    ("$prefix decodeNullableSerializableElement(%N, $index, String.%M().nullable)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
+                                        .takeUnless { jsonType.kdType.isPrimitive }
+                                        ?: "$prefix decodeNullableSerializableElement(%N, $index, ${jsonType.kdType.asSimplePrimitive()}.%M().nullable)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
+                                    ).also {
+                                        addStatement(it,
+                                            descriptor,
+                                            MemberName("kotlinx.serialization.builtins", "serializer")
+                                        )
+                                    }
+                                } else { TODO() }
+                            } else if (jsonType.kdType is KDType.Boxed) addStatement(
+                                "$prefix ${jsonType.decodePrimitiveElement()}(%N, $index)${jsonType.kdType.asDeserialize(jsonType.isInner)}",
+                                descriptor
+                            )
+                            else { addStatement("TODO()") }
+                            //0 -> builder.nameName = decodeStringElement(descriptor, 0).let(NameImpl::create)
+                        }
+                        is JsonType.Collection -> {
+                            /*
+                            addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.${el.first}${jsonType.serializationMapper})",
+                                *(listOf<Any>(descriptor) + jsonType.serializerVarargs + valueParam).toTypedArray()
+                            )*/
+                            addStatement("$prefix decodeSerializableElement(%N, $index, ${jsonType.serializerTemplate})${jsonType.deserializationMapper}",
+                                *(listOf<Any>(descriptor) + jsonType.serializerVarargs).toTypedArray()
+                                )
+
+                        }
+                    }
+                }
+                addStatement("%M -> break@loop", MemberName("kotlinx.serialization.encoding.CompositeDecoder.Companion", "DECODE_DONE"))
+                addStatement("else -> throw %T(\"Unexpected index \$i\")", SerializationException::class.asTypeName())
+
+                addStatement("⇤}")
+                addStatement("⇤}")
+                addStatement("builder.build()")
+                addStatement("⇤}\n⇤⇤return ret")
             }.build()
         }
     }
