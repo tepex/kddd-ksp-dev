@@ -15,6 +15,7 @@ import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.clean_ddd.ksp.model.CollectionType.MAP
 import ru.it_arch.clean_ddd.ksp.model.CollectionType.SET
+import java.util.Locale
 
 internal fun TypeName.toNullable(nullable: Boolean = true) =
     if (isNullable != nullable) copy(nullable = nullable) else this
@@ -49,3 +50,14 @@ internal fun List<String>.createMapper(type: CollectionType, isMutable: Boolean,
             ?: ".entries.associate { ${this[0]} to ${this[1]} }"
         ).let { "$it$term" }
     }
+
+internal val CollectionType.originName: String
+    get() = name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+
+internal fun CollectionType.initializer(isMutable: Boolean): String =
+    "mutable${originName}Of()".takeIf { isMutable } ?: "empty$originName()"
+
+internal fun CollectionType.getItArgName(i: Int): String = when(this) {
+    MAP  -> "it.key".takeIf { i == 0 } ?: "it.value"
+    else -> "it"
+}
