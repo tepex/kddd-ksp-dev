@@ -24,7 +24,7 @@ public class KDTypeJsonBuilder private constructor(
     private val companionBuilder = TypeSpec.companionObjectBuilder().addSuperinterface(KSerializer::class.asTypeName().parameterizedBy(holder.className))
 
     private val descriptorFun = DescriptorFun(holder.className)
-    private val serializeFun = SerializeFun(holder.className)
+    private val serializeFun = SerializeFun(holder.className, logger)
 
     private val funDeserialize = FunSpec.builder("deserialize")
         .addModifiers(KModifier.OVERRIDE)
@@ -38,20 +38,17 @@ public class KDTypeJsonBuilder private constructor(
             if (property.typeName is ParameterizedTypeName) {
                 processCollection(property.name, JsonType.Collection.create(property.typeName), false).also { jsonType ->
                     descriptorFun.addCollection(property.serialName, jsonType)
+                    serializeFun.addElement(property.serialName, jsonType)
                 }
             } else {
                 // direct to statement +Chunk
 
                 // It works for scalar types
 
-                val kdType = holder.getKDType(property.typeName).first
-                if (kdType is KDType.Boxed) {
-                    logger.log("${property.serialName}: ${kdType.boxedType} ${kdType.isPrimitive} parse: ${kdType.isParsable}")
-                } else if (kdType is KDType.Generatable) logger.log(">>> ${property.serialName}: ${kdType.className}")
-
-                if (kdType is KDType.Generatable) {
-                    descriptorFun.addElement(property.serialName, kdType, property.typeName.isNullable)
-                    //funSerialise
+                val result = holder.getKDType(property.typeName)
+                if (result.first is KDType.Generatable) {
+                    descriptorFun.addElement(property.serialName, result.first as KDType.Generatable, property.typeName.isNullable)
+                    serializeFun.addElement(property.name.simpleName, JsonType.Element.create(result, property.typeName.isNullable))
                 } else {
                     TODO()
                 }
@@ -87,8 +84,9 @@ public class KDTypeJsonBuilder private constructor(
                 @Suppress("NON_TAIL_RECURSIVE_CALL")
                 (if (arg is ParameterizedTypeName) processCollection(name, JsonType.Collection.create(arg), false)
                 else holder.getKDType(arg).let { JsonType.Element.create(it, arg.isNullable) })
-                    .also(collection::addForDescriptor)
+                    .also { collection.addArg(index, it) }
             }
+            collection.finish()
             processCollection(name, collection, true)
         }
     }
@@ -134,18 +132,49 @@ public class KDTypeJsonBuilder private constructor(
     }
 
     private class SerializeFun(
-        private val className: ClassName
+        private val className: ClassName,
+        private val logger: KDLogger
     ) {
         private val funSerialise = FunSpec.builder("serialize")
             .addModifiers(KModifier.OVERRIDE)
 
+        private val elements = mutableListOf<Pair<String, JsonType>>()
+        //
+        fun addElement(name: String, element: JsonType) {
+            elements += name to element
+        }
+
         fun build(descriptor: PropertySpec): FunSpec {
             val encoder = ParameterSpec.builder("encoder", Encoder::class).build()
+            val valueParam = ParameterSpec.builder("value", className).build()
             val encoderStructure = MemberName("kotlinx.serialization.encoding", "encodeStructure")
-            funSerialise.addParameter(encoder)
-                .addParameter("value", className)
-                .addStatement("%N.%M(%N) {}", encoder, encoderStructure, descriptor)
-            return funSerialise.build()
+            return funSerialise.addParameter(encoder).apply {
+                addParameter(valueParam)
+                addStatement("%N.%M(%N) {⇥", encoder, encoderStructure, descriptor)
+                elements.forEachIndexed { i, el -> when(val jsonType = el.second) {
+                    is JsonType.Element -> {
+                        if (jsonType.typeName.isNullable)
+                            addStatement("encodeNullableSerializableElement(%N, $i, String.%M(), %N.${el.first}?.${KDType.Boxed.PARAM_NAME}?.toString())",
+                                descriptor,
+                                MemberName("kotlinx.serialization.builtins", "serializer"),
+                                valueParam
+                            )
+                        else if (jsonType.kdType is KDType.Boxed) {
+                            // неявно полагается, что тип `Parsable`
+                            addStatement("${jsonType.encodeXElement()}(%N, $i, %N.${jsonType.kdType.asIsOrSerialize(el.first, false)})",
+                                descriptor,
+                                valueParam
+                            )
+                        } else { TODO() }
+                    }
+                    is JsonType.Collection -> {
+                        addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.${el.first}${jsonType.toStringMapper})",
+                            *(listOf<Any>(descriptor) + jsonType.serializerParameters + valueParam).toTypedArray()
+                        )
+                    }
+                } }
+                addStatement("}")
+            }.build()
         }
     }
 

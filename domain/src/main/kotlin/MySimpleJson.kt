@@ -19,6 +19,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.encoding.decodeStructure
 import kotlinx.serialization.encoding.encodeStructure
 import ru.it_arch.clean_ddd.domain.MySimple.SomeUri
+import ru.it_arch.clean_ddd.domain.impl.MySimpleImpl.InnerImpl
 import java.io.File
 import java.net.URI
 import java.util.UUID
@@ -38,6 +39,7 @@ import ru.it_arch.kddd.ValueObject
 public data class MySimpleJson private constructor(
     override val nameName: MySimple.Name,
     override val count: MySimple.Count,
+    //override val inner: MySimple.Inner,
     override val uri: MySimple.SomeUri,
     override val listUri: List<MySimple.SomeUri>,
     override val nullableListUri: List<MySimple.SomeUri?>,
@@ -58,6 +60,7 @@ public data class MySimpleJson private constructor(
     public fun toBuilder(): Builder {
         val ret = Builder()
         ret.nameName = nameName
+        //ret.inner = inner
         ret.uri = uri
         ret.listUri = listUri
         ret.nullableListUri = nullableListUri
@@ -73,6 +76,7 @@ public data class MySimpleJson private constructor(
     public fun toDslBuilder(): DslBuilder {
         val ret = DslBuilder()
         ret.nameName = nameName.boxed
+        //ret.inner = inner
         ret.uri = uri.boxed.toString()
         ret.listUri = listUri.map { it.boxed.toString() }.toMutableList()
         ret.nullableListUri = nullableListUri.map { it?.boxed.toString() }.toMutableList()
@@ -104,7 +108,7 @@ public data class MySimpleJson private constructor(
     }
 
     @JvmInline
-    public value class CountImpl private constructor(override val boxed: Int): MySimple.Count {
+    public value class CountImpl private constructor(override val boxed: Short): MySimple.Count {
         init {
             validate()
         }
@@ -113,11 +117,11 @@ public data class MySimpleJson private constructor(
             boxed.toString()
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<Int>> copy(boxed: Int): T =
+        override fun <T : ValueObject.Boxed<Short>> copy(boxed: Short): T =
             create(boxed) as T
 
         public companion object {
-            public fun create(boxed: Int): CountImpl = CountImpl(boxed)
+            public fun create(boxed: Short): CountImpl = CountImpl(boxed)
         }
     }
 
@@ -188,6 +192,8 @@ public data class MySimpleJson private constructor(
 
         public lateinit var uri: MySimple.SomeUri
 
+        //public lateinit var inner: MySimple.Inner
+
         public var listUri: List<MySimple.SomeUri> = emptyList()
 
         public var nullableListUri: List<MySimple.SomeUri?> = emptyList()
@@ -217,6 +223,7 @@ public data class MySimpleJson private constructor(
             return MySimpleJson(
                 nameName = nameName,
                 count = count,
+                //inner = inner,
                 uri = uri, listUri = listUri,
                 nullableListUri = nullableListUri, `file` = `file`, uuid = uuid, mapUUID = mapUUID,
                 mapUUIDNullable = mapUUIDNullable, mapUUIDAll = mapUUIDAll,
@@ -230,8 +237,8 @@ public data class MySimpleJson private constructor(
     public class DslBuilder {
         /** String representation of [MySimple.Name] */
         public var nameName: String? = null
-        public var count: Int? = null
-
+        public var count: Short? = null
+        //public var inner: MySimple.Inner? = null
         public var uri: String? = null
 
         public var listUri: MutableList<String> = mutableListOf()
@@ -256,13 +263,15 @@ public data class MySimpleJson private constructor(
 
         public fun nameName(`value`: String): MySimple.Name = NameImpl.create(`value`)
 
-        public fun count(value: Int): MySimple.Count = CountImpl.create(value)
+        public fun count(value: Short): MySimple.Count = CountImpl.create(value)
 
         public fun someUri(`value`: String): MySimple.SomeUri = SomeUriImpl.parse(`value`)
 
         public fun someFile(`value`: String): MySimple.SomeFile = SomeFileImpl.parse(`value`)
 
         public fun someUUID(`value`: UUID): MySimple.SomeUUID = SomeUUIDImpl.create(`value`)
+
+        public fun `inner`(block: context(InnerImpl.DslBuilder) () -> Unit): MySimple.Inner = InnerImpl.DslBuilder().apply(block).build()
 
         public fun build(): MySimpleJson {
             requireNotNull(nameName) { "Property 'MySimpleImpl.name' is not set!" }
@@ -273,6 +282,7 @@ public data class MySimpleJson private constructor(
             return MySimpleJson(
                 nameName = nameName(nameName!!),
                 count = count(count!!),
+                //inner = inner!!,
                 uri = someUri(uri!!),
                 listUri = listUri.map { someUri(it) },
                 nullableListUri = nullableListUri.map { it?.let(::someUri) },
@@ -309,13 +319,14 @@ public data class MySimpleJson private constructor(
                 // nestedList1: List<Set<Name>>
                 element<List<Set<String>>>("nestedList1")
                 element<Map<String?, List<String>>>("nestedMap")
-                element<Int>("count")
+                element<Short>("count")
+                //element<String>("inner")
             }
 
         override fun serialize(encoder: Encoder, value: MySimpleJson) {
             encoder.encodeStructure(descriptor) {
                 encodeStringElement(descriptor, 0, value.nameName.boxed)
-                encodeIntElement(descriptor, 11, value.count.boxed)
+                encodeShortElement(descriptor, 11, value.count.boxed)
 
                 // uri: SomeUri
                 encodeStringElement(descriptor, 1, value.uri.boxed.toString()) // serialize from @KDParsable
@@ -344,6 +355,8 @@ public data class MySimpleJson private constructor(
                 // nestedMap: Map<Name?, List<Name>>
                 encodeSerializableElement(descriptor, 10, MapSerializer(String.serializer().nullable, ListSerializer(String.serializer())),
                     value.nestedMap.entries.associate { it.key?.boxed to it.value.map { it.boxed } })
+                // inner
+                //encodeSerializableElement()
             }
         }
 
@@ -354,7 +367,7 @@ public data class MySimpleJson private constructor(
 
                     when (val i = decodeElementIndex(descriptor)) {
                         0 -> builder.nameName = decodeStringElement(descriptor, 0).let(NameImpl::create)
-                        11 -> builder.count = decodeIntElement(descriptor, 11).let(CountImpl::create)
+                        11 -> builder.count = decodeShortElement(descriptor, 11).let(CountImpl::create)
                         // uri: SomeUri (as String)
                         1 -> builder.uri = decodeStringElement(descriptor, 1).let(SomeUriImpl::parse) // deserialize from @KDParsable
                         // listUri: List<SomeUri>

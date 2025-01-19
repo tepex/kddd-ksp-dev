@@ -190,11 +190,18 @@ public sealed interface KDType {
         public val rawTypeName: TypeName =
             String::class.asTypeName().takeIf { isParsable && isUseStringInDsl } ?: boxedType
 
-        public fun asString(variable: String, isNullable: Boolean): String =
+        public fun asIsOrSerialize(variable: String, isNullable: Boolean): String =
             StringBuilder().apply {
                 append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
                 forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization
-                    .takeIf { isUseStringInDsl }?.also{ append(".$it") }
+                    .takeIf { isUseStringInDsl }?.also { append(".$it") }
+            }.toString()
+
+        public fun asSerialize(variable: String, isNullable: Boolean): String =
+            StringBuilder().apply {
+                append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
+                forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization
+                    ?.also { append(".$it") }
             }.toString()
 
         public fun fromString(variable: String, isInner: Boolean, isNullable: Boolean): String =

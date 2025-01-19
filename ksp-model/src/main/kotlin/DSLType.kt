@@ -46,12 +46,6 @@ internal sealed interface DSLType {
 
         override val typeName = parameterizedTypeName
 
-        fun createFromDslToNormalTypeMapper(lambdaArgs: List<String>): String =
-            createDslMapper(lambdaArgs, false)
-
-        fun createFromNormalTypeToDslMapper(lambdaArgs: List<String>): String =
-            createDslMapper(lambdaArgs, true)
-
         fun substituteOrNull(): Collection? =
             if (isSubstituted) substitute().also { isSubstituted = true } else null
 
@@ -69,7 +63,7 @@ internal sealed interface DSLType {
                         is Element ->
                             if (newArg.kdType is KDType.Boxed) {
                                 fromDslArgs += newArg.kdType.fromString(localIt, newArg.isInner, arg.isNullable)
-                                toDslArgs += newArg.kdType.asString(localIt, arg.isNullable)
+                                toDslArgs += newArg.kdType.asIsOrSerialize(localIt, arg.isNullable)
                             } else {
                                 fromDslArgs += localIt
                                 toDslArgs += localIt
@@ -78,8 +72,8 @@ internal sealed interface DSLType {
                 }
             }
 
-            fromDslMapper = createFromDslToNormalTypeMapper(fromDslArgs)
-            toDslMapper = createFromNormalTypeToDslMapper(toDslArgs)
+            fromDslMapper = createDslMapper(fromDslArgs, false)
+            toDslMapper = createDslMapper(toDslArgs, true)
             isSubstituted = true
         }
 

@@ -14,7 +14,7 @@ public interface MySimple : ValueObject.Data {
     @KDSerialName("qqq")
     public val nameName: Name
     public val count: Count
-    public val inner: Inner
+    //public val inner: Inner
     public val uri: SomeUri // String
     public val listUri: List<SomeUri>
     public val nullableListUri: List<SomeUri?>

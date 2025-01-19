@@ -16,11 +16,8 @@ internal enum class CollectionType(
     val originName: String =
         name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 
-    fun initializer(isMutable: Boolean): String = when(this) {
-        MAP  -> if (isMutable) "mutableMapOf()" else "emptyMap()"
-        LIST -> if (isMutable) "mutableListOf()" else "emptyList()"
-        SET  -> if (isMutable) "mutableSetOf()" else "emptySet()"
-    }
+    fun initializer(isMutable: Boolean): String =
+        "mutable${originName}Of()".takeIf { isMutable } ?: "empty$originName()"
 
     fun getItArgName(i: Int): String = when(this) {
         MAP  -> "it.key".takeIf { i == 0 } ?: "it.value"
@@ -34,9 +31,7 @@ internal enum class CollectionType(
         }).let { "$it${toCounterpart(isMutable, isNoTerminal)}" }
 
     /** На последнем этапе не нужно имутабельное преобразование для list и map (если есть вложенность) */
-    private fun toCounterpart(isMutable: Boolean, isNoTerminal: Boolean): String = when(this) {
-        MAP  -> if (isMutable) ".toMutableMap()" else if (!isNoTerminal) ".toMap()" else ""
-        LIST -> if (isMutable) ".toMutableList()" else if (!isNoTerminal) ".toList()" else ""
-        SET  -> if (isMutable) ".toMutableSet()" else ".toSet()"
-    }
+    private fun toCounterpart(isMutable: Boolean, isNoTerminal: Boolean): String =
+        if (isMutable) ".toMutable${originName}()" else
+            if (this == SET) ".toSet()" else ".to${originName}()".takeUnless { isNoTerminal } ?: ""
 }
