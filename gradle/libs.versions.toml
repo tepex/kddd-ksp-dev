@@ -1,14 +1,15 @@
 [versions]
 # plugins
-kotlin = "2.1.0"
+kotlin = "2.1.20"
 #kotlin = "1.9.0"
-ksp = "2.1.0-1.0.29"
+ksp = "2.1.20-1.0.32"
 #ksp = "1.9.0-1.0.13"
+kotlinpoet = "2.1.0"
 
 # libs
 kotlinx-coroutines = "1.9.0"
 ktlint = "0.50.0"
-serialization-json = "1.7.3"
+serialization-json = "1.8.0"
 
 # test
 junit = "4.13.2"
@@ -26,8 +27,8 @@ auto-service = { module = "com.google.auto.service:auto-service", version="1.1.1
 javax-inject = { module = "javax.inject:javax.inject", version = "1" }
 
 kddd = { module = "ru.it-arch:kddd", version = "7.2.3" }
-kotlinpoet = { module = "com.squareup:kotlinpoet", version = "2.0.0" }
-kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version = "2.0.0" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
+kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
 kotlin-compile-testing-ksp = { module = "com.github.tschuchortdev:kotlin-compile-testing-ksp", version = "1.6.0" }
 
 # test
@@ -45,4 +46,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 test-report = { id = "com.monnage.test-report", version.ref = "test-report" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 
-versions = { id = "com.github.ben-manes.versions", version = "0.51.0" }
+versions = { id = "com.github.ben-manes.versions", version = "0.52.0" }
