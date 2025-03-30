@@ -21,4 +21,4 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
-include(":domain", ":data", ":app", ":ksp-model", "ksp-impl")
+include(":my-cool-domain", ":data", ":demo", ":ksp-model", "ksp-impl")

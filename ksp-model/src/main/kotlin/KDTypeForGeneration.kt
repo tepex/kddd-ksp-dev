@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.ksp.model
 
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -11,6 +12,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
+import kotlinx.serialization.Serializable
 import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed
 import ru.it_arch.clean_ddd.ksp.model.KDType.Generatable
 import ru.it_arch.kddd.KDGeneratable
@@ -50,6 +52,15 @@ internal class KDTypeForGeneration(
                 builder.addModifiers(KModifier.DATA)
                 builder.addAnnotation(ConsistentCopyVisibility::class)
             }
+
+            /*
+            if (context.typeName.toString() == "ru.it_arch.clean_ddd.domain.MySimple") {
+                AnnotationSpec.builder(Serializable::class).apply {
+                    addMember("with = %L", "${className.simpleName}.Companion::class")
+                    //addMember("qqq: %S", context.typeName.toString())
+                }.build().also(builder::addAnnotation)
+            }*/
+
             context.properties
         }
         createConstructor(context.properties)
