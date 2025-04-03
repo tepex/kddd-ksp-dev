@@ -53,13 +53,12 @@ internal class KDTypeForGeneration(
                 builder.addAnnotation(ConsistentCopyVisibility::class)
             }
 
-            /*
-            if (context.typeName.toString() == "ru.it_arch.clean_ddd.domain.MySimple") {
+            //if (context.typeName.toString() == "ru.it_arch.clean_ddd.domain.MySimple") {
                 AnnotationSpec.builder(Serializable::class).apply {
                     addMember("with = %L", "${className.simpleName}.Companion::class")
                     //addMember("qqq: %S", context.typeName.toString())
                 }.build().also(builder::addAnnotation)
-            }*/
+            //}
 
             context.properties
         }

@@ -11,5 +11,5 @@ val json = Json {
 }
 
 fun main() {
-    primitives()
+    testPrimitives()
 }

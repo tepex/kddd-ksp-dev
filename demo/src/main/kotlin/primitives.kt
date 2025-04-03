@@ -1,8 +1,13 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.MySimpleJson
-import ru.it_arch.clean_ddd.domain.mySimpleJson
-import java.util.UUID
+import ru.it_arch.clean_ddd.domain.demo.Primitives
+import ru.it_arch.clean_ddd.domain.demo.impl.primitives
+
+const val jsonSrc = """
+{
+    "str": "some string",
+    "int": 44
+}"""
 
 const val mySimpleJsonStr = """
     {
@@ -40,27 +45,19 @@ const val mySimpleJsonStr = """
     }
 }"""
 
-fun primitives() {
-    val simple = mySimpleJson {
-        nameName = "simple"
-        count = 77
-        uri = "https://ya.ru"
-        file = "~/.bashrc"
-        listUri += "http://google.com"
-        nullableListUri += null
-        nullableListUri += "http://ya.ru"
-        mapUUID["my uuid"] = UUID.randomUUID()
-        //myEnum = MySimple.MyEnum.A
-        nestedList1 += mutableSetOf("set1", "set2")
-        nestedList1 += mutableSetOf("set11", "set12")
-        nestedMap["key.name"] = mutableListOf("n1", "n2", "n3")
-    }
-    println("mySimple: $simple, file: ${simple.file.boxed.canonicalFile}")
+fun testPrimitives() {
 
-    val jsonStr = json.encodeToString(simple)
+    val demo = primitives {
+        str = "some string for demo"
+        size = 55
+    }
+
+    println("demo: $demo")
+
+    val jsonStr = json.encodeToString(demo)
     println("json: $jsonStr")
 
-    val obj = json.decodeFromString<MySimpleJson>(mySimpleJsonStr)
+    val obj = json.decodeFromString<Primitives>(jsonSrc)
     println("deserialize: $obj")
 
 }
