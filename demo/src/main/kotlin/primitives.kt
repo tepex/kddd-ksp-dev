@@ -1,63 +1,42 @@
 package ru.it_arch.clean_ddd.app
 
 import ru.it_arch.clean_ddd.domain.demo.Primitives
+import ru.it_arch.clean_ddd.domain.demo.impl.PrimitivesImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.primitives
 
+// Имена свойств записываются в kebab-case стиле, т.к. такой режим выставлен в настройках Json (с.м. Main.kt)
 const val jsonSrc = """
 {
     "str": "some string",
-    "int": 44
-}"""
-
-const val mySimpleJsonStr = """
-    {
-    "name-name": "json simple",
-    "count": 33,
-    "uri": "https://json.ru",
-    "list-uri": [
-        "http://json.com"
-    ],
-    "nullable-list-uri": [
-        null,
-        "http://json.ru"
-    ],
-    "file": "~/.bashrc.tmp",
-    "uuid": null,
-    "map-uuid": {
-        "my uuid": "68792b96-2a27-4336-9415-35d78c8f0903"
-    },
-    "nested-list1": [
-        [
-            "_set1",
-            "_set2"
-        ],
-        [
-            "_set11",
-            "_set12"
-        ]
-    ],
-    "nested-map": {
-        "_key.name": [
-            "_n1",
-            "_n2",
-            "_n3"
-        ]
-    }
+    "size": 44,
+    "bool-value": true,
+    "byte-value": 33,
+    "char-value": "x",
+    "float-value": 2.71828,
+    "double-value": 1.4142135623,
+    "long-value": 987654321,
+    "short-value": -123
 }"""
 
 fun testPrimitives() {
-
-    val demo = primitives {
+    // Демонстрация сериализации модели
+    primitives {
         str = "some string for demo"
         size = 55
+        boolValue = true
+        byteValue = 22
+        charValue = 'c'
+        floatValue = 3.14f
+        doubleValue = 12.3456789
+        longValue = -12423423423
+        shortValue = 255
+    }.apply {
+        println("demo: $this")
+        json.encodeToString(this).also { println("json: $it") }
     }
 
-    println("demo: $demo")
-
-    val jsonStr = json.encodeToString(demo)
-    println("json: $jsonStr")
-
-    val obj = json.decodeFromString<Primitives>(jsonSrc)
+    // Демонстрация десериализации модели
+    val obj: Primitives = json.decodeFromString<PrimitivesImpl>(jsonSrc)
+    // Можете пользоваться
     println("deserialize: $obj")
-
 }
