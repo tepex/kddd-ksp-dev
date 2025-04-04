@@ -1,11 +1,11 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.demo.Primitives
-import ru.it_arch.clean_ddd.domain.demo.impl.PrimitivesImpl
-import ru.it_arch.clean_ddd.domain.demo.impl.primitives
+import ru.it_arch.clean_ddd.domain.demo.NullablePrimitives
+import ru.it_arch.clean_ddd.domain.demo.impl.NullablePrimitivesImpl
+import ru.it_arch.clean_ddd.domain.demo.impl.nullablePrimitives
 
 // Имена свойств записываются в kebab-case стиле, т.к. такой режим выставлен в настройках Json (с.м. Main.kt)
-const val jsonSrc = """
+const val jsonSrc1 = """
 {
     "str": "some string",
     "size": 44,
@@ -18,9 +18,9 @@ const val jsonSrc = """
     "short-value": -123
 }"""
 
-fun testPrimitives() {
+fun testNullables() {
     // Демонстрация сериализации модели
-    primitives {
+    nullablePrimitives {
         str = "some string for demo"
         size = 55
         boolValue = true
@@ -36,7 +36,7 @@ fun testPrimitives() {
     }
 
     // Демонстрация десериализации модели
-    val obj: Primitives = json.decodeFromString<PrimitivesImpl>(jsonSrc1)
+    val obj: NullablePrimitives = json.decodeFromString<NullablePrimitivesImpl>(jsonSrc1)
     // Можете пользоваться
     println("deserialize: $obj")
 }

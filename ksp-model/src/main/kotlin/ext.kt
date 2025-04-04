@@ -40,6 +40,9 @@ internal val KDType.Boxed.isPrimitive: Boolean get() =
         boxedType == LONG ||
         boxedType == SHORT
 
+internal val KDType.Boxed.isString: Boolean get() =
+    boxedType == STRING
+
 internal fun KDType.Boxed.asSimplePrimitive(): String {
     check(isPrimitive)
     return rawTypeName.toString().substringAfterLast('.')

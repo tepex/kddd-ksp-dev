@@ -1,0 +1,363 @@
+package ru.it_arch.clean_ddd.domain
+
+import kotlin.Boolean
+import kotlin.Byte
+import kotlin.Char
+import kotlin.ConsistentCopyVisibility
+import kotlin.Double
+import kotlin.Float
+import kotlin.Int
+import kotlin.Long
+import kotlin.Short
+import kotlin.String
+import kotlin.Suppress
+import kotlin.Unit
+import kotlin.jvm.JvmInline
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.element
+import kotlinx.serialization.encoding.CompositeDecoder.Companion.DECODE_DONE
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.decodeStructure
+import kotlinx.serialization.encoding.encodeStructure
+import ru.it_arch.clean_ddd.domain.demo.Primitives
+import ru.it_arch.kddd.ValueObject
+
+@ConsistentCopyVisibility
+@Serializable(with = PrimitivesImplX.Companion::class)
+public data class PrimitivesImplX private constructor(
+    override val str: Primitives.StringValue,
+    override val size: Primitives.Size,
+    override val boolValue: Primitives.BoolValue,
+    override val byteValue: Primitives.ByteValue,
+    override val charValue: Primitives.CharValue,
+    override val floatValue: Primitives.FloatValue?,
+    override val doubleValue: Primitives.DoubleValue,
+    override val longValue: Primitives.LongValue,
+    override val shortValue: Primitives.ShortValue,
+) : Primitives {
+    init {
+        validate()
+    }
+    public fun toBuilder(): PrimitivesImplX.Builder {
+        val ret = PrimitivesImplX.Builder()
+        ret.str = str
+        ret.size = size
+        ret.boolValue = boolValue
+        ret.byteValue = byteValue
+        ret.charValue = charValue
+        ret.floatValue = floatValue
+        ret.doubleValue = doubleValue
+        ret.longValue = longValue
+        ret.shortValue = shortValue
+        return ret
+    }
+
+    public fun toDslBuilder(): PrimitivesImplX.DslBuilder {
+        val ret = PrimitivesImplX.DslBuilder()
+        ret.str = str.boxed
+        ret.size = size.boxed
+        ret.boolValue = boolValue.boxed
+        ret.byteValue = byteValue.boxed
+        ret.charValue = charValue.boxed
+        ret.floatValue = floatValue?.boxed
+        ret.doubleValue = doubleValue.boxed
+        ret.longValue = longValue.boxed
+        ret.shortValue = shortValue.boxed
+        return ret
+    }
+
+    @JvmInline
+    public value class StringValueImpl private constructor(
+        override val boxed: String,
+    ) : Primitives.StringValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T = StringValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: String): StringValueImpl = StringValueImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class SizeImpl private constructor(
+        override val boxed: Int,
+    ) : Primitives.Size {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Int>> copy(boxed: Int): T = SizeImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Int): SizeImpl = SizeImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class BoolValueImpl private constructor(
+        override val boxed: Boolean,
+    ) : Primitives.BoolValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Boolean>> copy(boxed: Boolean): T = BoolValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Boolean): BoolValueImpl = BoolValueImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class ByteValueImpl private constructor(
+        override val boxed: Byte,
+    ) : Primitives.ByteValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Byte>> copy(boxed: Byte): T = ByteValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Byte): ByteValueImpl = ByteValueImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class CharValueImpl private constructor(
+        override val boxed: Char,
+    ) : Primitives.CharValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Char>> copy(boxed: Char): T = CharValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Char): CharValueImpl = CharValueImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class FloatValueImpl private constructor(
+        override val boxed: Float,
+    ) : Primitives.FloatValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Float>> copy(boxed: Float): T = FloatValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Float): FloatValueImpl = FloatValueImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class DoubleValueImpl private constructor(
+        override val boxed: Double,
+    ) : Primitives.DoubleValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Double>> copy(boxed: Double): T = DoubleValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Double): DoubleValueImpl = DoubleValueImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class LongValueImpl private constructor(
+        override val boxed: Long,
+    ) : Primitives.LongValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Long>> copy(boxed: Long): T = LongValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Long): LongValueImpl = LongValueImpl(boxed)
+        }
+    }
+
+    @JvmInline
+    public value class ShortValueImpl private constructor(
+        override val boxed: Short,
+    ) : Primitives.ShortValue {
+        init {
+            validate()
+        }
+        override fun toString(): String = boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Short>> copy(boxed: Short): T = ShortValueImpl(boxed) as T
+
+        public companion object {
+            public fun create(boxed: Short): ShortValueImpl = ShortValueImpl(boxed)
+        }
+    }
+
+    public class Builder {
+        public lateinit var str: Primitives.StringValue
+
+        public lateinit var size: Primitives.Size
+
+        public lateinit var boolValue: Primitives.BoolValue
+
+        public lateinit var byteValue: Primitives.ByteValue
+
+        public lateinit var charValue: Primitives.CharValue
+
+        public var floatValue: Primitives.FloatValue? = null
+
+        public lateinit var doubleValue: Primitives.DoubleValue
+
+        public lateinit var longValue: Primitives.LongValue
+
+        public lateinit var shortValue: Primitives.ShortValue
+
+        public fun build(): PrimitivesImplX {
+            require(::str.isInitialized) { "Property 'PrimitivesImplX.str' is not set!" }
+            require(::size.isInitialized) { "Property 'PrimitivesImplX.size' is not set!" }
+            require(::boolValue.isInitialized) { "Property 'PrimitivesImplX.boolValue' is not set!" }
+            require(::byteValue.isInitialized) { "Property 'PrimitivesImplX.byteValue' is not set!" }
+            require(::charValue.isInitialized) { "Property 'PrimitivesImplX.charValue' is not set!" }
+            require(::doubleValue.isInitialized) { "Property 'PrimitivesImplX.doubleValue' is not set!" }
+            require(::longValue.isInitialized) { "Property 'PrimitivesImplX.longValue' is not set!" }
+            require(::shortValue.isInitialized) { "Property 'PrimitivesImplX.shortValue' is not set!" }
+            return PrimitivesImplX(str = str,size = size,boolValue = boolValue,byteValue = byteValue,charValue = charValue,floatValue = floatValue,doubleValue = doubleValue,longValue = longValue,shortValue = shortValue,)
+        }
+    }
+
+    public class DslBuilder {
+        public var str: String? = null
+
+        public var size: Int? = null
+
+        public var boolValue: Boolean? = null
+
+        public var byteValue: Byte? = null
+
+        public var charValue: Char? = null
+
+        public var floatValue: Float? = null
+
+        public var doubleValue: Double? = null
+
+        public var longValue: Long? = null
+
+        public var shortValue: Short? = null
+
+        public fun stringValue(`value`: String): Primitives.StringValue = StringValueImpl.create(`value`)
+
+        public fun size(`value`: Int): Primitives.Size = SizeImpl.create(`value`)
+
+        public fun boolValue(`value`: Boolean): Primitives.BoolValue = BoolValueImpl.create(`value`)
+
+        public fun byteValue(`value`: Byte): Primitives.ByteValue = ByteValueImpl.create(`value`)
+
+        public fun charValue(`value`: Char): Primitives.CharValue = CharValueImpl.create(`value`)
+
+        public fun floatValue(`value`: Float): Primitives.FloatValue = FloatValueImpl.create(`value`)
+
+        public fun doubleValue(`value`: Double): Primitives.DoubleValue = DoubleValueImpl.create(`value`)
+
+        public fun longValue(`value`: Long): Primitives.LongValue = LongValueImpl.create(`value`)
+
+        public fun shortValue(`value`: Short): Primitives.ShortValue = ShortValueImpl.create(`value`)
+
+        public fun build(): PrimitivesImplX {
+            requireNotNull(str) { "Property 'PrimitivesImplX.str' is not set!" }
+            requireNotNull(size) { "Property 'PrimitivesImplX.size' is not set!" }
+            requireNotNull(boolValue) { "Property 'PrimitivesImplX.boolValue' is not set!" }
+            requireNotNull(byteValue) { "Property 'PrimitivesImplX.byteValue' is not set!" }
+            requireNotNull(charValue) { "Property 'PrimitivesImplX.charValue' is not set!" }
+            requireNotNull(doubleValue) { "Property 'PrimitivesImplX.doubleValue' is not set!" }
+            requireNotNull(longValue) { "Property 'PrimitivesImplX.longValue' is not set!" }
+            requireNotNull(shortValue) { "Property 'PrimitivesImplX.shortValue' is not set!" }
+            return PrimitivesImplX(str = stringValue(str!!),size = size(size!!),boolValue = boolValue(boolValue!!),byteValue = byteValue(byteValue!!),charValue = charValue(charValue!!),floatValue = floatValue?.let(::floatValue),doubleValue = doubleValue(doubleValue!!),longValue = longValue(longValue!!),shortValue = shortValue(shortValue!!),)
+        }
+    }
+
+    public companion object : KSerializer<PrimitivesImplX> {
+        override val descriptor: SerialDescriptor =
+            buildClassSerialDescriptor(PrimitivesImplX::class.java.name) {
+                element<String>("str")
+                element<Int>("size")
+                element<Boolean>("boolValue")
+                element<Byte>("byteValue")
+                element<Char>("charValue")
+                element<Float?>("floatValue", isOptional = true)
+                element<Double>("doubleValue")
+                element<Long>("longValue")
+                element<Short>("shortValue")
+            }
+
+        override fun serialize(encoder: Encoder, `value`: PrimitivesImplX) {
+            encoder.encodeStructure(descriptor) {
+                encodeStringElement(descriptor, 0, `value`.str.boxed)
+                encodeIntElement(descriptor, 1, `value`.size.boxed)
+                encodeBooleanElement(descriptor, 2, `value`.boolValue.boxed)
+                encodeByteElement(descriptor, 3, `value`.byteValue.boxed)
+                encodeCharElement(descriptor, 4, `value`.charValue.boxed)
+                encodeNullableSerializableElement(descriptor, 5, String.serializer(), `value`.floatValue?.boxed?.toString())
+                encodeDoubleElement(descriptor, 6, `value`.doubleValue.boxed)
+                encodeLongElement(descriptor, 7, `value`.longValue.boxed)
+                encodeShortElement(descriptor, 8, `value`.shortValue.boxed)
+            }
+        }
+
+        override fun deserialize(decoder: Decoder): PrimitivesImplX {
+            val ret = decoder.decodeStructure(descriptor) {
+                val builder = Builder()
+                loop@ while (true) {
+                    when (val i = decodeElementIndex(descriptor)) {
+                        0 -> builder.str = decodeStringElement(descriptor, 0).let(StringValueImpl::create)
+                        1 -> builder.size = decodeIntElement(descriptor, 1).let(SizeImpl::create)
+                        2 -> builder.boolValue = decodeBooleanElement(descriptor, 2).let(BoolValueImpl::create)
+                        3 -> builder.byteValue = decodeByteElement(descriptor, 3).let(ByteValueImpl::create)
+                        4 -> builder.charValue = decodeCharElement(descriptor, 4).let(CharValueImpl::create)
+                        5 -> builder.floatValue = decodeNullableSerializableElement(descriptor, 5, Float.serializer())?.let(FloatValueImpl::create)
+                        6 -> builder.doubleValue = decodeDoubleElement(descriptor, 6).let(DoubleValueImpl::create)
+                        7 -> builder.longValue = decodeLongElement(descriptor, 7).let(LongValueImpl::create)
+                        8 -> builder.shortValue = decodeShortElement(descriptor, 8).let(ShortValueImpl::create)
+                        DECODE_DONE -> break@loop
+                        else -> throw SerializationException("Unexpected index $i")
+                    }
+                }
+                builder.build()
+            }
+            return ret
+        }
+    }
+}
+
+public fun primitivesX(block: context(PrimitivesImplX.DslBuilder) () -> Unit): PrimitivesImplX = PrimitivesImplX.DslBuilder().apply(block).build()

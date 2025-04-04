@@ -12,4 +12,5 @@ val json = Json {
 
 fun main() {
     testPrimitives()
+    testNullables()
 }

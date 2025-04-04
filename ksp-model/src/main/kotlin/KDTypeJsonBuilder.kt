@@ -13,6 +13,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
@@ -166,7 +167,7 @@ public class KDTypeJsonBuilder private constructor(
     }
 
     private class DeserializeFun(
-        private val className: ClassName,
+        className: ClassName,
     ) {
 
         private val elements = mutableListOf<Pair<String, JsonType>>()
@@ -193,14 +194,34 @@ public class KDTypeJsonBuilder private constructor(
                         is JsonType.Element -> {
                             if (jsonType.typeName.isNullable) {
                                 if (jsonType.kdType is KDType.Boxed) {
+                                    var addNullable = true
                                     ("$prefix decodeNullableSerializableElement(%N, $index, String.%M().nullable)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
                                         .takeUnless { jsonType.kdType.isPrimitive }
-                                        ?: "$prefix decodeNullableSerializableElement(%N, $index, ${jsonType.kdType.asSimplePrimitive()}.%M().nullable)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
+                                        ?: run {
+                                            val nullableProperty = if (jsonType.kdType.isString) {
+                                                ".%M"
+                                            } else {
+                                                addNullable = false
+                                                ""
+                                            }
+                                            "$prefix decodeNullableSerializableElement(%N, $index, ${jsonType.kdType.asSimplePrimitive()}.%M()$nullableProperty)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
+                                        }
                                     ).also {
-                                        addStatement(it,
-                                            descriptor,
-                                            MemberName("kotlinx.serialization.builtins", "serializer")
-                                        )
+                                        // TODO: refactor copy-paste
+                                        if (addNullable) {
+                                            addStatement(
+                                                it,
+                                                descriptor,
+                                                MemberName("kotlinx.serialization.builtins", "serializer"),
+                                                MemberName("kotlinx.serialization.builtins", "nullable")
+                                            )
+                                        } else {
+                                            addStatement(
+                                                it,
+                                                descriptor,
+                                                MemberName("kotlinx.serialization.builtins", "serializer"),
+                                            )
+                                        }
                                     }
                                 } else { TODO() }
                             } else if (jsonType.kdType is KDType.Boxed) addStatement(
