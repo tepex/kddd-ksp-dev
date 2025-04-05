@@ -4,20 +4,6 @@ import ru.it_arch.clean_ddd.domain.demo.Primitives
 import ru.it_arch.clean_ddd.domain.demo.impl.PrimitivesImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.primitives
 
-// Имена свойств записываются в kebab-case стиле, т.к. такой режим выставлен в настройках Json (с.м. Main.kt)
-const val jsonSrc = """
-{
-    "str": "some string",
-    "size": 44,
-    "bool-value": true,
-    "byte-value": 33,
-    "char-value": "x",
-    "float-value": 2.71828,
-    "double-value": 1.4142135623,
-    "long-value": 987654321,
-    "short-value": -123
-}"""
-
 fun testPrimitives() {
     // Демонстрация сериализации модели
     primitives {
@@ -31,12 +17,28 @@ fun testPrimitives() {
         longValue = -12423423423
         shortValue = 255
     }.apply {
-        println("demo: $this")
+        println("\nprimitives demo: $this")
         json.encodeToString(this).also { println("json: $it") }
     }
 
     // Демонстрация десериализации модели
-    val obj: Primitives = json.decodeFromString<PrimitivesImpl>(jsonSrc1)
-    // Можете пользоваться
-    println("deserialize: $obj")
+
+    // Имена свойств записываются в kebab-case стиле, т.к. такой режим выставлен в настройках Json (с.м. Main.kt)
+    """
+{
+    "str": "some string",
+    "size": 44,
+    "bool-value": true,
+    "byte-value": 33,
+    "char-value": "x",
+    "float-value": 2.71828,
+    "double-value": 1.4142135623,
+    "long-value": 987654321,
+    "short-value": -123
+}""".apply {
+        json.decodeFromString<PrimitivesImpl>(this).also { obj: Primitives ->
+            // Можете пользоваться
+            println("deserialize: $obj")
+        }
+    }
 }

@@ -150,7 +150,7 @@ public class KDTypeJsonBuilder private constructor(
                             )
                         else if (jsonType.kdType is KDType.Boxed) {
                             // неявно полагается, что тип `Parsable`
-                            addStatement("${jsonType.encodePrimitiveElement()}(%N, $i, %N.${jsonType.kdType.asIsOrSerialize(el.first, false)})",
+                            addStatement("${jsonType.encodePrimitiveElement()}(%N, $i, %N.${jsonType.kdType.asSerialize(el.first, false)})",
                                 descriptor,
                                 valueParam
                             )

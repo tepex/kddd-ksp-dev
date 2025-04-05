@@ -4,20 +4,6 @@ import ru.it_arch.clean_ddd.domain.demo.NullablePrimitives
 import ru.it_arch.clean_ddd.domain.demo.impl.NullablePrimitivesImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.nullablePrimitives
 
-// Имена свойств записываются в kebab-case стиле, т.к. такой режим выставлен в настройках Json (с.м. Main.kt)
-const val jsonSrc1 = """
-{
-    "str": "some string",
-    "size": 44,
-    "bool-value": true,
-    "byte-value": 33,
-    "char-value": "x",
-    "float-value": 2.71828,
-    "double-value": 1.4142135623,
-    "long-value": 987654321,
-    "short-value": -123
-}"""
-
 fun testNullables() {
     // Демонстрация сериализации модели
     nullablePrimitives {
@@ -31,12 +17,27 @@ fun testNullables() {
         longValue = -12423423423
         shortValue = 255
     }.apply {
-        println("demo: $this")
+        println("\nnullables demo: $this")
         json.encodeToString(this).also { println("json: $it") }
     }
 
     // Демонстрация десериализации модели
-    val obj: NullablePrimitives = json.decodeFromString<NullablePrimitivesImpl>(jsonSrc1)
-    // Можете пользоваться
-    println("deserialize: $obj")
+
+    // Имена свойств записываются в kebab-case стиле, т.к. такой режим выставлен в настройках Json (с.м. Main.kt)
+    """
+{
+    "str": "some string",
+    "size": 44,
+    "bool-value": true,
+    "byte-value": 33,
+    "float-value": 2.71828,
+    "double-value": 1.4142135623,
+    "long-value": 987654321,
+    "short-value": -123
+}""".apply {
+        json.decodeFromString<NullablePrimitivesImpl>(this).also { obj: NullablePrimitives ->
+            // Можете пользоваться
+            println("deserialize: $obj")
+        }
+    }
 }
