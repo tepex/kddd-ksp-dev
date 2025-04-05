@@ -194,35 +194,17 @@ public class KDTypeJsonBuilder private constructor(
                         is JsonType.Element -> {
                             if (jsonType.typeName.isNullable) {
                                 if (jsonType.kdType is KDType.Boxed) {
-                                    var addNullable = true
-                                    ("$prefix decodeNullableSerializableElement(%N, $index, String.%M().nullable)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
-                                        .takeUnless { jsonType.kdType.isPrimitive }
-                                        ?: run {
-                                            val nullableProperty = if (jsonType.kdType.isString) {
-                                                ".%M"
-                                            } else {
-                                                addNullable = false
-                                                ""
-                                            }
-                                            "$prefix decodeNullableSerializableElement(%N, $index, ${jsonType.kdType.asSimplePrimitive()}.%M()$nullableProperty)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
-                                        }
-                                    ).also {
-                                        // TODO: refactor copy-paste
-                                        if (addNullable) {
-                                            addStatement(
-                                                it,
-                                                descriptor,
-                                                MemberName("kotlinx.serialization.builtins", "serializer"),
-                                                MemberName("kotlinx.serialization.builtins", "nullable")
-                                            )
-                                        } else {
-                                            addStatement(
-                                                it,
-                                                descriptor,
-                                                MemberName("kotlinx.serialization.builtins", "serializer"),
-                                            )
-                                        }
-                                    }
+                                    var tmpl = "$prefix decodeNullableSerializableElement(%N, $index, "
+                                    val args = mutableListOf(descriptor, MemberName("kotlinx.serialization.builtins", "serializer"))
+                                    // Для примитивов (кроме String) к `serializer()` не добавляется `.nullable`
+                                    if (jsonType.kdType.isPrimitive) {
+                                        if (jsonType.kdType.isString)
+                                            tmpl = "$tmpl${jsonType.kdType.asSimplePrimitive()}.%M().%M)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
+                                                .also { args += MemberName("kotlinx.serialization.builtins", "nullable") }
+                                        else tmpl = "$tmpl${jsonType.kdType.asSimplePrimitive()}.%M())?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
+                                    } else tmpl = "${tmpl}String.%M().%M)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
+                                        .also { args += MemberName("kotlinx.serialization.builtins", "nullable") }
+                                    addStatement(tmpl, *args.toTypedArray())
                                 } else { TODO() }
                             } else if (jsonType.kdType is KDType.Boxed) addStatement(
                                 "$prefix ${jsonType.decodePrimitiveElement()}(%N, $index)${jsonType.kdType.asDeserialize(jsonType.isInner)}",
