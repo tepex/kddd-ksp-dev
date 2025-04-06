@@ -205,7 +205,9 @@ public class KDTypeJsonBuilder private constructor(
                                     } else tmpl = "${tmpl}String.%M().%M)?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
                                         .also { args += MemberName("kotlinx.serialization.builtins", "nullable") }
                                     addStatement(tmpl, *args.toTypedArray())
-                                } else { TODO() }
+                                } else {
+                                    TODO()
+                                }
                             } else if (jsonType.kdType is KDType.Boxed) addStatement(
                                 "$prefix ${jsonType.decodePrimitiveElement()}(%N, $index)${jsonType.kdType.asDeserialize(jsonType.isInner)}",
                                 descriptor

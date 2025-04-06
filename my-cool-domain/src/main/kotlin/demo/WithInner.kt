@@ -9,15 +9,15 @@ import ru.it_arch.kddd.ValueObject
  */
 @KDGeneratable(json = false)
 public interface WithInner : ValueObject.Data {
-    public val myInner: Inner
-    public val myOptionalInner: Inner?
+    public val myInner: MyInner
+    public val myOptionalInner: MyInner?
 
     override fun validate() {
 
     }
 
     @KDGeneratable(json = false)
-    public interface Inner : ValueObject.Data {
+    public interface MyInner : ValueObject.Data {
         public val innerLong: InnerLong
         public val innerStr: InnerStr
 
