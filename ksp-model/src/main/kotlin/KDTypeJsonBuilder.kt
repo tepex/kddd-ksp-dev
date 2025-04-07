@@ -142,19 +142,36 @@ public class KDTypeJsonBuilder private constructor(
                 addStatement("%N.%M(%N) {⇥", encoderParam, encoderStructure, descriptor)
                 elements.forEachIndexed { i, el -> when(val jsonType = el.second) {
                     is JsonType.Element -> {
-                        if (jsonType.typeName.isNullable)
-                            addStatement("encodeNullableSerializableElement(%N, $i, String.%M(), %N.${el.first}?.${KDType.Boxed.PARAM_NAME}?.toString())",
-                                descriptor,
-                                MemberName("kotlinx.serialization.builtins", "serializer"),
-                                valueParam
-                            )
-                        else if (jsonType.kdType is KDType.Boxed) {
-                            // неявно полагается, что тип `Parsable`
-                            addStatement("${jsonType.encodePrimitiveElement()}(%N, $i, %N.${jsonType.kdType.asSerialize(el.first, false)})",
-                                descriptor,
-                                valueParam
-                            )
-                        } else { /*addStatement("TODO()")*/ }
+                        val args = mutableListOf<Any>(descriptor)
+                        var tmpl = ""
+                        if (jsonType.typeName.isNullable) {
+                            args += MemberName("kotlinx.serialization.builtins", "serializer")
+                            args += valueParam
+                            // encodeNullableSerializableElement(descriptor, <index>,
+                            tmpl = "encodeNullableSerializableElement(%N, $i, "
+                            tmpl += if (jsonType.kdType is KDType.Boxed) {
+                                // <Primitive>.serializer(), `value`.<param name>?.boxed[.<serialization fun>()])
+                                "${jsonType.kdType.asSimplePrimitive()}.%M(), %N.${jsonType.kdType.asSerialize(el.first, true)})"
+                            } else if (jsonType.kdType is KDType.Generatable) {
+                                args += jsonType.kdType.className
+                                // <ClassNameImpl>.serializer(), `value`.<param name> as <ClassNameImpl>?)
+                                "${jsonType.kdType.javaClass.name}.%M(), %N.${el.first} as %T?)"
+                            } else TODO("Unsupported type")
+                        } else {
+                            // encode<Primitive>Element(descriptor, <index>, `value`.<param name>.boxed)
+                            tmpl = if (jsonType.kdType is KDType.Boxed) {
+                                args += valueParam
+                                "${jsonType.encodePrimitiveElement()}(%N, $i, %N.${jsonType.kdType.asSerialize(el.first,false)})"
+                                // encodeSerializableElement(descriptor, <index>, <ClassNameImpl>.serializer(), `value`.<param name> as <ClassNameImpl>)
+                            } else if (jsonType.kdType is KDType.Generatable) {
+                                args += MemberName("kotlinx.serialization.builtins", "serializer")
+                                args += valueParam
+                                args += jsonType.kdType.className
+                                "encodeSerializableElement(%N, $i, ${jsonType.kdType.javaClass.name}.%M(), %N.${el.first} as %T)"
+                            } else TODO("Unsupported type")
+                        }
+
+                        addStatement(tmpl, *args.toTypedArray())
                     }
                     is JsonType.Collection ->
                         addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.${el.first}${jsonType.serializationMapper})",
@@ -206,7 +223,7 @@ public class KDTypeJsonBuilder private constructor(
                                         .also { args += MemberName("kotlinx.serialization.builtins", "nullable") }
                                     addStatement(tmpl, *args.toTypedArray())
                                 } else {
-                                    TODO()
+                                    //TODO()
                                 }
                             } else if (jsonType.kdType is KDType.Boxed) addStatement(
                                 "$prefix ${jsonType.decodePrimitiveElement()}(%N, $index)${jsonType.kdType.asDeserialize(jsonType.isInner)}",

@@ -10,53 +10,10 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
+import kotlinx.serialization.encoding.CompositeEncoder
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.ValueObject
 
-/**
- * Transformations
- * Rules           || Builder (AsIs)                 | Builder.build()   | toBuilder() (AsIs)    || DslBuilder                     | DslBuilder.build()                        | toDslBuilder
- * ================||================================|===================|=======================||================================|===========================================|============================================
- * Boxed<T>        | var `name`: Boxed? = null       | `name` = `name`!! | ret.`name` = `name`   | var `name`: T? = null           | `name` = BoxedImpl.create(`name`!!)       | ret.`name` = `name`.boxed
- * Boxed<String>   |                                 |                   |                       | var `name`: String? = null      |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|-------------------------------------------
- * Boxed?          | var `name`: Boxed? = null       | `name` = `name`   | ret.`name` = `name`   | var `name`: T? = null           | `name` = `name`?.let(BoxedImpl::create)   | ret.`name` = `name`?.boxed
- * Boxed<String>?  |                                 |                   |                       | var `name`: String? = null      |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|------------------------------------------
- * Boxed Parcable  | var `name`: Boxed? = null       | `name` = `name`!! | ret.`name` = `name`   | var `name`: String? = null      | `name` = BoxedImpl.parse(`name`!!)        | ret.`name` = `name`.boxed.toString()
- * Boxed<URI>      |                                 |                   |                       |                                 |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|-------------------------------------------------
- * Boxed? Parcable | var `name`: Boxed? = null       | `name` = `name`   | ret.`name` = `name`   | var `name`: String? = null      | `name` = `name`?.let(BoxedImpl::parse)    | ret.`name` = `name`?.boxed?.toString()
- * Boxed<URI>?     |                                 |                   |                       |                                 |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|---------------------------------------------------
- * Sealed          | var `name`: Sealed? = null      | `name` = `name`!! | ret.`name` = `name`   | var `name`: Sealed? = null      | `name` = `name`!!                         | ret.`name` = `name`
- * : Sealed        |                                 |                   |                       |                                 |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|---------------------------------------------------
- * Sealed?         | var `name`: Sealed? = null      | `name` = `name`   | ret.`name` = `name`   | var `name`: Sealed? = null      | `name` = `name`                           | ret.`name` = `name`
- * : Sealed        |                                 |                   |                       |                                 |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|---------------------------------------------------
- * Abstract        | var `name`: ValueObject? = null | `name` = `name`!! | ret.`name` = `name`   | var `name`: ValueObject? = null | `name` = `name`!!                         | ret.`name` = `name`
- * : ValueObject   |                                 |                   |                       |                                 |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|----------------------------------------------
- * Abstract?       | var `name`: ValueObject? = null | `name` = `name`   | ret.`name` = `name`   | var `name`: ValueObject? = null | `name` = `name`                           | ret.`name` = `name`
- * : ValueObject   |                                 |                   |                       |                                 |                                           |
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|----------------------------------------------
- * Data
- * : Data
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|----------------------------------------------
- * Data?
- * : Data
- * ----------------|---------------------------------|-------------------|-----------------------|---------------------------------|-------------------------------------------|----------------------------------------------
- * Parametrized
- * ================||================================|=====================|=======================||================================|===========================================|============================================
- * Collections     || Builder (AsIs)                 | Builder.build()     | toBuilder() (AsIs)    || DslBuilder                     | DslBuilder.build()                        | toDslBuilder
- * ================||================================|=====================|=======================||================================|===========================================|============================================
- * List<Boxed<T>>
- *
- *
- *
- *
- * */
 public sealed interface KDType {
     public val sourceTypeName: TypeName
 
@@ -197,11 +154,19 @@ public sealed interface KDType {
                     .takeIf { isUseStringInDsl }?.also { append(".$it") }
             }.toString()
 
+        /** Формирует строковое представление параметра `value` для функций
+         * [CompositeEncoder.encodeNullableSerializableElement], [CompositeEncoder.encodeStringElement] и прочих
+         *
+         * Если указана аннотация [KDParsable] с параметром `serialization`, то добавляется этот метод
+         *
+         * @param variable имя свойства KDDD-модели
+         * @param isNullable признак нулабельности свойства
+         * @return сгенерированный код параметра
+         * */
         public fun asSerialize(variable: String, isNullable: Boolean): String =
             StringBuilder().apply {
                 append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
-                forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization
-                    ?.also { append(".$it") }
+                forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization?.also { append(".$it") }
             }.toString()
 
         public fun asDeserialize(variable: String, isInner: Boolean, isNullable: Boolean): String =
