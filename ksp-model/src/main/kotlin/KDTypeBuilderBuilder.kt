@@ -119,7 +119,7 @@ public class KDTypeBuilderBuilder private constructor(
         }
     }
 
-    @OptIn(ExperimentalKotlinPoetApi::class)
+    @kotlin.OptIn(ExperimentalKotlinPoetApi::class)
     private fun createDslInnerBuilder(innerType: KDType.Generatable): FunSpec =
         FunSpec.builder(innerType.dslBuilderFunName(true)).apply {
             if (innerType is KDType.Boxed) {

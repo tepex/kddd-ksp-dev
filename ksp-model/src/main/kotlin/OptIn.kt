@@ -1,7 +1,5 @@
 package ru.it_arch.clean_ddd.ksp.model
 
-import kotlin.reflect.KClass
-
 /**
  * Грязный хак для генерации аннотации @OptIn(ExperimentalSerializationApi::class).
  * Проблема в том, что штатным путем с помощью KotlinPoet ее не вставишь из-за ограничения использования. Написать:

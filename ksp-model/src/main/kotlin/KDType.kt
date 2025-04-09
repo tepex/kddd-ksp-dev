@@ -22,6 +22,9 @@ public sealed interface KDType {
         public val dslBuilderClassName: ClassName
     }
 
+    /**
+     * Этот интерфейс определяет
+     * */
     public interface Generatable : KDType {
         public val className: ClassName
         public val builder: TypeSpec.Builder

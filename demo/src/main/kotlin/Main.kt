@@ -11,9 +11,8 @@ val json = Json {
 }
 
 fun main() {
-    /*
     testPrimitives()
     testNullables()
-    testCommonTypes()*/
+    testCommonTypes()
     testWithInner()
 }

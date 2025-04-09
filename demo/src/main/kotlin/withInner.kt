@@ -1,22 +1,21 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.WithInnerCustomImpl
 import ru.it_arch.clean_ddd.domain.demo.WithInner
-import ru.it_arch.clean_ddd.domain.withInnerCustom
+import ru.it_arch.clean_ddd.domain.demo.impl.WithInnerImpl
+import ru.it_arch.clean_ddd.domain.demo.impl.withInner
 
 fun testWithInner() {
-    withInnerCustom {
+    withInner {
         myInner = myInner {
             innerLong = 22
             innerStr = "some string"
         }
     }.apply {
         println("\ninner types demo: $this")
-        //json.encodeToString(this).also { println("json: $it") }
+        json.encodeToString(this).also { println("json: $it") }
     }
 
-    val jsonSrc = """
-{
+    """{
     "my-inner": {
         "inner-long": 33,
         "inner-str": "sdfsdfsxc"
@@ -26,7 +25,7 @@ fun testWithInner() {
         "inner-str": "optional string"
     }
 }""".apply {
-        json.decodeFromString<WithInnerCustomImpl>(this).also { obj: WithInner ->
+        json.decodeFromString<WithInnerImpl>(this).also { obj: WithInner ->
             // Можете пользоваться
             println("deserialize: $obj")
         }

@@ -7,7 +7,7 @@ import ru.it_arch.kddd.ValueObject
  * Демонстрация использования вложенных типов в качестве полей.
  *
  */
-@KDGeneratable(json = false)
+@KDGeneratable(json = true)
 public interface WithInner : ValueObject.Data {
     public val myInner: MyInner
     public val myOptionalInner: MyInner?
@@ -16,7 +16,7 @@ public interface WithInner : ValueObject.Data {
 
     }
 
-    @KDGeneratable(json = false)
+    @KDGeneratable(json = true)
     public interface MyInner : ValueObject.Data {
         public val innerLong: InnerLong
         public val innerStr: InnerStr

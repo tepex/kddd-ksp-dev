@@ -12,6 +12,7 @@ import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
@@ -52,7 +53,12 @@ internal abstract class KDVisitor(
         }
 
         outputFiles.entries
-            .forEach { it.key.buildFileSpec().writeTo(codeGenerator, Dependencies(false, it.value)) }
+            .forEach { it.key.buildFileSpec().replaceAndWrite(codeGenerator, Dependencies(false, it.value)) }
+    }
+
+    /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
+    private fun FileSpec.replaceAndWrite(codeGenerator: CodeGenerator, dependencies: Dependencies) {
+        codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferedWriter(it).use(::writeTo) }
     }
 
     private tailrec fun buildAndAddNestedTypes(model: KDType.Model, isFinish: Boolean = false) {

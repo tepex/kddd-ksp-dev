@@ -18,7 +18,7 @@ public data class KDOutputFile(
 
     override fun validate() {}
 
-    @OptIn(ExperimentalKotlinPoetApi::class)
+    @kotlin.OptIn(ExperimentalKotlinPoetApi::class)
     public fun buildFileSpec(): FileSpec =
         FileSpec.builder(packageName.boxed, generatable.className.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)

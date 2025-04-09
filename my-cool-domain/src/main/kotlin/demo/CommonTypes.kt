@@ -17,7 +17,7 @@ import java.util.UUID
  * `deserialization`, отвечающий за создание объекта из строки. Для объектов, создаваемых через конструктор,
  * параметр `deserialization` не определяется.
  * */
-@KDGeneratable(json = false)
+@KDGeneratable(json = true)
 public interface CommonTypes : ValueObject.Data {
     public val myUri: MyUri
     public val myFile: MyFile
