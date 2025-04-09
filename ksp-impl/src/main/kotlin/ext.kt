@@ -2,7 +2,6 @@ package ru.it_arch.clean_ddd.ksp
 
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAnnotationsByType
-import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.ClassName
@@ -31,14 +30,14 @@ internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> 
 }
 
 context(KDTypeContext)
-@OptIn(KspExperimental::class)
-private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Result<KDType>? = when(toString()) {
-    KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed.create())
-    KDType.Data::class.java.simpleName    -> Result.success(KDType.Data.create(annotations.toList(), false))
-    KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity.create(annotations.toList()))
-    KDType.Boxed::class.java.simpleName   -> runCatching { KDType.Boxed.create(annotations.toList(), toTypeName()) }
-    else -> null
-}
+private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Result<KDType>? =
+    when(toString().substringBefore('<')) {
+        KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed.create())
+        KDType.Data::class.java.simpleName    -> Result.success(KDType.Data.create(annotations.toList(), false))
+        KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity.create(annotations.toList()))
+        KDType.Boxed::class.java.simpleName   -> runCatching { KDType.Boxed.create(annotations.toList(), toTypeName()) }
+        else -> null
+    }
 
 context(KDOptions)
 internal fun createOutputFile(declaration: KSClassDeclaration, generatable: KDType.Generatable): KDOutputFile = KDOutputFile(
