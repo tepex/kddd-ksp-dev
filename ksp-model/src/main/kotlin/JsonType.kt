@@ -19,7 +19,8 @@ internal sealed interface JsonType {
     ): JsonType {
 
         override fun asString(): String =
-            "String?".takeIf { typeName.isNullable } ?: "String"
+            if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive()
+            else "String?".takeIf { typeName.isNullable } ?: "String"
 
         override fun encodePrimitiveElement(): String =
             "encode${if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
@@ -92,10 +93,11 @@ internal sealed interface JsonType {
 
         private fun serializerReplacement(node: JsonType): String = when(node) {
             is Element -> {
+                val primitiveType = if (node.kdType is KDType.Boxed && node.kdType.isPrimitive) node.kdType.asSimplePrimitive() else "String"
                 _serializerVarargs += MemberName("kotlinx.serialization.builtins", "serializer")
-                "String.%M().%M".takeIf { node.typeName.isNullable }
+                "$primitiveType.%M().%M".takeIf { node.typeName.isNullable }
                     ?.also { _serializerVarargs += MemberName("kotlinx.serialization.builtins", "nullable") }
-                    ?: "String.%M()"
+                    ?: "$primitiveType.%M()"
             }
             is Collection -> node.serializerTemplate.also { _serializerVarargs.addAll(node.serializerVarargs) }
         }

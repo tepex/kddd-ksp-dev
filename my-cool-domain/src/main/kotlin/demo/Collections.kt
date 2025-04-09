@@ -7,10 +7,10 @@ import ru.it_arch.kddd.ValueObject
  * Демонстрация использования коллекций.
  *
  */
-@KDGeneratable(json = false)
+@KDGeneratable(json = true)
 public interface Collections : ValueObject.Data {
 
-    public val qqq: Size
+    public val list: List<Size>
 
     override fun validate() {
 
