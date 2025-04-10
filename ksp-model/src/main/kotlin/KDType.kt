@@ -26,7 +26,20 @@ public sealed interface KDType {
      * Этот интерфейс определяет
      * */
     public interface Generatable : KDType {
+        /** Имя класса сгенерированной имплементации */
         public val className: ClassName
+        /** Имя класса для ссылки на него из-вне. Если он внутренний (inner), то будет содержать имя класса-контейнера
+         *
+         * Пример:
+         * ```
+         * class Clazz {
+         *     class Inner {
+         *     }
+         * }
+         * ```
+         * Результат: "Clazz.Inner"
+         * */
+        public val classNameRef: String
         public val builder: TypeSpec.Builder
         public val propertyHolders: List<KDProperty>
         public val nestedTypes: Map<TypeName, KDType>

@@ -49,10 +49,9 @@ internal fun KDType.Boxed.asSimplePrimitive(): String {
 }
 
 internal fun KDType.Boxed.asDeserialize(isInner: Boolean): String =
-    if (isInner)
-        (FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let(${className.simpleName}::$it)" }
-    else TODO()
-
+        (FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let($classNameRef::$it)" }
+    else "xxx"//TODO()
+// .let(CommonTypesImpl.MyUUIDImpl::parse)
 
 internal typealias KDTypeSearchResult = Pair<KDType, Boolean>
 

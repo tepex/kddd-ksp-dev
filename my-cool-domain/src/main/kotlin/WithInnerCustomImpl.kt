@@ -20,7 +20,6 @@ import kotlin.Suppress
 import kotlin.Unit
 import kotlin.jvm.JvmInline
 import ru.it_arch.clean_ddd.domain.demo.WithInner
-import ru.it_arch.clean_ddd.domain.demo.impl.WithInnerImpl
 import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility

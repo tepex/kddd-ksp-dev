@@ -28,6 +28,7 @@ internal class KDTypeForGeneration(
 
     override val className = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotBlank() }?.let(ClassName::bestGuess) ?: context.toBeGenerated
+    override val classNameRef: String = className.simpleName
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(context.typeName)
     override val propertyHolders: List<KDProperty>
     override val sourceTypeName: TypeName = context.typeName
@@ -66,13 +67,11 @@ internal class KDTypeForGeneration(
 
     override fun dslBuilderFunName(isInner: Boolean): String {
         val ret = context.typeName.toString().substringAfterLast('.').let { name ->
-            val impl = with(context.options) {
-                context.typeName.toString()
-                    .substringAfterLast("${context.packageName}.")
-                    .substringBefore(".$name")
-                    .let(::toImplementationName)
-            }
-            ("$impl.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
+            val implClassName = context.typeName.toString()
+                .substringAfterLast("${context.packageName}.")
+                .substringBefore(".$name")
+                .let(context.options::toImplementationName)
+            ("$implClassName.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
                 .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
         }
         //context.logger.log("name: $ret")
@@ -135,11 +134,19 @@ internal class KDTypeForGeneration(
     }
 
     override fun getKDType(typeName: TypeName) = typeName.toNullable(false).let { key ->
+
+//        if (className.simpleName == "CollectionsImpl" /* && typeName.toString() == "ru.it_arch.clean_ddd.domain.demo.CommonTypes"*/)
+//            context.logger.log("type: $typeName global: ${context.globalKDTypes.keys.map { it.toString().substringAfterLast(".demo.") }}")
+//            context.logger.log("type: $typeName global: ")
+
         if (key == KDType.Abstraction.TYPENAME) /*KDType.Abstraction */error("${context.typeName}: WIP. Abstraction not supported yet.")
-        else _nestedTypes[key]?.let { it to true } ?: context.globalKDTypes[key]?.let { it to false } ?: run {
-            // to KDType.List, KDType.Set, KDType.Map
-            error("Can't find implementation for $key in $className")
-        }
+        else _nestedTypes[key]?.let { it to true }
+            ?: context.globalKDTypes[key]?.let { it to false }
+                ?.also { context.logger.log("found: ${it.first}") }
+            ?: run {
+                // to KDType.List, KDType.Set, KDType.Map
+                error("Can't find implementation for $key in $className")
+            }
     }
 
     private fun createConstructor(parameters: List<KDProperty>) {

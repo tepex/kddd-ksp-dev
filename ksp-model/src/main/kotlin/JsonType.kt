@@ -15,6 +15,7 @@ internal sealed interface JsonType {
     data class Element private constructor(
         override val typeName: TypeName,
         val kdType: KDType,
+        // TODO: remove
         val isInner: Boolean
     ): JsonType {
 
