@@ -19,7 +19,7 @@ import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.KDSerialName
 
-context(KDTypeContext)
+context(_: KDTypeContext)
 @OptIn(KspExperimental::class)
 internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> {
     val annotations = getAnnotationsByType(KDGeneratable::class) + getAnnotationsByType(KDParsable::class)
@@ -29,22 +29,22 @@ internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> 
     return Result.success(null)
 }
 
-context(KDTypeContext)
+context(_: KDTypeContext)
 private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Result<KDType>? =
     when(toString().substringBefore('<')) {
-        KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed.create())
-        KDType.Data::class.java.simpleName    -> Result.success(KDType.Data.create(annotations.toList(), false))
-        KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity.create(annotations.toList()))
-        KDType.Boxed::class.java.simpleName   -> runCatching { KDType.Boxed.create(annotations.toList(), toTypeName()) }
+        KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed())
+        KDType.Data::class.java.simpleName    -> Result.success(KDType.Data(annotations.toList(), false))
+        KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity(annotations.toList()))
+        KDType.Boxed::class.java.simpleName   -> runCatching { KDType.Boxed(annotations.toList(), toTypeName()) }
         else -> null
     }
 
-context(KDOptions)
+context(ctx: KDOptions)
 internal fun createOutputFile(declaration: KSClassDeclaration, generatable: KDType.Generatable): KDOutputFile = KDOutputFile(
     generatable,
-    getImplementationPackage(declaration.packageName.asString()),
-    getBuilderFunctionName(declaration.simpleName.asString()),
-    useContextReceivers
+    ctx.getImplementationPackage(declaration.packageName.asString()),
+    ctx.getBuilderFunctionName(declaration.simpleName.asString()),
+    ctx.useContextReceivers
 )
 
 @OptIn(KspExperimental::class)

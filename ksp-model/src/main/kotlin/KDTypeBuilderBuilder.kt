@@ -234,8 +234,8 @@ public class KDTypeBuilderBuilder private constructor(
     }
 
     public companion object {
-        context(KDOptions)
+        context(ctx: KDOptions)
         public fun create(holder: KDType.Model, isDsl: Boolean, logger: KDLogger): KDTypeBuilderBuilder =
-            KDTypeBuilderBuilder(holder, isDsl, useContextReceivers, logger)
+            KDTypeBuilderBuilder(holder, isDsl, ctx.useContextReceivers, logger)
     }
 }

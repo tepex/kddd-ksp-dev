@@ -26,7 +26,7 @@ public data class KDOutputFile(
             fileBuilder.addType(generatable.builder.build())
 
             /* Root DSL builder */
-            val receiver: ClassName = ClassName(packageName.boxed, generatable.className.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
+            val receiver = ClassName(packageName.boxed, generatable.className.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
             ParameterSpec.builder(
                 "block",
                 if (useContextReceivers.boxed) LambdaTypeName.get(contextReceivers = listOf(receiver), returnType = Unit::class.asTypeName())

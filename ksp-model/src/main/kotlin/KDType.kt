@@ -14,16 +14,24 @@ import kotlinx.serialization.encoding.CompositeEncoder
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.ValueObject
 
+/**
+ * Основная модель фреймворка.
+ *
+ * Определяет все имеющиеся типы.
+ * */
 public sealed interface KDType {
     public val sourceTypeName: TypeName
 
+    /**
+     * Определяет вид DDD-модели: `Value Object` или `Entity`
+     * */
     public interface Model : Generatable {
         public val builderClassName: ClassName
         public val dslBuilderClassName: ClassName
     }
 
     /**
-     * Этот интерфейс определяет
+     * Определяет тип, генерирующий объекты KotlinPoet
      * */
     public interface Generatable : KDType {
         /** Имя класса сгенерированной имплементации */
@@ -52,17 +60,23 @@ public sealed interface KDType {
         public fun getKDType(typeName: TypeName): KDTypeSearchResult
     }
 
+    /**
+     * TODO: Not implemented yet
+     * */
     @JvmInline
     public value class Sealed private constructor(
         override val sourceTypeName: TypeName,
     ) : KDType {
 
         public companion object {
-            context(KDTypeContext)
-            public fun create(): Sealed = Sealed(typeName)
+            context(ctx: KDTypeContext)
+            public operator fun invoke(): Sealed = Sealed(ctx.typeName)
         }
     }
 
+    /**
+     * TODO: Not implemented yet
+     * */
     public data object Abstraction : KDType {
         override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
         val TYPENAME: TypeName = ValueObject::class.asTypeName()
@@ -70,6 +84,9 @@ public sealed interface KDType {
         override fun toString(): String = "Abstraction"
     }
 
+    /**
+     * Определяет DDD `Value Object`
+     * */
     public class Data private constructor(
         private val forGeneration: KDTypeForGeneration
     ) : Generatable by forGeneration, Model {
@@ -86,12 +103,15 @@ public sealed interface KDType {
             public const val BUILDER_BUILD_METHOD_NAME: String = "build"
             public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-            context(KDTypeContext)
-            public fun create(annotations: List<Annotation>, isEntity: Boolean): Data =
-                Data(KDTypeForGeneration(this@KDTypeContext, annotations, null, isEntity))
+            context(ctx: KDTypeContext)
+            public operator fun invoke(annotations: List<Annotation>, isEntity: Boolean): Data =
+                Data(KDTypeForGeneration(ctx, annotations, null, isEntity))
         }
     }
 
+    /**
+     * Определяет DDD сущность `Entity`
+     * */
     public class IEntity private constructor(private val data: Data) : Model by data {
 
         private val paramId = propertyHolders.find { it.name.simpleName == ID_NAME }
@@ -139,12 +159,15 @@ public sealed interface KDType {
         public companion object {
             public const val ID_NAME: String = "id"
 
-            context(KDTypeContext)
-            public fun create(annotations: List<Annotation>): IEntity =
-                Data.create(annotations, true).let(KDType::IEntity)
+            context(ctx: KDTypeContext)
+            public operator fun invoke(annotations: List<Annotation>): IEntity =
+                Data(annotations, true).let(KDType::IEntity)
         }
     }
 
+    /**
+     * Определяет котлиновскую класс-обертку `value class`
+     * */
     public class Boxed private constructor(
         private val forGeneration: KDTypeForGeneration,
         public val boxedType: TypeName,
@@ -197,13 +220,13 @@ public sealed interface KDType {
             public const val FABRIC_PARSE_METHOD: String = "parse"
             public const val CREATE_METHOD: String = "copy"
 
-            context(KDTypeContext)
-            public fun create(annotations: List<Annotation>, superInterfaceName: TypeName): Boxed = run {
+            context(ctx: KDTypeContext)
+            public operator fun invoke(annotations: List<Annotation>, superInterfaceName: TypeName): Boxed = run {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
                 superInterfaceName.typeArguments.first()
-                    .let { Boxed(KDTypeForGeneration(this@KDTypeContext, annotations, it), it) }
+                    .let { Boxed(KDTypeForGeneration(ctx, annotations, it), it) }
             }
         }
     }

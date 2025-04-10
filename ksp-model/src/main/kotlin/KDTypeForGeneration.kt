@@ -28,6 +28,7 @@ internal class KDTypeForGeneration(
 
     override val className = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotBlank() }?.let(ClassName::bestGuess) ?: context.toBeGenerated
+    // TODO: add case for inner types
     override val classNameRef: String = className.simpleName
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(context.typeName)
     override val propertyHolders: List<KDProperty>

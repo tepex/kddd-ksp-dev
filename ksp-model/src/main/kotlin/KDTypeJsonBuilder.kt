@@ -307,7 +307,7 @@ public class KDTypeJsonBuilder private constructor(
     }
 
     public companion object {
-        context(KDOptions)
+        //context(ktx: KDOptions)
         public fun create(holder: KDType.Model, logger: KDLogger): KDTypeJsonBuilder =
             KDTypeJsonBuilder(holder, logger)
     }

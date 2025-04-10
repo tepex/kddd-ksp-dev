@@ -5,6 +5,8 @@ import ru.it_arch.clean_ddd.domain.demo.impl.CollectionsImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.collections
 
 fun testCollections() {
+    /*
+
     collections {
         list += listOf(1, 2, 3)
     }.apply {
@@ -21,5 +23,5 @@ fun testCollections() {
             // Можете пользоваться
             println("deserialize: $obj")
         }
-    }
+    }*/
 }

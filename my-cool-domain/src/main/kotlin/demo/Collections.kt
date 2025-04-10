@@ -12,7 +12,7 @@ public interface Collections : ValueObject.Data {
 
     public val list: List<Size>
     public val size: Size
-    public val uuid: CommonTypes.MyUUID
+    //public val uuid: CommonTypes.MyUUID
 
     override fun validate() {
 
