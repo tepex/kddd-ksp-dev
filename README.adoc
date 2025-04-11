@@ -1,0 +1,10 @@
+= Kotlin DDD Framework (KDDD)
+Tepex <tepex@mail.ru>
+1.0, 11/IV-2025
+:source-highliter: rouge
+
+Фреймворк для проектирования и генерации DDD-моделей
+
+== Возможности
+ыаыв
+ыв
