@@ -20,14 +20,14 @@ public data class KDTypeContext(
     public value class PackageName private constructor(override val boxed: String) : ValueObject.Boxed<String> {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
-            packageName(boxed) as T
+            PackageName(boxed) as T
 
         override fun validate() {}
 
         override fun toString(): String = boxed
 
         public companion object {
-            public fun packageName(value: String): PackageName = PackageName(value)
+            public operator fun invoke(value: String): PackageName = PackageName(value)
         }
     }
 }

@@ -13,10 +13,10 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 
 public class KDTypeBuilderBuilder private constructor(
+    private val options: KDOptions,
+    private val logger: KDLogger,
     private val holder: KDType.Model,
-    private val isDsl: Boolean,
-    private val useContextReceivers: KDOptions.UseContextReceivers,
-    private val logger: KDLogger
+    private val isDsl: Boolean
 ) {
 
     /** fun Impl.toBuilder(): Impl.Builder */
@@ -130,7 +130,7 @@ public class KDTypeBuilderBuilder private constructor(
             } else if (innerType is KDType.Model) {
                 ParameterSpec.builder(
                     "block",
-                    if (useContextReceivers.boxed) LambdaTypeName.get(
+                    if (options.isUseContextParameters) LambdaTypeName.get(
                         contextReceivers = listOf(innerType.dslBuilderClassName),
                         returnType = Unit::class.asTypeName()
                     ) else LambdaTypeName.get(
@@ -234,8 +234,8 @@ public class KDTypeBuilderBuilder private constructor(
     }
 
     public companion object {
-        context(ctx: KDOptions)
-        public fun create(holder: KDType.Model, isDsl: Boolean, logger: KDLogger): KDTypeBuilderBuilder =
-            KDTypeBuilderBuilder(holder, isDsl, ctx.useContextReceivers, logger)
+        context(options: KDOptions, logger: KDLogger)
+        public operator fun invoke(holder: KDType.Model, isDsl: Boolean): KDTypeBuilderBuilder =
+            KDTypeBuilderBuilder(options, logger, holder, isDsl)
     }
 }

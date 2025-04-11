@@ -39,12 +39,12 @@ private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Res
         else -> null
     }
 
-context(ctx: KDOptions)
+context(options: KDOptions)
 internal fun createOutputFile(declaration: KSClassDeclaration, generatable: KDType.Generatable): KDOutputFile = KDOutputFile(
     generatable,
-    ctx.getImplementationPackage(declaration.packageName.asString()),
-    ctx.getBuilderFunctionName(declaration.simpleName.asString()),
-    ctx.useContextReceivers
+    options.getImplementationPackage(declaration.packageName.asString()),
+    options.getBuilderFunctionName(declaration.simpleName.asString()),
+    options.isUseContextParameters
 )
 
 @OptIn(KspExperimental::class)
@@ -61,7 +61,7 @@ internal fun typeContext(
     globalKDTypes,
     toBeGenerated,
     typeName,
-    PackageName.packageName(declaration.packageName.asString()),
+    PackageName(declaration.packageName.asString()),
     declaration.getAllProperties().map {
         KDProperty.create(
             toBeGenerated.member(it.simpleName.asString()),

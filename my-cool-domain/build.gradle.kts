@@ -24,7 +24,7 @@ dependencies {
 
 ksp {
     arg("subpackage", "impl")
-    arg("contextReceivers", "false")
+    arg("contextParameters", "true")
     arg("serialNameCase", "kebab")
     //arg("generatedClassNameResult", "$1Default")
 }

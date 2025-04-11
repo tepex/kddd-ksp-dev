@@ -9,11 +9,11 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.kddd.ValueObject
 
-public data class KDOutputFile(
+public data class KDOutputFile private constructor(
     public val generatable: KDType.Generatable,
     private val packageName: KDOptions.PackageName,
     private val builderFunName: KDOptions.BuilderFunctionName,
-    private val useContextReceivers: KDOptions.UseContextReceivers
+    private val isUseContextParameters: Boolean
 ) : ValueObject.Data {
 
     override fun validate() {}
@@ -29,7 +29,7 @@ public data class KDOutputFile(
             val receiver = ClassName(packageName.boxed, generatable.className.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
             ParameterSpec.builder(
                 "block",
-                if (useContextReceivers.boxed) LambdaTypeName.get(contextReceivers = listOf(receiver), returnType = Unit::class.asTypeName())
+                if (isUseContextParameters) LambdaTypeName.get(contextReceivers = listOf(receiver), returnType = Unit::class.asTypeName())
                 else LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
             ).build().also { builderParam ->
                 FunSpec.builder(builderFunName.boxed)
@@ -44,11 +44,17 @@ public data class KDOutputFile(
             }
         }.build()
 
-    private companion object {
-        const val FILE_HEADER_STUB: String = """
+    public companion object {
+        private const val FILE_HEADER_STUB: String = """
 AUTO-GENERATED FILE. DO NOT MODIFY.
 This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
+        public operator fun invoke(
+            generatable: KDType.Generatable,
+            packageName: KDOptions.PackageName,
+            builderFunName: KDOptions.BuilderFunctionName,
+            isUseContextParameters: Boolean
+        ): KDOutputFile = KDOutputFile(generatable, packageName, builderFunName, isUseContextParameters)
     }
 }

@@ -12,7 +12,7 @@ public class DddProcessorProvider(private val isTesting: Boolean = false) : Symb
         DddProcessor(
             environment.codeGenerator,
             environment.logger,
-            KDOptions.create(environment.options),
+            KDOptions(environment.options),
             isTesting
         )
 }

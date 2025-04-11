@@ -20,8 +20,8 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 public class KDTypeJsonBuilder private constructor(
-    private val holder: KDType.Model,
-    private val logger: KDLogger
+    private val logger: KDLogger,
+    private val holder: KDType.Model
 ) {
 
     private val companionBuilder = TypeSpec.companionObjectBuilder().addSuperinterface(KSerializer::class.asTypeName().parameterizedBy(holder.className))
@@ -307,8 +307,8 @@ public class KDTypeJsonBuilder private constructor(
     }
 
     public companion object {
-        //context(ktx: KDOptions)
-        public fun create(holder: KDType.Model, logger: KDLogger): KDTypeJsonBuilder =
-            KDTypeJsonBuilder(holder, logger)
+        context(logger: KDLogger)
+        public operator fun invoke(holder: KDType.Model): KDTypeJsonBuilder =
+            KDTypeJsonBuilder(logger, holder)
     }
 }
