@@ -10,7 +10,6 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
     repositories {
-        mavenLocal()
         mavenCentral()
     }
 }
@@ -21,4 +20,4 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
-include(":my-cool-domain", ":data", ":demo", ":ksp-model", "ksp-impl")
+include(":kddd", ":my-cool-domain", ":demo", ":ksp-model", ":ksp-impl")

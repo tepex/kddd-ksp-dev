@@ -15,10 +15,9 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":kddd"))
     implementation(project(":my-cool-domain"))
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kddd)
-
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
 
