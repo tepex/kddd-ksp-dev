@@ -3,12 +3,12 @@ Tepex <tepex@mail.ru>
 1.0, 11/IV-2025
 :source-highliter: rouge
 
-Фреймворк для проектирования и генерации DDD-моделей на языке Котлин. На текущий момент зтот проект находится в состоянии Prove of Concept и предназначен для демонстрации; будет должным образом оформлен и опубликован в https://central.sonatype.com[Maven Central].
+Фреймворк для проектирования и генерации DDD-моделей на языке Котлин. На текущий момент зтот проект находится в состоянии _Proof of Concept_ и предназначен для демонстрации; будет должным образом оформлен и опубликован в https://central.sonatype.com[Maven Central].
 
 == Причины появления проекта
-Применение прогрессивных парадигм и концепций в разработке ПО, таких как https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html[Clean Architecture], https://en.wikipedia.org/wiki/Domain-driven_design[DDD], https://en.wikipedia.org/wiki/Domain-specific_language[DSL], https://en.wikipedia.org/wiki/Functional_programming[Функциональное программирование], заветов https://martinfowler.com[Мартина Фаулера] и http://cleancoder.com/products[Роберта Мартина] и др., дает неоспоримое преимущество и выводит разработку ПО на новый технологический уровень, позволяя существенно повысить адаптивность ПО, скорость его разработки, снизить количество багов. Кроме того для больших систем важно обеспечить модульность и соблюдение принципа _Low Coupling & High Cohesion_. Однако практическая реализация этих подходов сопровождается необходимостью соблюдения строгих правил и написания большого количества boilerplate-кода. Особенную боль доставляет рефакторинг кодовой базы при концептуальных изменениях в доменной модели.
+Применение прогрессивных парадигм и концепций в разработке ПО, таких как https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html[Clean Architecture], https://en.wikipedia.org/wiki/Domain-driven_design[DDD], https://en.wikipedia.org/wiki/Domain-specific_language[DSL], https://en.wikipedia.org/wiki/Functional_programming[Функциональное программирование], заветов https://martinfowler.com[Мартина Фаулера] и http://cleancoder.com/products[Роберта Мартина] и др., дает неоспоримое преимущество и выводит разработку ПО на новый технологический уровень, позволяя существенно повысить адаптивность ПО, скорость его разработки, снизить количество багов. Кроме того для больших систем важно обеспечить модульность и соблюдение принципа _Low Coupling & High Cohesion_.
 
-Данный проект призван решить эти проблемы за счет предоставления фреймворка для проектирования доменных моделей по канонам DDD и кодогенерации реализаций концептуальных моделей.
+Однако практическая реализация этих подходов сопровождается необходимостью соблюдения строгих правил и написания большого количества _boilerplate_-кода. Особенную боль доставляет рефакторинг кодовой базы при концептуальных изменениях в фундаменте — в доменной модели. Данный проект призван решить эти проблемы за счет предоставления фреймворка для проектирования доменных моделей по канонам DDD и кодогенерации реализаций концептуальных моделей.
 
 == Возможности
 * Кодогенерация имплементаций DDD-моделей `Entity`, `Value Object`, заданных с помощью интерфейсов.
@@ -31,7 +31,15 @@ Tepex <tepex@mail.ru>
 . [KotlinPoet] генерирует Котлин-код имплементации исходной `DDD-модели` в соответствеющие `.kt` файлы в директорию `my-cool-domain/build/generated/ksp/main/kotlin/`. Пакет и имя имплементации определяются правилами через задания опций KSP. Подробнее об опциях в разделе <<options>>.
 
 == Структура проекта
-ываыа фыввфы
+В рамках _Proof of Concept_ и упрощения проект включает в себя подмодули которые, по идее, должны быть (и будут) самостоятельными проектами.
+
+* Фреймворк KDDD — link:kddd/[:kddd]
+* KSP процессор — link:ksp-processor/[:ksp-processsor]
+* Модель KDDD — link:ksp-model/[:ksp-model]
+* Модели демонстрационного домена — link:my-cool-domain/[:my-cool-domain]
+* Исполняемое приложение — link:demo/[:demo]
+
+Подмодули link:my-cool-domain/[:my-cool-domain] и link:demo/[:demo] используются и как суррогатная система юнит-тестирования.
 
 == Как пользоваться
 
@@ -41,17 +49,61 @@ Tepex <tepex@mail.ru>
 
 [#options]
 == Опции
-ыыы
+Опции фреймворка определяются в `build.gradle.kts` в проекте, где используется фреймворк:
+[source,Kotlin]
+----
+ksp {
+    arg("<name>", "<value>")
+    arg("<name>", "<value>")
+}
+----
+
+[frame=all,grid=all]
+|===
+|Имя опции |Значение |По умолчанию
+
+|subpackage
+|Подпакет относительно пакета реализуемой модели. Например, если пакет модели `package ru.somedomain.myproject` и `subpackage=impl`, то у имплементации будет пакет `package ru.somedomain.myproject.impl`
+|Не создается
+
+|contextParameters
+|`true` / `false`. Применять или нет Котлин-фичу https://github.com/Kotlin/KEEP/blob/context-parameters/proposals/context-parameters.md[Context Parameters] Если `false`, то в функции DSL-билдера будет использован явный ресивер. Если `true`, то будет использован `context()`.
+|false
+
+|generatedClassNameRe
+|Регулярное выражение для генерации имени класса имплементации на основе имени интерфейса DDD-модели
+|(.+)
+
+|generatedClassNameResult
+|Шаблон для генерации имени класса имплементации после применения `generatedClassNameRe`
+|$1Impl
+|===
+
+Пример. `contextParameters = false`
+[source,Kotlin]
+----
+fun myType(block: MyTypeImpl.DslBuilder.() -> Unit): MyTypeImpl = ...
+----
+Пример. `contextParameters = true`
+[source,Kotlin]
+----
+fun myType(block: context(MyTypeImpl.DslBuilder) () -> Unit): MyTypeImpl = ...
+----
+Пример.
+Для опций `generatedClassNameRe` со значением по умолчанию `"(.+)"` и `generatedClassNameResult` со значением `"Prefix$1Postfix"` и имени интерфейса DDD-модели `MyModel`, будет сгенерировано имя класса имплементации `PrefixMyModelPostfix`.
+
+== Дальнейшие планы
+* Поддержка полиморфии: `interface`, `sealed interface`.
+* Поддержка конструктора типов (_KIND_).
+* Реализация фич, которые будут заявлены в результате обратной связи от пользователей.
 
 == Используемые фреймворки
 KDDD базируется на двух основных фреймворках:
 
 * https://kotlinlang.org/docs/ksp-overview.html[Kotlin Symbol Processing] для парсинга моделей;
-* https://square.github.io/kotlinpoet/[KotlinPoet] для генерации Котлин-кода как результата работы фреймворка.
+* https://square.github.io/kotlinpoet/[KotlinPoet] для генерации Котлин-кода как результат работы фреймворка.
 
 Дополнительно для JSON-сериализации используется https://square.github.io/kotlinpoet/[Kotlin Serialization]. Используемые зависимости и их версии находятся в link:gradle/libs.versions.toml[Version Catalog]
 
 == Благодарности
 Выражаю благодарность https://vladikk.com/page/about/[Владу Хононову] и https://enterprisecraftsmanship.com/[Владимиру Хорикову], чьи публикации прояснили у меня некоторые пробелы и заблуждения относительно DDD. А также этому способствовали телеграм-каналы https://t.me/@dddevotion[DDDevotion], https://t.me/@stringconcat[StringConcat - разработка без боли и сожалений], https://@emacsway_log[emacsway].
-
-==

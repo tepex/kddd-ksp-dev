@@ -17,13 +17,11 @@ public annotation class KDGeneratable(
 )
 
 /**
- * Определяет методы сериализации и параметры генерируемой имплементации для [ValueObject.Boxed] нестандартного типа.
+ * Определяет методы сериализации и параметры генерируемой имплементации для [ValueObject.Boxed] общих типов (File, URI, UUID, и т.п.
  *
  * @property serialization метод сериализации имплементации. По умолчанию — `toString()`
  * @property deserialization способ создания имплементации. Имя статического метода. По умолчанию — через конструктор класса
  * @property useStringInDsl true — в DSL-билдере имплементация будет создаваться из строки. false — будет использоваться непосредственно
- *
- *
  * */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.BINARY)
@@ -44,8 +42,10 @@ public annotation class KDParsable(
 @MustBeDocumented
 public annotation class KDSerialName(val value: String)
 
-/** Определяет, что в генерируемой доменной имплементации, тил свойства используется как есть — без оборачивания в «чистую» обертку */
+/** Определяет, что в генерируемой доменной имплементации, тил свойства используется как есть — без оборачивания в `value class` */
+/* А оно нужно?
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.BINARY)
 @MustBeDocumented
 public annotation class AsIs
+*/

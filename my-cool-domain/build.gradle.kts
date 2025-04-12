@@ -19,12 +19,12 @@ kotlin {
 dependencies {
     implementation(project(":kddd"))
     implementation(libs.kotlinx.serialization.json)
-    ksp(project(":ksp-impl"))
+    ksp(project(":ksp-processor"))
 }
 
 ksp {
     arg("subpackage", "impl")
     arg("contextParameters", "true")
-    arg("serialNameCase", "kebab")
+    //arg("serialNameCase", "kebab")
     //arg("generatedClassNameResult", "$1Default")
 }
