@@ -1,6 +1,5 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.demo.Collections
 import ru.it_arch.clean_ddd.domain.demo.impl.CollectionsImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.collections
 

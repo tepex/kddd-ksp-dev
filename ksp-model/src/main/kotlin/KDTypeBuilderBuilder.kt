@@ -35,11 +35,9 @@ public class KDTypeBuilderBuilder private constructor(
     init {
         val funSpecStatement = FunSpecStatement(Chunk("return %T(", holder.className))
         holder.propertyHolders.forEach { property ->
-            if (property.typeName is ParameterizedTypeName) {
+            if (property.typeName is ParameterizedTypeName) { // Collection
                 funSpecStatement.addParameterForCollection(property.name, property.typeName)
             } else {
-                funSpecStatement.addParameterForElement(property)
-
                 // Check nulls statements
                 if (!property.typeName.isNullable) {
                     builderFunBuild.addStatement(
@@ -52,20 +50,18 @@ public class KDTypeBuilderBuilder private constructor(
 
                 // return new PropertySpec
                 holder.getKDType(property.typeName).let { nestedType ->
-                    if (nestedType.first is KDType.Boxed && isDsl) (nestedType.first as KDType.Boxed).rawTypeName
-                    else property.typeName
+                    val kdType = nestedType.first
+
+                    funSpecStatement.addParameterForElement(property)
+
+                    if (kdType is KDType.Model && isDsl) createDslBuilder(property.name.simpleName, kdType).also(innerBuilder::addFunction)
+
+                    if (kdType is KDType.Boxed && isDsl) (nestedType.first as KDType.Boxed).rawTypeName else property.typeName
                 }.let {
                     if (!isDsl && !property.typeName.isNullable) PropertySpec.builder(property.name.simpleName, it).addModifiers(KModifier.LATEINIT)
                     else PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null")
                 }
             }.mutable().build().also(innerBuilder::addProperty)
-        }
-
-        if (isDsl) {
-            //logger.log("Processing: ${holder.className.simpleName}")
-            holder.nestedTypes.values.filterIsInstance<KDType.Generatable>()
-                .filter { it.hasDsl }
-                .forEach { createDslInnerBuilder(it).also(innerBuilder::addFunction) }
         }
 
         funSpecStatement.final()
@@ -84,10 +80,12 @@ public class KDTypeBuilderBuilder private constructor(
     private fun FunSpecStatement.addParameterForElement(property: KDProperty) {
         +Chunk("%N = ", property.name)
         val element =
-            holder.getKDType(property.typeName).let { DSLType.Element.create(it, property.typeName.isNullable) }
+            holder.getKDType(property.typeName).let { DSLType.Element(it, property.typeName.isNullable) }
         if (element.kdType is KDType.Boxed && isDsl) {
-            if (element.typeName.isNullable) +Chunk("%N?.let(::${element.kdType.dslBuilderFunName(element.isInner)}),", property.name)
-            else +Chunk("${element.kdType.dslBuilderFunName(element.isInner)}(%N!!),", property.name)
+            // Builder.build return statement
+            val parse = if (element.kdType.isParsable && element.kdType.isUseStringInDsl) ".${KDType.Boxed.FABRIC_PARSE_METHOD}" else ""
+            if (element.typeName.isNullable) +Chunk("%N?.let { %T$parse(it) }, ", property.name, element.kdType.className)
+            else +Chunk("%T$parse(%N!!), ", element.kdType.className, property.name)
             //logger.log("$property isParsable: ${element.kdType.isParsable} bozedType: ${element.kdType.boxedType} ")
             toBuildersHolder.element(property.name.simpleName, element.typeName.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
         } else {
@@ -99,7 +97,7 @@ public class KDTypeBuilderBuilder private constructor(
     private fun FunSpecStatement.addParameterForCollection(name: MemberName, typeName: ParameterizedTypeName): PropertySpec.Builder {
         val collectionType = typeName.toCollectionType()
         return if (isDsl) {
-            traverseParameterizedTypes(DSLType.Collection.create(typeName, logger)).let { substituted ->
+            traverseParameterizedTypes(DSLType.Collection(typeName, logger)).let { substituted ->
                 // return from Builder.build() { return T(...) }
                 +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
                 endStatement()
@@ -120,30 +118,23 @@ public class KDTypeBuilderBuilder private constructor(
     }
 
     @kotlin.OptIn(ExperimentalKotlinPoetApi::class)
-    private fun createDslInnerBuilder(innerType: KDType.Generatable): FunSpec =
-        FunSpec.builder(innerType.dslBuilderFunName(true)).apply {
-            if (innerType is KDType.Boxed) {
-                ParameterSpec.builder("value", innerType.rawTypeName).build().also { param ->
-                    addParameter(param)
-                    addStatement("return %T.${innerType.fabricMethod}(%N)", innerType.className, param)
-                }
-            } else if (innerType is KDType.Model) {
-                ParameterSpec.builder(
-                    "block",
-                    if (options.isUseContextParameters) LambdaTypeName.get(
-                        contextReceivers = listOf(innerType.dslBuilderClassName),
-                        returnType = Unit::class.asTypeName()
-                    ) else LambdaTypeName.get(
-                        receiver = innerType.dslBuilderClassName,
-                        returnType = Unit::class.asTypeName()
-                    )
-                ).build().also { param ->
-                    addParameter(param)
-                    // return InnerImpl.DslBuilder().apply(block).build()
-                    addStatement("return ${KDType.Data.APPLY_BUILDER}", innerType.dslBuilderClassName, param)
-                }
+    private fun createDslBuilder(name: String, type: KDType.Model): FunSpec =
+        FunSpec.builder(createDslBuilderFunName(name, true)).apply {
+            ParameterSpec.builder(
+                "block",
+                if (options.isUseContextParameters) LambdaTypeName.get(
+                    contextReceivers = listOf(type.dslBuilderClassName),
+                    returnType = Unit::class.asTypeName()
+                ) else LambdaTypeName.get(
+                    receiver = type.dslBuilderClassName,
+                    returnType = Unit::class.asTypeName()
+                )
+            ).build().also { param ->
+                addParameter(param)
+                // return InnerImpl.DslBuilder().apply(block).build()
+                addStatement("return ${KDType.Data.APPLY_BUILDER}", type.dslBuilderClassName, param)
             }
-            returns(innerType.sourceTypeName)
+            returns(type.sourceTypeName)
         }.build()
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
@@ -155,12 +146,34 @@ public class KDTypeBuilderBuilder private constructor(
             traverseParameterizedTypes(node.apply {
                 substituteArgs { arg ->
                     @Suppress("NON_TAIL_RECURSIVE_CALL")
-                    if (arg is ParameterizedTypeName) traverseParameterizedTypes(DSLType.Collection.create(arg, logger))
-                    else holder.getKDType(arg).let { DSLType.Element.create(it, arg.isNullable) }
+                    if (arg is ParameterizedTypeName) traverseParameterizedTypes(DSLType.Collection(arg, logger))
+                    else holder.getKDType(arg).let { DSLType.Element(it, arg.isNullable) }
                 }
             })
         }
     }
+
+    private fun createDslBuilderFunName(name: String, isInner: Boolean): String {
+        return name
+        /* TODO: for foreign reference
+        ("$implClassName.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
+            .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
+
+        val ret = context.typeName.toString().substringAfterLast('.').let { name ->
+            context.logger.log("For className: $className  properties: $propertyHolders")
+            val implClassName = context.typeName.toString()
+                .substringAfterLast("${context.packageName}.")
+                .substringBefore(".$name")
+                .let(context.options::toImplementationName)
+
+            ("$implClassName.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
+                .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
+        }
+
+        //context.logger.log("name: $ret")
+        return ret*/
+    }
+
 
     private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
         private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")

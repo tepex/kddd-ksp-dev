@@ -21,7 +21,7 @@ internal sealed interface DSLType {
     ) : DSLType {
 
         companion object {
-            fun create(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
+            operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
                 Element(
                     (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawTypeName
                     else kdTypeSearchResult.first.sourceTypeName).toNullable(isNullable),
@@ -39,7 +39,7 @@ internal sealed interface DSLType {
         private lateinit var args: List<DSLType>
         private var isSubstituted: Boolean = false
 
-        val type = parameterizedTypeName.toCollectionType()
+        private val collectionType = parameterizedTypeName.toCollectionType()
 
         lateinit var fromDslMapper: String
         lateinit var toDslMapper: String
@@ -54,7 +54,7 @@ internal sealed interface DSLType {
             val toDslArgs = mutableListOf<String>()
             args = parameterizedTypeName.typeArguments.mapIndexed { i, arg ->
                 transform(arg).also { newArg ->
-                    val localIt = type.getItArgName(i)
+                    val localIt = collectionType.getItArgName(i)
                     when(newArg) {
                         is Collection -> {
                             fromDslArgs += "$localIt${newArg.fromDslMapper}"
@@ -62,7 +62,7 @@ internal sealed interface DSLType {
                         }
                         is Element ->
                             if (newArg.kdType is KDType.Boxed) {
-                                fromDslArgs += newArg.kdType.asDeserialize(localIt, newArg.isInner, arg.isNullable)
+                                fromDslArgs += newArg.kdType.asDeserialize(localIt, arg.isNullable)
                                 toDslArgs += newArg.kdType.asIsOrSerialize(localIt, arg.isNullable)
                             } else {
                                 fromDslArgs += localIt
@@ -73,8 +73,8 @@ internal sealed interface DSLType {
             }
 
             val hasNotContainsBoxed = args.all { it is Element && it.kdType !is KDType.Boxed }
-            fromDslMapper = fromDslArgs.createMapper(type, false, hasNotContainsBoxed)
-            toDslMapper = toDslArgs.createMapper(type, true, hasNotContainsBoxed)
+            fromDslMapper = fromDslArgs.createMapper(collectionType, false, hasNotContainsBoxed)
+            toDslMapper = toDslArgs.createMapper(collectionType, true, hasNotContainsBoxed)
             isSubstituted = true
         }
 
@@ -93,7 +93,7 @@ internal sealed interface DSLType {
         }.parameterizedBy(args.map { it.typeName })
 
         companion object {
-            fun create(typeName: ParameterizedTypeName, logger: KDLogger): Collection =
+            operator fun invoke(typeName: ParameterizedTypeName, logger: KDLogger): Collection =
                 Collection(typeName, logger)
         }
     }

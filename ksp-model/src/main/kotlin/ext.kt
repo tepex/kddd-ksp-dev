@@ -25,6 +25,9 @@ internal fun TypeName.toNullable(nullable: Boolean = true) =
 internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
     addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build())
 
+internal fun TypeName.toCollectionTypeOrNull(): CollectionType? =
+    if (this is ParameterizedTypeName) CollectionType.entries.find { it.classNames.contains(rawType) } else null
+
 internal fun ParameterizedTypeName.toCollectionType(): CollectionType =
     CollectionType.entries.find { it.classNames.contains(rawType) }
         ?: error("Not supported collection type $this")
@@ -49,10 +52,17 @@ internal fun KDType.Boxed.asSimplePrimitive(): String {
 }
 
 internal fun KDType.Boxed.asDeserialize(isInner: Boolean): String =
-        (FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let($classNameRef::$it)" }
+    if (isParsable) ".let($classNameRef::$FABRIC_PARSE_METHOD)" else ".let { $classNameRef(it) }"
+        //(FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let($classNameRef::$it)" }
 //    else "xxx"//TODO()
 // .let(CommonTypesImpl.MyUUIDImpl::parse)
 
+/**
+ * Результат метода [KDType.Generatable.getKDType].
+ *
+ * first — найденный [KDType]
+ * second — true: вложенный тип
+ * */
 internal typealias KDTypeSearchResult = Pair<KDType, Boolean>
 
 internal fun List<String>.createMapper(type: CollectionType, isMutable: Boolean, hasNotContainsBoxed: Boolean): String = (

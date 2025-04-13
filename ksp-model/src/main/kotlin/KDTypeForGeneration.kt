@@ -66,19 +66,6 @@ internal class KDTypeForGeneration(
         createConstructor(context.properties)
     }
 
-    override fun dslBuilderFunName(isInner: Boolean): String {
-        val ret = context.typeName.toString().substringAfterLast('.').let { name ->
-            val implClassName = context.typeName.toString()
-                .substringAfterLast("${context.packageName}.")
-                .substringBefore(".$name")
-                .let(context.options::toImplementationName)
-            ("$implClassName.${KDType.Data.DSL_BUILDER_CLASS_NAME}().".takeUnless { isInner } ?: "")
-                .let { prefix -> "$prefix${name.replaceFirstChar { it.lowercaseChar() }}" }
-        }
-        //context.logger.log("name: $ret")
-        return ret
-    }
-
     private fun boxedType(boxedType: TypeName) {
         builder.addModifiers(KModifier.VALUE)
         builder.addAnnotation(JvmInline::class)
@@ -108,9 +95,10 @@ internal class KDTypeForGeneration(
 
         /* ValueObject.Boxed companion object */
         TypeSpec.companionObjectBuilder().apply {
-            FunSpec.builder(Boxed.FABRIC_CREATE_METHOD).apply {
+            FunSpec.builder("invoke").apply {
+                addModifiers(KModifier.OPERATOR)
                 addParameter(boxedParam)
-                returns(className)
+                returns(context.typeName)
                 addStatement("return %T(%N)", className, boxedParam)
             }.build().let(::addFunction)
             this@KDTypeForGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()
@@ -127,7 +115,7 @@ internal class KDTypeForGeneration(
             val srcParam = ParameterSpec.builder("src", String::class).build()
             addParameter(srcParam)
             returns(className)
-            addStatement("return %T${parsable.deserialization.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::${Boxed.FABRIC_CREATE_METHOD})", boxedType, srcParam)
+            addStatement("return %T${parsable.deserialization.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%T)", boxedType, srcParam, className)
         }.build()
 
     override fun addNestedType(type: KDType) {

@@ -26,7 +26,9 @@ public sealed interface KDType {
      * Определяет вид DDD-модели: `Value Object` или `Entity`
      * */
     public interface Model : Generatable {
+        // MyModel.Builder
         public val builderClassName: ClassName
+        // MyModel.DslBuilder
         public val dslBuilderClassName: ClassName
     }
 
@@ -49,14 +51,26 @@ public sealed interface KDType {
          * */
         public val classNameRef: String
         public val builder: TypeSpec.Builder
+        /** Список свойств KDDD-модели */
         public val propertyHolders: List<KDProperty>
+        /** Реестр (внутренний реестр) вложенных [KDType] типов объявленных в KDDD-модели */
         public val nestedTypes: Map<TypeName, KDType>
         //public val annotation: KDGeneratable?
         public val hasDsl: Boolean
         public val hasJson: Boolean
 
-        public fun dslBuilderFunName(isInner: Boolean): String
+        //public fun dslBuilderFunName(isInner: Boolean): String
+        /**
+         * Добавление инстанса [KDType] во внутренний реестр
+         * */
         public fun addNestedType(type: KDType)
+        /**
+         *  Получение инстанса [KDType] из внутреннего или глобального реестра KDDD-типов.
+         *
+         *  @param typeName тип свойства модели
+         *  @return результат поиска. [KDTypeSearchResult].first: [KDType], [KDTypeSearchResult].second: true — найден во внутреннем реестре, false — найден в других моделях
+         *  @throws IllegalStateException — не найден
+         * */
         public fun getKDType(typeName: TypeName): KDTypeSearchResult
     }
 
@@ -208,8 +222,8 @@ public sealed interface KDType {
                 forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization?.also { append(".$it") }
             }.toString()
 
-        public fun asDeserialize(variable: String, isInner: Boolean, isNullable: Boolean): String =
-            if (isNullable) "$variable?.let(::${dslBuilderFunName(isInner)})" else "${dslBuilderFunName(isInner)}($variable)"
+        public fun asDeserialize(variable: String, isNullable: Boolean): String =
+            if (isNullable) "$variable?.let { $classNameRef(it) }" else "$classNameRef($variable)"
 
         override fun toString(): String =
             "KDType.Boxed<$boxedType>"
