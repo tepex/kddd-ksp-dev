@@ -42,10 +42,45 @@ Tepex <tepex@mail.ru>
 Подмодули link:my-cool-domain/[:my-cool-domain] и link:demo/[:demo] используются и как суррогатная система юнит-тестирования.
 
 == Как пользоваться
+Склонируйте проект из репозитория и запустите сборку демонстрационного модуля link:my-cool-domain/[:my-cool-domain]:
+[source,shell]
+----
+$ ./gradlew :my-cool-domain:assemble
+----
+Посмотрите на сгенерированные классы в link:my-cool-domain/build/generated/ksp/main/kotlin/ru/it_arch/clean_ddd/domain/demo/impl/[]
+Посмотрите их в работе как о
+
 
 [#types]
 == Типы
-ьтыыы
+В этом разделе перечисляются допустимые `KDDD-типы`. Это типы, которые декларируются разработчиком и наследуются от интерфейсов `KDDD-фреймворка`: link:kddd/src/main/kotlin/IEntity.kt[IEntity] и link:kddd/src/main/kotlin/ValueObject.kt[ValueObject.*]
+
+=== Базовые типы
+`Value Object` и `Entity` в терминах `DDD`.
+
+Определяются как интерфейсы (`DDD-модели`), наследуемые от link:kddd/src/main/kotlin/ValueObject.kt[ValueObject.Data] и link:kddd/src/main/kotlin/IEntity.kt[IEntity] соответствено. В таких интерфейсах следует переопределить метод `validate()` для реализации логики валидации модели. Этот метод должен выкидывать исключение при неуспешной валидации.
+
+Поля `DDD-моделей` должны быть `KDDD-типами`, т.е. другими `DDD-моделями` домена, вложенными `KDDD-типами` или коллекциями `KDDD-типов`.
+
+Для базовых типов существуют фичи `DSL` (включена по умолчанию) и `JSON`, которые включаются/выключаются с помощью аннотации link:kddd/src/main/kotlin/annotations.kt[KDGeneratable] (с.м. <<kdgeneratable>>).
+
+`DSL`-фича дополнтельно генерит внутренний builder-класс `DslBuilder` и builder-функции для типов для создания моделей в DSL-стиле. С.м. примеры в link:demo/src/main/kotlin/[:demo]
+
+`JSON`-фича добавляет к классу имплементации модели аннотацию https://kotlinlang.org/api/kotlinx.serialization/kotlinx-serialization-core/kotlinx.serialization/-serializable/[@Serializable] и генерит необходимую имплементацию https://kotlinlang.org/api/kotlinx.serialization/kotlinx-serialization-core/kotlinx.serialization/-k-serializer/[KSerializer] в `companion object`.
+
+==== Сущности (Entity)
+
+
+=== Примитивы
+Стандартные примитивы Котлин:
+
+
+=== Мутабельность
+Согласно канонам `Value Object` должен быть иммутабельным и изменяться через свое копирование с изменяемыми значениями нужных свойств. Этой цели служит паттерн https://ru.wikipedia.org/wiki/Строитель_(шаблон_проектирования)[Строитель] и его реализации — вложенные классы `Builder` и `DslBuilder` в имплементации моделей. Для моделей-оберток `ValueObject.Boxed` генерируется метод `copy()`.
+
+Для сущности `Entity` наоборот — свойства (кроме идентичности) должны быть мутабельными. Однако делать их общедоступно изменяемыми (`public var`) — означает открывать ворота в ад. Механизм реализации свойств link:kddd/src/main/kotlin/IEntity.kt[IEntity] такой же, как и у link:kddd/src/main/kotlin/ValueObject.kt[ValueObject.Data].
+
+С учетом того, что на данный момент проект находится в стадии `Proof of Concept` и чтобы не впадать в грех преждевременной оптимизации — пока что оставлено так, как есть.
 
 [#options]
 == Опции
@@ -67,7 +102,7 @@ ksp {
 |Не создается
 
 |contextParameters
-|`true` / `false`. Применять или нет Котлин-фичу https://github.com/Kotlin/KEEP/blob/context-parameters/proposals/context-parameters.md[Context Parameters] Если `false`, то в функции DSL-билдера будет использован явный ресивер. Если `true`, то будет использован `context()`.
+|`true` / `false`. Применять или нет Котлин-фичу https://github.com/Kotlin/KEEP/blob/context-parameters/proposals/context-parameters.md[Context Parameters] Если `false`, то в функции DSL-билдера будет использован явный ресивер. Если `true`, то будет использован `context()`. Важно! Нужно включить поддержку этой фичи добавив флаг компиляции `-Xcontext-parameters` (С.м. секцию `kotlin {}` в link:my-cool-domain/build.gradle.kts[build.gradle.kts])
 |false
 
 |generatedClassNameRe
@@ -75,7 +110,7 @@ ksp {
 |(.+)
 
 |generatedClassNameResult
-|Шаблон для генерации имени класса имплементации после применения `generatedClassNameRe`
+|Шаблон для имени генерируемого класса имплементации после применения `generatedClassNameRe`
 |$1Impl
 |===
 
@@ -92,6 +127,65 @@ fun myType(block: context(MyTypeImpl.DslBuilder) () -> Unit): MyTypeImpl = ...
 Пример.
 Для опций `generatedClassNameRe` со значением по умолчанию `"(.+)"` и `generatedClassNameResult` со значением `"Prefix$1Postfix"` и имени интерфейса DDD-модели `MyModel`, будет сгенерировано имя класса имплементации `PrefixMyModelPostfix`.
 
+=== Аннотации
+Варианты генерации кода для отдельных моделей можно определить через аннотации link:kddd/src/main/kotlin/annotations.kt[@KDGeneratable] и link:kddd/src/main/kotlin/annotations.kt[@KDParsable].
+
+[#kdgeneratable]
+==== @KDGeneratable
+link:kddd/src/main/kotlin/annotations.kt[@KDGeneratable] задается для моделей типа link:kddd/src/main/kotlin/ValueObject.kt[ValueObject] и link:kddd/src/main/kotlin/IEntity.kt[IEntity].
+
+[frame=all,grid=all]
+|===
+|Параметр |Значение|По умолчанию
+
+|implementationName
+|явно задает имя генерируемого класса имплементации и переопределяет опцию KSP `generatedClassNameResult`
+|Применяется правило из KSP-опций
+
+|dsl
+|Включает генерацию DSL-обвязки
+|true
+
+|json
+|Включает генерацию JSON-обвязки
+|false
+|===
+
+[#kdparsable]
+==== @KDParsable
+link:kddd/src/main/kotlin/annotations.kt[@KDParsable] задается для моделей типа link:kddd/src/main/kotlin/ValueObject.kt[ValueObject.Boxed<T>], где T — непримитивный тип такой, как `File`, `URI`, `UUID`, и т.п. Необходимо, чтобы генератор понимал, каким образом сериализовывать и создавать объект в рамках DSL и JSON-сериализации.
+
+[frame=all,grid=all]
+|===
+|Параметр |Значение|По умолчанию
+
+|serialization
+|Метод сериализации имплементации
+|`toString()`
+
+|deserialization
+|Имя фабричного метода создания объекта. Например, `fromString` для https://docs.oracle.com/javase/8/docs/api/java/util/UUID.html[UUID]
+| Объект создается через конструктор класса
+
+|useStringInDsl
+|Вариант создания объекта в DSL. `true` — из строки через фабричный метод (с.м. выше), `false` — обычным образом через конструктор.
+|false
+|===
+Пример. `useStringInDsl = true`
+[source,kotlin]
+----
+myType {
+    myUuid = "50d3d60b-b4d7-4fca-a984-d911a3688f99"
+}
+----
+Пример. `useStringInDsl = false`
+[source,kotlin]
+----
+myType {
+    myFile = File("path/to/file")
+}
+----
+
 == Дальнейшие планы
 * Поддержка полиморфии: `interface`, `sealed interface`.
 * Поддержка конструктора типов (_KIND_).
@@ -104,6 +198,9 @@ KDDD базируется на двух основных фреймворках:
 * https://square.github.io/kotlinpoet/[KotlinPoet] для генерации Котлин-кода как результат работы фреймворка.
 
 Дополнительно для JSON-сериализации используется https://square.github.io/kotlinpoet/[Kotlin Serialization]. Используемые зависимости и их версии находятся в link:gradle/libs.versions.toml[Version Catalog]
+
+== Q & A
+Будет заполняться по мере поступления и аггрегирования вопросов в проессе обратной связи.
 
 == Благодарности
 Выражаю благодарность https://vladikk.com/page/about/[Владу Хононову] и https://enterprisecraftsmanship.com/[Владимиру Хорикову], чьи публикации прояснили у меня некоторые пробелы и заблуждения относительно DDD. А также этому способствовали телеграм-каналы https://t.me/@dddevotion[DDDevotion], https://t.me/@stringconcat[StringConcat - разработка без боли и сожалений], https://@emacsway_log[emacsway].
