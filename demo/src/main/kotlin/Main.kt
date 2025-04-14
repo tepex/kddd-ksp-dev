@@ -11,11 +11,13 @@ val json = Json {
 }
 
 fun main() {
+    /*
     testPrimitives()
     testNullables()
     testCommonTypes()
     testWithInner()
     testCollections()
+    testEntity()*/
 
-    testEntity()
+    testPoint()
 }

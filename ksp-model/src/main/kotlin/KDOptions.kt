@@ -57,7 +57,7 @@ public data class KDOptions private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
+        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
             create(boxed) as T
 
         override fun validate() {}
@@ -80,7 +80,7 @@ public data class KDOptions private constructor(
         override fun validate() {}
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
+        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
             create(boxed) as T
 
         override fun toString(): String =
@@ -99,7 +99,7 @@ public data class KDOptions private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
+        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
             create(boxed) as T
 
         // TODO: validate name
@@ -117,7 +117,7 @@ public data class KDOptions private constructor(
     @JvmInline
     private value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> copy(boxed: String): T =
+        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
             create(boxed) as T
 
         init {
@@ -140,7 +140,7 @@ public data class KDOptions private constructor(
     @JvmInline
     public value class UseContextParameters private constructor(override val boxed: Boolean) : ValueObject.Boxed<Boolean> {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<Boolean>> copy(boxed: Boolean): T =
+        override fun <T : ValueObject.Boxed<Boolean>> create(boxed: Boolean): T =
             UseContextParameters(boxed) as T
 
         init {
