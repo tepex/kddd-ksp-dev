@@ -19,5 +19,5 @@ fun main() {
     testCollections()
     testEntity()*/
 
-    testPoint()
+    testPointNoDsl()
 }
