@@ -32,25 +32,25 @@ interface Point : ValueObject.Data {
         "{${x.boxed},${y.boxed}}"
 
     operator fun plus(other: Point): Point =
-        create(x + other.x, y + other.y)
+        fork(x + other.x, y + other.y)
 
     operator fun minus(other: Point): Point =
-        create(x - other.x, y - other.y)
+        fork(x - other.x, y - other.y)
 
     operator fun times(other: Point): Point =
-        create(x * other.x, y * other.y)
+        fork(x * other.x, y * other.y)
 
     interface Coordinate : ValueObject.Boxed<Int> {
         override fun validate() {}
 
         operator fun plus(other: Coordinate): Coordinate =
-            create(boxed + other.boxed)
+            fork(boxed + other.boxed)
 
         operator fun minus(other: Coordinate): Coordinate =
-            create(boxed - other.boxed)
+            fork(boxed - other.boxed)
 
         operator fun times(other: Coordinate): Coordinate =
-            create(boxed * other.boxed)
+            fork(boxed * other.boxed)
     }
 }
 
@@ -72,10 +72,10 @@ data class PointImpl private constructor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Kddd, A : Kddd, B : Kddd> create(p1: A, p2: B): T =
+    override fun <T : Kddd, A: Kddd> fork(vararg args: A): T =
         Builder().apply {
-            x = p1 as Point.Coordinate
-            y = p2 as Point.Coordinate
+            x = args[0] as Point.Coordinate
+            y = args[1] as Point.Coordinate
         }.build() as T
 
     @JvmInline
@@ -85,7 +85,7 @@ data class PointImpl private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<Int>> create(boxed: Int): T = CoordinateImpl(boxed) as T
+        override fun <T : ValueObject.Boxed<Int>> fork(boxed: Int): T = CoordinateImpl(boxed) as T
 
         companion object {
             operator fun invoke(boxed: Int): Point.Coordinate = CoordinateImpl(boxed)

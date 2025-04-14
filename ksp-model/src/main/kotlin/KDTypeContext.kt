@@ -19,7 +19,7 @@ public data class KDTypeContext(
     @JvmInline
     public value class PackageName private constructor(override val boxed: String) : ValueObject.Boxed<String> {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
+        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
             PackageName(boxed) as T
 
         override fun validate() {}

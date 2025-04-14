@@ -57,8 +57,8 @@ public data class KDOptions private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
-            create(boxed) as T
+        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+            fork(boxed) as T
 
         override fun validate() {}
 
@@ -80,8 +80,8 @@ public data class KDOptions private constructor(
         override fun validate() {}
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
-            create(boxed) as T
+        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+            fork(boxed) as T
 
         override fun toString(): String =
             boxed
@@ -99,8 +99,8 @@ public data class KDOptions private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
-            create(boxed) as T
+        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+            fork(boxed) as T
 
         // TODO: validate name
         override fun validate() { }
@@ -117,8 +117,8 @@ public data class KDOptions private constructor(
     @JvmInline
     private value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<String>> create(boxed: String): T =
-            create(boxed) as T
+        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+            fork(boxed) as T
 
         init {
             validate()
@@ -140,7 +140,7 @@ public data class KDOptions private constructor(
     @JvmInline
     public value class UseContextParameters private constructor(override val boxed: Boolean) : ValueObject.Boxed<Boolean> {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<Boolean>> create(boxed: Boolean): T =
+        override fun <T : ValueObject.Boxed<Boolean>> fork(boxed: Boolean): T =
             UseContextParameters(boxed) as T
 
         init {
