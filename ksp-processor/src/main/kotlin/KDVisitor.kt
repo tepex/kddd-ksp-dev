@@ -31,7 +31,7 @@ internal abstract class KDVisitor(
     protected val kdLogger: KDLogger = KDLoggerImpl(logger)
     protected val globalKDTypes: MutableMap<TypeName, KDType> = mutableMapOf()
 
-    abstract fun createBuilder(model: KDType.Model)
+    abstract fun createBuilders(model: KDType.Model)
 
     fun generate(symbols: Sequence<KSFile>) {
 
@@ -52,13 +52,14 @@ internal abstract class KDVisitor(
                 }.filterNotNull()
         }.toMap()
 
-        outputFiles.keys.map { it.generatable }.filterIsInstance<KDType.Model>().forEach { model ->
-            buildAndAddNestedTypes(model)
-            createBuilder(model)
+        outputFiles.keys.filter { it.generatable is KDType.Model }.forEach { file ->
+            buildAndAddNestedTypes(file.generatable as KDType.Model)
+            createBuilders(file.generatable as KDType.Model)
+            //createJsonExtensionFunctions()
         }
 
         outputFiles.entries
-            .forEach { it.key.buildFileSpec().replaceAndWrite(codeGenerator, Dependencies(false, it.value)) }
+            .forEach { it.key.fileSpecBuilder.build().replaceAndWrite(codeGenerator, Dependencies(false, it.value)) }
 
         packageName?.let(::generateJsonProperty)
     }
@@ -85,7 +86,7 @@ internal abstract class KDVisitor(
         return if (nestedModels.isEmpty() || isFinish) {
             // append
             model.nestedTypes.values.filterIsInstance<KDType.Generatable>().forEach { type ->
-                if (type is KDType.Model) createBuilder(type)
+                if (type is KDType.Model) createBuilders(type)
                 model.builder.addType(type.builder.build())
             }
         } else {

@@ -18,14 +18,8 @@ public data class KDOutputFile private constructor(
     private val isUseContextParameters: Boolean
 ) : ValueObject.Data {
 
-    override fun validate() {}
-
-    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
-        TODO("Not yet implemented")
-    }
-
     @kotlin.OptIn(ExperimentalKotlinPoetApi::class)
-    public fun buildFileSpec(): FileSpec =
+    public val fileSpecBuilder: FileSpec.Builder by lazy {
         FileSpec.builder(packageName.boxed, generatable.className.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
 
@@ -55,7 +49,15 @@ public data class KDOutputFile private constructor(
                         .build().also(fileBuilder::addFunction)
                 }
             }
-        }.build()
+        }
+    }
+
+
+    override fun validate() {}
+
+    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
+        TODO("Not yet implemented")
+    }
 
     public companion object {
         private const val FILE_HEADER_STUB: String = """

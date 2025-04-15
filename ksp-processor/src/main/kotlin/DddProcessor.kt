@@ -43,7 +43,7 @@ internal class DddProcessor(
         resolver: Resolver
     ) : KDVisitor(resolver, options, codeGenerator, logger) {
 
-        override fun createBuilder(model: KDType.Model) {
+        override fun createBuilders(model: KDType.Model) {
             with(options) {
                 with(KDLoggerImpl(logger)) {
                     // class MyTypeImpl.Builder
