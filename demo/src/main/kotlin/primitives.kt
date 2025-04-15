@@ -1,7 +1,10 @@
 package ru.it_arch.clean_ddd.app
 
+import ru.it_arch.clean_ddd.domain.demo.NullablePrimitives
 import ru.it_arch.clean_ddd.domain.demo.Primitives
+import ru.it_arch.clean_ddd.domain.demo.impl.NullablePrimitivesImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.PrimitivesImpl
+import ru.it_arch.clean_ddd.domain.demo.impl.json
 import ru.it_arch.clean_ddd.domain.demo.impl.primitives
 
 fun testPrimitives() {
@@ -18,7 +21,7 @@ fun testPrimitives() {
         shortValue = 255
     }.apply {
         println("\nprimitives demo: $this")
-        json.encodeToString(this).also { println("json: $it") }
+        println("json: ${toJson()}")
     }
 
     // Демонстрация десериализации модели
@@ -36,9 +39,15 @@ fun testPrimitives() {
     "long-value": 987654321,
     "short-value": -123
 }""".apply {
-        json.decodeFromString<PrimitivesImpl>(this).also { obj: Primitives ->
-            // Можете пользоваться
-            println("deserialize: $obj")
-        }
+        println("deserialize: ${fromJson()}")
     }
 }
+
+fun Primitives.toJson(): String =
+    json.encodeToString(this as PrimitivesImpl)
+
+fun String.fromJson(): Primitives =
+    json.decodeFromString<PrimitivesImpl>(this)
+
+fun String.fomJson(): NullablePrimitives =
+    json.decodeFromString<NullablePrimitivesImpl>(this)

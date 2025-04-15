@@ -2,6 +2,7 @@ package ru.it_arch.clean_ddd.app
 
 import ru.it_arch.clean_ddd.domain.demo.WithInner
 import ru.it_arch.clean_ddd.domain.demo.impl.WithInnerImpl
+import ru.it_arch.clean_ddd.domain.demo.impl.json
 import ru.it_arch.clean_ddd.domain.demo.impl.withInner
 
 fun testWithInner() {

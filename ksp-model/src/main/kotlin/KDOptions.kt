@@ -1,17 +1,21 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.ClassName
+import kotlinx.serialization.ExperimentalSerializationApi
 import ru.it_arch.kddd.ValueObject
+import kotlin.OptIn
 
 /**
  * Опции KSP.
  * */
 @ConsistentCopyVisibility
-public data class KDOptions private constructor(
+public data class KDOptions @OptIn(ExperimentalSerializationApi::class)
+private constructor(
     private val subpackage: Subpackage?,
     private val generatedClassNameRe: Regex,
     private val generatedClassNameResult: ResultTemplate,
-    private val useContextParameters: UseContextParameters
+    private val useContextParameters: UseContextParameters,
+    public val jsonNamingStrategy: JsonNamingStrategy?
 ) {
 
     /**
@@ -57,7 +61,6 @@ public data class KDOptions private constructor(
             validate()
         }
 
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
             fork(boxed) as T
 
@@ -80,7 +83,6 @@ public data class KDOptions private constructor(
 
         override fun validate() {}
 
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
             fork(boxed) as T
 
@@ -99,7 +101,6 @@ public data class KDOptions private constructor(
             validate()
         }
 
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
             fork(boxed) as T
 
@@ -117,7 +118,6 @@ public data class KDOptions private constructor(
 
     @JvmInline
     private value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
             fork(boxed) as T
 
@@ -159,6 +159,14 @@ public data class KDOptions private constructor(
         }
     }
 
+    public enum class JsonNamingStrategy(
+        public val key: String,
+        public val className: String
+    ) {
+        KEBAB("kebab", "kotlinx.serialization.json.JsonNamingStrategy.KebabCase"),
+        SNAKE("snake", "kotlinx.serialization.json.JsonNamingStrategy.SnakeCase")
+    }
+
     public companion object {
         private const val OPTION_CONTEXT_PARAMETERS = "contextParameters"
         private const val OPTION_SUBPACKAGE = "subpackage"
@@ -166,13 +174,15 @@ public data class KDOptions private constructor(
         private const val OPTION_GENERATED_CLASS_NAME_RESULT = "generatedClassNameResult"
         private const val DEFAULT_RE = "(.+)"
         private const val DEFAULT_RESULT = "$1Impl"
+        private const val OPTION_JSON_NAMING_STRATEGY = "jsonNamingStrategy"
 
         public operator fun invoke(src: Map<String, String>): KDOptions =
             KDOptions(
                 src[OPTION_SUBPACKAGE]?.let(Subpackage.Companion::create),
                 (src[OPTION_GENERATED_CLASS_NAME_RE] ?: DEFAULT_RE).toRegex(),
                 (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let(ResultTemplate.Companion::create),
-                UseContextParameters((src[OPTION_CONTEXT_PARAMETERS]?.toBooleanStrictOrNull() ?: false))
+                UseContextParameters((src[OPTION_CONTEXT_PARAMETERS]?.toBooleanStrictOrNull() ?: false)),
+                JsonNamingStrategy.entries.find { it.key == src[OPTION_JSON_NAMING_STRATEGY] }
             )
     }
 }

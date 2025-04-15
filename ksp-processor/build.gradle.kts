@@ -19,9 +19,10 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":kddd"))
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.ksp.api)
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
     implementation(project(":ksp-model"))
+    implementation(project(":kddd"))
 }

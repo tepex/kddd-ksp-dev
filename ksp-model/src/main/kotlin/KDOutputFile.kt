@@ -50,7 +50,8 @@ public data class KDOutputFile private constructor(
                             receiver,
                             builderParam
                         )
-                        .returns(generatable.className)
+                        //.returns(generatable.className)
+                        .returns(generatable.kDddTypeName)
                         .build().also(fileBuilder::addFunction)
                 }
             }

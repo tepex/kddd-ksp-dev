@@ -3,6 +3,7 @@ package ru.it_arch.clean_ddd.app
 import ru.it_arch.clean_ddd.domain.demo.CommonTypes
 import ru.it_arch.clean_ddd.domain.demo.impl.CommonTypesImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.commonTypes
+import ru.it_arch.clean_ddd.domain.demo.impl.json
 import java.util.UUID
 
 fun testCommonTypes() {

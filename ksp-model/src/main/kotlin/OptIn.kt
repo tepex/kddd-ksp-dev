@@ -12,4 +12,4 @@ package ru.it_arch.clean_ddd.ksp.model
  * `import ru.it_arch.clean_ddd.ksp.model.OptIn` подменяется на `import kotlinx.serialization.ExperimentalSerializationApi`
  * */
 @Retention(AnnotationRetention.SOURCE)
-internal annotation class OptIn(val markerClass: String)
+public annotation class OptIn(val markerClass: String)
