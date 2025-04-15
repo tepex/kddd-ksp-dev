@@ -232,7 +232,7 @@ public sealed interface KDType {
             public const val PARAM_NAME: String = "boxed"
             public const val FABRIC_CREATE_METHOD: String = "create"
             public const val FABRIC_PARSE_METHOD: String = "parse"
-            public const val CREATE_METHOD: String = "copy"
+            public const val CREATE_METHOD: String = "fork"
 
             context(ctx: KDTypeContext)
             public operator fun invoke(annotations: List<Annotation>, superInterfaceName: TypeName): Boxed = run {

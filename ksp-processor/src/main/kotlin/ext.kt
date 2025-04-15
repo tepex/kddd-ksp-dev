@@ -63,7 +63,7 @@ internal fun typeContext(
     typeName,
     PackageName(declaration.packageName.asString()),
     declaration.getAllProperties().map {
-        KDProperty.create(
+        KDProperty(
             toBeGenerated.member(it.simpleName.asString()),
             it.type.toTypeName(),
             it.getAnnotationsByType(KDSerialName::class).firstOrNull()

@@ -7,8 +7,10 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
+import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
+@ConsistentCopyVisibility
 public data class KDOutputFile private constructor(
     public val generatable: KDType.Generatable,
     private val packageName: KDOptions.PackageName,
@@ -17,6 +19,10 @@ public data class KDOutputFile private constructor(
 ) : ValueObject.Data {
 
     override fun validate() {}
+
+    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
+        TODO("Not yet implemented")
+    }
 
     @kotlin.OptIn(ExperimentalKotlinPoetApi::class)
     public fun buildFileSpec(): FileSpec =

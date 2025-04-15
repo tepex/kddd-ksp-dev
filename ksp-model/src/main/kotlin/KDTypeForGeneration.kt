@@ -17,6 +17,7 @@ import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed
 import ru.it_arch.clean_ddd.ksp.model.KDType.Generatable
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
+import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
 internal class KDTypeForGeneration(
@@ -47,12 +48,13 @@ internal class KDTypeForGeneration(
     init {
         propertyHolders = boxedType?.let {
             boxedType(boxedType)
-            listOf(KDProperty.create(className.member(Boxed.PARAM_NAME), boxedType))
+            listOf(KDProperty(className.member(Boxed.PARAM_NAME), boxedType))
         } ?: run {
             // not Boxed
             if (!isEntity) {
                 builder.addModifiers(KModifier.DATA)
                 builder.addAnnotation(ConsistentCopyVisibility::class)
+                createForkFun(context.properties)
             }
 
             if (hasJson) {
@@ -77,7 +79,7 @@ internal class KDTypeForGeneration(
             addStatement("return %N.toString()", boxedParam)
         }.build().also(builder::addFunction)
 
-        /*  override fun <T : ValueObjectSingle<String>> copy(value: String): T = NameImpl(value) as T */
+        // override fun <T : ValueObject.Boxed<Int>> fork(boxed: Int): T = CoordinateImpl(boxed) as T
         TypeVariableName(
             "T",
             ValueObject.Boxed::class.asTypeName().parameterizedBy(boxedType)
@@ -108,6 +110,26 @@ internal class KDTypeForGeneration(
                 }
 
         }.build().also(builder::addType)
+    }
+
+    private fun createForkFun(properties: List<KDProperty>) {
+        FunSpec.builder(Boxed.CREATE_METHOD).apply {
+            val typeT = TypeVariableName("T", Kddd::class)
+            val typeA = TypeVariableName("A", Kddd::class)
+
+            addTypeVariable(typeT)
+            addTypeVariable(typeA)
+            addParameter(ParameterSpec.builder("args", typeA, KModifier.VARARG).build())
+            addModifiers(KModifier.OVERRIDE)
+            addUncheckedCast()
+            returns(typeT)
+            addStatement("val ret = ${KDType.Data.BUILDER_CLASS_NAME}().apply {⇥\n")
+            properties.forEachIndexed { i, property ->
+                addStatement("%N = args[$i] as %T", property.name, property.typeName)
+            }
+            addStatement("⇤}.build() as T")
+            addStatement("return ret")
+        }.build().also(builder::addFunction)
     }
 
     private fun createParseFun(boxedType: TypeName, parsable: KDParsable): FunSpec =

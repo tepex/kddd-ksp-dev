@@ -6,6 +6,7 @@ import ru.it_arch.kddd.ValueObject
 /**
  * Опции KSP.
  * */
+@ConsistentCopyVisibility
 public data class KDOptions private constructor(
     private val subpackage: Subpackage?,
     private val generatedClassNameRe: Regex,

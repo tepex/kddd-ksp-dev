@@ -15,7 +15,7 @@ public data class KDProperty private constructor(
 
     public companion object {
         /** For KDType.BOXED */
-        public fun create(name: MemberName, typeName: TypeName, annotation: KDSerialName? = null): KDProperty =
+        public operator fun invoke(name: MemberName, typeName: TypeName, annotation: KDSerialName? = null): KDProperty =
             KDProperty(name, typeName, annotation)
     }
 }
