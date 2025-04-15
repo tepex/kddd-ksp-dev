@@ -9,9 +9,11 @@ import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 
+/** Для генерации классов билдеров — обычного или DSL  */
 public class KDTypeBuilderBuilder private constructor(
     private val options: KDOptions,
     private val logger: KDLogger,
@@ -19,17 +21,18 @@ public class KDTypeBuilderBuilder private constructor(
     private val isDsl: Boolean
 ) {
 
-    /** fun Impl.toBuilder(): Impl.Builder */
-    private val toBuildersHolder =
-        ToBuildersFun((holder.dslBuilderClassName.takeIf { isDsl } ?: holder.builderClassName), isDsl)
+    /** fun MyType.toBuilder(): MyTypeImpl.Builder */
+    private val toBuilderHolder =
+        ToBuilderFunHolder(holder.kDddTypeName, (holder.dslBuilderClassName.takeIf { isDsl } ?: holder.builderClassName), isDsl)
 
     /** class Impl.<Dsl>Builder()  */
     private val innerBuilder =
         (holder.dslBuilderClassName.takeIf { isDsl }?.let(TypeSpec::classBuilder)
             ?: TypeSpec.classBuilder(holder.builderClassName))
 
-    /** fun Impl.Builder.build(): Impl */
+    /** fun MyTypeImpl.Builder.build(): MyType */
     private val builderFunBuild = FunSpec.builder(KDType.Data.BUILDER_BUILD_METHOD_NAME)
+        //.returns(holder.kDddTypeName)
         .returns(holder.className)
 
     init {
@@ -72,7 +75,7 @@ public class KDTypeBuilderBuilder private constructor(
         innerBuilder.addFunction(builderFunBuild.build()).build()
 
     public fun buildFunToBuilder(): FunSpec =
-        toBuildersHolder.build()
+        toBuilderHolder.build()
 
     /**
      * 2. fun to<Dsl>Builder() { <name> = <name> }
@@ -87,9 +90,9 @@ public class KDTypeBuilderBuilder private constructor(
             if (element.typeName.isNullable) +Chunk("%N?.let { %T$parse(it) }, ", property.name, element.kdType.className)
             else +Chunk("%T$parse(%N!!), ", element.kdType.className, property.name)
             //logger.log("$property isParsable: ${element.kdType.isParsable} bozedType: ${element.kdType.boxedType} ")
-            toBuildersHolder.element(property.name.simpleName, element.typeName.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
+            toBuilderHolder.element(property.name.simpleName, element.typeName.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
         } else {
-            toBuildersHolder.asIs(property.name.simpleName)
+            toBuilderHolder.asIs(property.name.simpleName)
             +Chunk("%N${if (!element.typeName.isNullable && isDsl) "!!" else ""},", property.name)
         }
     }
@@ -102,7 +105,7 @@ public class KDTypeBuilderBuilder private constructor(
                 +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
                 endStatement()
 
-                toBuildersHolder.fromDsl(name.simpleName, substituted.toDslMapper)
+                toBuilderHolder.fromDsl(name.simpleName, substituted.toDslMapper)
 
                 substituted.parameterizedTypeName
                     .let { PropertySpec.builder(name.simpleName, it).initializer(collectionType.initializer(true)) }
@@ -112,7 +115,7 @@ public class KDTypeBuilderBuilder private constructor(
             +Chunk("%N = %N", name, name)
             endStatement()
             // toBuilder()
-            toBuildersHolder.asIs(name.simpleName)
+            toBuilderHolder.asIs(name.simpleName)
             PropertySpec.builder(name.simpleName, typeName).initializer(collectionType.initializer(false))
         }
     }
@@ -134,7 +137,7 @@ public class KDTypeBuilderBuilder private constructor(
                 // return InnerImpl.DslBuilder().apply(block).build()
                 addStatement("return ${KDType.Data.APPLY_BUILDER}", type.dslBuilderClassName, param)
             }
-            returns(type.sourceTypeName)
+            returns(type.kDddTypeName)
         }.build()
 
     // ValueObject.Boxed<BOXED> -> BOXED for DSL
@@ -174,11 +177,19 @@ public class KDTypeBuilderBuilder private constructor(
         return ret*/
     }
 
-
-    private class ToBuildersFun(builderTypeName: ClassName, isDsl: Boolean) {
-        private val builder = FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")
-            .returns(builderTypeName)
-            .addStatement("val $RET = %T()", builderTypeName)
+    /**
+     * Вспомогательный класс-holder для генерации `fun MyType.toBuilder(): MyTypeImpl.Builder` или `fun MyType.toDslBuilder(): MyTypeImpl.DslBuilder`
+     *
+     * @param receiverTypeName имя исходной KDDD-модели
+     * @param builderTypeName тип билдера
+     * @param isDsl вид билдера: false — обычный, true — DSL
+     * */
+    private class ToBuilderFunHolder(receiverTypeName: TypeName, builderTypeName: ClassName, isDsl: Boolean) {
+        private val builder =
+            FunSpec.builder("toDslBuilder".takeIf { isDsl } ?: "toBuilder")
+                .receiver(receiverTypeName)
+                .returns(builderTypeName)
+                .addStatement("val $RET = %T()", builderTypeName)
 
         // toDslBuilder: ret.<name> = <name>.boxed.toString(), ret.<name> = <name>?.boxed?.toString()
         fun element(name: String, isNullable: Boolean, isCommonType: Boolean) {

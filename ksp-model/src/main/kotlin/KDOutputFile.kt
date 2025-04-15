@@ -31,22 +31,28 @@ public data class KDOutputFile private constructor(
 
             fileBuilder.addType(generatable.builder.build())
 
-            /* Root DSL builder */
-            val receiver = ClassName(packageName.boxed, generatable.className.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
-            ParameterSpec.builder(
-                "block",
-                if (isUseContextParameters) LambdaTypeName.get(contextReceivers = listOf(receiver), returnType = Unit::class.asTypeName())
-                else LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
-            ).build().also { builderParam ->
-                FunSpec.builder(builderFunName.boxed)
-                    .addParameter(builderParam)
-                    .addStatement(
-                        "return %T().apply(%N).${KDType.Data.BUILDER_BUILD_METHOD_NAME}()",
-                        receiver,
-                        builderParam
+            if (generatable.hasDsl) {
+                /* Root DSL builder */
+                val receiver =
+                    ClassName(packageName.boxed, generatable.className.simpleName, KDType.Data.DSL_BUILDER_CLASS_NAME)
+                ParameterSpec.builder(
+                    "block",
+                    if (isUseContextParameters) LambdaTypeName.get(
+                        contextReceivers = listOf(receiver),
+                        returnType = Unit::class.asTypeName()
                     )
-                    .returns(generatable.className)
-                    .build().also(fileBuilder::addFunction)
+                    else LambdaTypeName.get(receiver = receiver, returnType = Unit::class.asTypeName())
+                ).build().also { builderParam ->
+                    FunSpec.builder(builderFunName.boxed)
+                        .addParameter(builderParam)
+                        .addStatement(
+                            "return %T().apply(%N).${KDType.Data.BUILDER_BUILD_METHOD_NAME}()",
+                            receiver,
+                            builderParam
+                        )
+                        .returns(generatable.className)
+                        .build().also(fileBuilder::addFunction)
+                }
             }
         }.build()
 

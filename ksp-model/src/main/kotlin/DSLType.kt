@@ -24,7 +24,7 @@ internal sealed interface DSLType {
             operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
                 Element(
                     (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawTypeName
-                    else kdTypeSearchResult.first.sourceTypeName).toNullable(isNullable),
+                    else kdTypeSearchResult.first.kDddTypeName).toNullable(isNullable),
                     kdTypeSearchResult.first,
                     kdTypeSearchResult.second,
                 )

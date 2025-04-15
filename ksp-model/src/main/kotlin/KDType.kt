@@ -20,7 +20,8 @@ import ru.it_arch.kddd.ValueObject
  * Определяет все имеющиеся типы.
  * */
 public sealed interface KDType {
-    public val sourceTypeName: TypeName
+    /** Имя интерфейса исходной KDDD-модели */
+    public val kDddTypeName: TypeName
 
     /**
      * Определяет вид DDD-модели: `Value Object` или `Entity`
@@ -79,7 +80,7 @@ public sealed interface KDType {
      * */
     @JvmInline
     public value class Sealed private constructor(
-        override val sourceTypeName: TypeName,
+        override val kDddTypeName: TypeName,
     ) : KDType {
 
         public companion object {
@@ -92,7 +93,7 @@ public sealed interface KDType {
      * TODO: Not implemented yet
      * */
     public data object Abstraction : KDType {
-        override val sourceTypeName: TypeName = ValueObject::class.asTypeName()
+        override val kDddTypeName: TypeName = ValueObject::class.asTypeName()
         val TYPENAME: TypeName = ValueObject::class.asTypeName()
 
         override fun toString(): String = "Abstraction"

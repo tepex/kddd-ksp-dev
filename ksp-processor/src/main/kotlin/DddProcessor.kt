@@ -46,16 +46,18 @@ internal class DddProcessor(
         override fun createBuilder(model: KDType.Model) {
             with(options) {
                 with(KDLoggerImpl(logger)) {
+                    // class MyTypeImpl.Builder
                     KDTypeBuilderBuilder(model, false).also { builderBuilder ->
                         model.builder.addType(builderBuilder.build())
                         builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
                     }
+                    // class MyTypeImpl.DslBuilder
                     if (model.hasDsl) KDTypeBuilderBuilder(model, true).also { builderBuilder ->
                         model.builder.addType(builderBuilder.build())
                         builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
                     }
-                    if (model.hasJson) KDTypeJsonBuilder(model)
-                        .also { model.builder.addType(it.build()) }
+                    // MyTypeImpl.Companion
+                    if (model.hasJson) KDTypeJsonBuilder(model).also { model.builder.addType(it.build()) }
                 }
             }
         }

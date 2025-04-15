@@ -33,7 +33,7 @@ internal class KDTypeForGeneration(
     override val classNameRef: String = className.simpleName
     override val builder = TypeSpec.classBuilder(className).addSuperinterface(context.typeName)
     override val propertyHolders: List<KDProperty>
-    override val sourceTypeName: TypeName = context.typeName
+    override val kDddTypeName: TypeName = context.typeName
 
     private val _nestedTypes = mutableMapOf<TypeName, KDType>()
     override val nestedTypes: Map<TypeName, KDType>
@@ -141,7 +141,7 @@ internal class KDTypeForGeneration(
         }.build()
 
     override fun addNestedType(type: KDType) {
-        _nestedTypes[type.sourceTypeName.toNullable(false)] = type
+        _nestedTypes[type.kDddTypeName.toNullable(false)] = type
     }
 
     override fun getKDType(typeName: TypeName) = typeName.toNullable(false).let { key ->

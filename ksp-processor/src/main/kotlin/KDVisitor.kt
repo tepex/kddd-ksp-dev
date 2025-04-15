@@ -49,7 +49,7 @@ internal abstract class KDVisitor(
 
         outputFiles.keys.map { it.generatable }.filterIsInstance<KDType.Model>().forEach { model ->
             buildAndAddNestedTypes(model)
-            model.takeIf { model.hasDsl }?.also(::createBuilder)
+            createBuilder(model)
         }
 
         outputFiles.entries
