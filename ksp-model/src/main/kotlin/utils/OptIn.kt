@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.ksp.model
+package ru.it_arch.clean_ddd.ksp_model.utils
 
 /**
  * Грязный хак для генерации аннотации @OptIn(ExperimentalSerializationApi::class).
@@ -9,7 +9,7 @@ package ru.it_arch.clean_ddd.ksp.model
  * не получится.
  *
  * После кодогенерации в результирующем файле
- * `import ru.it_arch.clean_ddd.ksp.model.OptIn` подменяется на `import kotlinx.serialization.ExperimentalSerializationApi`
+ * `import ru.it_arch.clean_ddd.ksp.model.utils.OptIn` подменяется на `import kotlinx.serialization.ExperimentalSerializationApi`
  * */
 @Retention(AnnotationRetention.SOURCE)
 public annotation class OptIn(val markerClass: String)

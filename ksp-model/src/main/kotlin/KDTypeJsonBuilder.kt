@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.ksp.model
+package ru.it_arch.clean_ddd.ksp_model
 
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
@@ -17,6 +17,9 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import ru.it_arch.clean_ddd.ksp_model.model.KDType
+import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
+import ru.it_arch.clean_ddd.ksp_model.utils.OptIn
 
 public class KDTypeJsonBuilder private constructor(
     private val logger: KDLogger,
@@ -30,7 +33,7 @@ public class KDTypeJsonBuilder private constructor(
     private val deserializeFun = DeserializeFun(holder.className)
 
     init {
-        holder.propertyHolders.forEachIndexed { index, property ->
+        holder.properties.forEachIndexed { index, property ->
             if (property.typeName is ParameterizedTypeName) {
                 processCollection(property.name, JsonType.Collection.create(property.typeName), false).also { jsonType ->
                     descriptorFun.addCollection(property.serialName, jsonType)

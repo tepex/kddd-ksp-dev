@@ -11,15 +11,22 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.AnnotationSpec
+import com.squareup.kotlinpoet.ExperimentalKotlinPoetApi
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.LambdaTypeName
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import kotlinx.serialization.json.Json
-import ru.it_arch.clean_ddd.ksp.model.KDLogger
-import ru.it_arch.clean_ddd.ksp.model.KDOptions
-import ru.it_arch.clean_ddd.ksp.model.KDType
-import ru.it_arch.clean_ddd.ksp.model.OptIn as MyOptIn
+import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
+import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
+import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
+import ru.it_arch.clean_ddd.ksp_model.model.KDType
+import ru.it_arch.clean_ddd.ksp_model.simpleName
+import ru.it_arch.clean_ddd.ksp_model.utils.OptIn as MyOptIn
 
 internal abstract class KDVisitor(
     private val resolver: Resolver,
@@ -29,12 +36,12 @@ internal abstract class KDVisitor(
 ) : KSDefaultVisitor<KDType.Generatable, Unit>() {
 
     protected val kdLogger: KDLogger = KDLoggerImpl(logger)
-    protected val globalKDTypes: MutableMap<TypeName, KDType> = mutableMapOf()
-
+    private val typeCatalog = mutableSetOf<KDType>()
     abstract fun createBuilders(model: KDType.Model)
 
     fun generate(symbols: Sequence<KSFile>) {
 
+        // TODO: dirty!!! refactor this 💩
         var packageName: String? = null
 
         val outputFiles = symbols.flatMap { file ->
@@ -42,20 +49,23 @@ internal abstract class KDVisitor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .map { declaration ->
-                    packageName = options.getImplementationPackage(declaration.packageName.asString()).boxed
+                    //packageName = options.getImplementationPackage(declaration.packageName.asString()).boxed
+                    packageName = "TODO"
                     visitKDDeclaration(declaration).takeIf { it is KDType.Generatable }?.let { kdType ->
                         with(options) {
                             createOutputFile(declaration, kdType as KDType.Generatable) to file
                         }
                     }
-
                 }.filterNotNull()
         }.toMap()
 
         outputFiles.keys.filter { it.generatable is KDType.Model }.forEach { file ->
             buildAndAddNestedTypes(file.generatable as KDType.Model)
+
             createBuilders(file.generatable as KDType.Model)
-            //createJsonExtensionFunctions()
+
+            // TODO if (file.generatable.hasDsl) createDslBuilderExtensionFunction(file)
+            if (file.generatable.hasJson) createJsonExtensionFunctions(file)
         }
 
         outputFiles.entries
@@ -81,11 +91,26 @@ internal abstract class KDVisitor(
         }.build().replaceAndWrite(codeGenerator, Dependencies(false))
     }
 
+    private fun createJsonExtensionFunctions(file: KDOutputFile) {
+        FunSpec.builder("toJson").apply {
+            receiver(file.generatable.name)
+            returns(String::class)
+            addStatement("return json.encodeToString(this as ${file.generatable.classNameRef})")
+        }.build().also(file.fileSpecBuilder::addFunction)
+
+        FunSpec.builder("to${file.generatable.name.simpleName}").apply {
+            receiver(String::class)
+            returns(file.generatable.name)
+            // json.decodeFromString<PrimitivesImpl>(this)
+            addStatement("return json.decodeFromString<${file.generatable.classNameRef}>(this)")
+        }.build().also(file.fileSpecBuilder::addFunction)
+    }
+
     private tailrec fun buildAndAddNestedTypes(model: KDType.Model, isFinish: Boolean = false) {
-        val nestedModels = model.nestedTypes.values.filterIsInstance<KDType.Model>()
+        val nestedModels = model.nestedTypes.filterIsInstance<KDType.Model>()
         return if (nestedModels.isEmpty() || isFinish) {
             // append
-            model.nestedTypes.values.filterIsInstance<KDType.Generatable>().forEach { type ->
+            model.nestedTypes.filterIsInstance<KDType.Generatable>().forEach { type ->
                 if (type is KDType.Model) createBuilders(type)
                 model.builder.addType(type.builder.build())
             }
@@ -101,17 +126,20 @@ internal abstract class KDVisitor(
                 .also { args -> kdLogger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
         } else emptyList()
 
-        val toBeGenerated = with(options) { getImplementationClassName(declaration.simpleName.asString()) }
         val typeName = declaration.asType(typeArgs).toTypeName()
+        val context = with(options) {
+            with(kdLogger) {
+                typeContext(declaration, typeCatalog.toSet(), typeName)
+            }
+        }
 
-        return with(typeContext(options, kdLogger, globalKDTypes, toBeGenerated, typeName, declaration)) {
-
+        return with(context) {
             declaration.kdTypeOrNull(kdLogger).getOrElse {
                 this@KDVisitor.logger.warn(it.message ?: "Cant parse parent type", declaration)
                 null
             }
         }?.also { kdType ->
-            globalKDTypes[typeName] = kdType
+            typeCatalog[typeName] = kdType
             if (kdType is KDType.Generatable) declaration.accept(this, kdType)
         }
     }

@@ -1,8 +1,7 @@
 package ru.it_arch.clean_ddd.app
 
-import ru.it_arch.clean_ddd.domain.demo.WithInner
-import ru.it_arch.clean_ddd.domain.demo.impl.WithInnerImpl
-import ru.it_arch.clean_ddd.domain.demo.impl.json
+import ru.it_arch.clean_ddd.domain.demo.impl.toJson
+import ru.it_arch.clean_ddd.domain.demo.impl.toWithInner
 import ru.it_arch.clean_ddd.domain.demo.impl.withInner
 
 fun testWithInner() {
@@ -13,7 +12,7 @@ fun testWithInner() {
         }
     }.apply {
         println("\ninner types demo: $this")
-        json.encodeToString(this).also { println("json: $it") }
+        println("json: ${toJson()}")
     }
 
     """{
@@ -26,9 +25,6 @@ fun testWithInner() {
         "inner-str": "optional string"
     }
 }""".apply {
-        json.decodeFromString<WithInnerImpl>(this).also { obj: WithInner ->
-            // Можете пользоваться
-            println("deserialize: $obj")
-        }
+        println("deserialize: ${toWithInner()}")
     }
 }

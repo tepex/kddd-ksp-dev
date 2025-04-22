@@ -23,7 +23,7 @@ dependencies {
 }
 
 ksp {
-    arg("subpackage", "impl")
+    arg("implementationSubpackage", "impl")
     //arg("contextParameters", "true")
     arg("jsonNamingStrategy", "kebab")
     //arg("generatedClassNameResult", "$1Default")

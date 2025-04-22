@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.ksp.model
+package ru.it_arch.clean_ddd.ksp_model.model
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MUTABLE_LIST

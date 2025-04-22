@@ -32,18 +32,20 @@ public annotation class KDParsable(
     val useStringInDsl: Boolean = false,
 )
 
-/** Определяет явное имя поля для сериализации
+/**
+ * Определяет явное имя поля для сериализации.
  *
- * Аналог [SerialName][kotlinx.serialization.SerialName]
- * @property name имя поля
+ * Аналог [SerialName][kotlinx.serialization.SerialName].
+ * @property name имя поля.
  * */
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.BINARY)
 @MustBeDocumented
 public annotation class KDSerialName(val value: String)
 
-/** Определяет, что в генерируемой доменной имплементации, тил свойства используется как есть — без оборачивания в `value class` */
-/* А оно нужно?
+/**
+ * Определяет, что в генерируемой доменной имплементации, тил свойства используется как есть — без оборачивания в `value class` */
+/* TODO: А оно нужно?
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.BINARY)
 @MustBeDocumented

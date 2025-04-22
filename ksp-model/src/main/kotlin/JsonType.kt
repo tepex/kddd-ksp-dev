@@ -1,8 +1,10 @@
-package ru.it_arch.clean_ddd.ksp.model
+package ru.it_arch.clean_ddd.ksp_model
 
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.TypeName
+import ru.it_arch.clean_ddd.ksp_model.model.CollectionType
+import ru.it_arch.clean_ddd.ksp_model.model.KDType
 
 internal sealed interface JsonType {
 
@@ -30,10 +32,10 @@ internal sealed interface JsonType {
             "decode${if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
 
         companion object {
-            fun create(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
+            operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
                 Element(
-                    (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawTypeName
-                    else kdTypeSearchResult.first.kDddTypeName).toNullable(isNullable),
+                    (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawType
+                    else kdTypeSearchResult.first.name).toNullable(isNullable),
                     kdTypeSearchResult.first,
                     kdTypeSearchResult.second
                 )
@@ -116,7 +118,8 @@ internal sealed interface JsonType {
 
         companion object {
             private const val TMPL_SIGN = "#"
-            fun create(typeName: ParameterizedTypeName) = Collection(typeName)
+
+            operator fun invoke(typeName: ParameterizedTypeName) = Collection(typeName)
         }
     }
 }

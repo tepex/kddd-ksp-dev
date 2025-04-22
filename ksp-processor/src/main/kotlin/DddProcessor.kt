@@ -6,10 +6,10 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.validate
-import ru.it_arch.clean_ddd.ksp.model.KDOptions
-import ru.it_arch.clean_ddd.ksp.model.KDType
-import ru.it_arch.clean_ddd.ksp.model.KDTypeBuilderBuilder
-import ru.it_arch.clean_ddd.ksp.model.KDTypeJsonBuilder
+import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
+import ru.it_arch.clean_ddd.ksp_model.model.KDType
+import ru.it_arch.clean_ddd.ksp_model.BuilderHolder
+import ru.it_arch.clean_ddd.ksp_model.KDTypeJsonBuilder
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -43,18 +43,22 @@ internal class DddProcessor(
         resolver: Resolver
     ) : KDVisitor(resolver, options, codeGenerator, logger) {
 
+        // return canonical BuilderHolder
         override fun createBuilders(model: KDType.Model) {
             with(options) {
                 with(KDLoggerImpl(logger)) {
+
                     // class MyTypeImpl.Builder
-                    KDTypeBuilderBuilder(model, false).also { builderBuilder ->
-                        model.builder.addType(builderBuilder.build())
-                        builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
+                    BuilderHolder(model, false).also { holder ->
+                        model.builder.addType(holder.build())
+                        // TODO: не прилеплять внутрь класса, а к расширению Kddd-типа!
+                        //holder.buildToBuilderFun().also(model.builder::addFunction)
                     }
                     // class MyTypeImpl.DslBuilder
-                    if (model.hasDsl) KDTypeBuilderBuilder(model, true).also { builderBuilder ->
-                        model.builder.addType(builderBuilder.build())
-                        builderBuilder.buildFunToBuilder().also(model.builder::addFunction)
+                    if (model.hasDsl) BuilderHolder(model, true).also { holder ->
+                        model.builder.addType(holder.build())
+                        // TODO: не прилеплять внутрь класса, а к расширению Kddd-типа!
+                        //holder.buildToBuilderFun().also(model.builder::addFunction)
                     }
                     // MyTypeImpl.Companion
                     if (model.hasJson) KDTypeJsonBuilder(model).also { model.builder.addType(it.build()) }

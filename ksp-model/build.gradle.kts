@@ -27,7 +27,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).all {
 
 dependencies {
     implementation(project(":kddd"))
-    implementation(libs.ksp.api)
+    //implementation(libs.ksp.api)
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
     implementation(libs.kotlinx.serialization.json)

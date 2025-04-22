@@ -1,7 +1,7 @@
 package ru.it_arch.clean_ddd.ksp
 
 import com.google.devtools.ksp.processing.KSPLogger
-import ru.it_arch.clean_ddd.ksp.model.KDLogger
+import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 
 public class KDLoggerImpl private constructor(private val kspLogger: KSPLogger) : KDLogger {
     override fun log(text: String) {
