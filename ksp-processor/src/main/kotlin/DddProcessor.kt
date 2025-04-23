@@ -9,7 +9,7 @@ import com.google.devtools.ksp.validate
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.BuilderHolder
-import ru.it_arch.clean_ddd.ksp_model.KDTypeJsonBuilder
+import ru.it_arch.clean_ddd.ksp_model.JsonBuilderHolder
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -61,7 +61,7 @@ internal class DddProcessor(
                         //holder.buildToBuilderFun().also(model.builder::addFunction)
                     }
                     // MyTypeImpl.Companion
-                    if (model.hasJson) KDTypeJsonBuilder(model).also { model.builder.addType(it.build()) }
+                    if (model.hasJson) JsonBuilderHolder(model).also { model.builder.addType(it.build()) }
                 }
             }
         }

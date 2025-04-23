@@ -1,25 +1,29 @@
 package ru.it_arch.clean_ddd.ksp_model.model
 
-import com.squareup.kotlinpoet.ExperimentalKotlinPoetApi
 import com.squareup.kotlinpoet.FileSpec
 import ru.it_arch.clean_ddd.ksp_model.utils.PackageName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
+/**
+ * Определяет генерируемый файл для класса имплементации.
+ *
+ * @property model
+ * @property packageName
+ * */
 @ConsistentCopyVisibility
 public data class KDOutputFile private constructor(
-    public val generatable: KDType.Generatable,
-    private val packageName: PackageName,
+    public val model: KDType.Model,
+    private val packageName: String,
     //private val builderFunName: KDOptions.BuilderFunctionName,
-    private val isUseContextParameters: Boolean
+    //private val useContextParameters: KDOptions.UseContextParameters
 ) : ValueObject.Data {
 
-    @kotlin.OptIn(ExperimentalKotlinPoetApi::class)
     public val fileSpecBuilder: FileSpec.Builder by lazy {
-        FileSpec.builder(packageName.boxed, generatable.implName.simpleName).also { fileBuilder ->
+        FileSpec.builder(packageName, model.implName.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
 
-            fileBuilder.addType(generatable.builder.build())
+            fileBuilder.addType(model.builder.build())
             /*
             if (generatable.hasDsl) {
                 val receiver =
@@ -61,10 +65,10 @@ This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
         public operator fun invoke(
-            generatable: KDType.Generatable,
+            model: KDType.Model,
             packageName: PackageName,
             //builderFunName: KDOptions.BuilderFunctionName,
-            isUseContextParameters: Boolean
-        ): KDOutputFile = KDOutputFile(generatable, packageName, isUseContextParameters)
+            //useContextParameters: KDOptions.UseContextParameters
+        ): KDOutputFile = KDOutputFile(model, packageName.boxed)
     }
 }

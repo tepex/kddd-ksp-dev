@@ -97,7 +97,7 @@ public sealed interface KDType {
 
         public companion object {
             context(ctx: KDTypeContext)
-            public operator fun invoke(): Sealed = Sealed(ctx.typeName)
+            public operator fun invoke(): Sealed = Sealed(ctx.name)
         }
     }
 

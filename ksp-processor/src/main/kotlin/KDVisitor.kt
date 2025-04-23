@@ -11,14 +11,9 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ExperimentalKotlinPoetApi
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.LambdaTypeName
-import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import kotlinx.serialization.json.Json
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
@@ -59,13 +54,13 @@ internal abstract class KDVisitor(
                 }.filterNotNull()
         }.toMap()
 
-        outputFiles.keys.filter { it.generatable is KDType.Model }.forEach { file ->
-            buildAndAddNestedTypes(file.generatable as KDType.Model)
+        outputFiles.keys.filter { it.model is KDType.Model }.forEach { file ->
+            buildAndAddNestedTypes(file.model as KDType.Model)
 
-            createBuilders(file.generatable as KDType.Model)
+            createBuilders(file.model as KDType.Model)
 
             // TODO if (file.generatable.hasDsl) createDslBuilderExtensionFunction(file)
-            if (file.generatable.hasJson) createJsonExtensionFunctions(file)
+            if (file.model.hasJson) createJsonExtensionFunctions(file)
         }
 
         outputFiles.entries
@@ -93,16 +88,16 @@ internal abstract class KDVisitor(
 
     private fun createJsonExtensionFunctions(file: KDOutputFile) {
         FunSpec.builder("toJson").apply {
-            receiver(file.generatable.name)
+            receiver(file.model.name)
             returns(String::class)
-            addStatement("return json.encodeToString(this as ${file.generatable.classNameRef})")
+            addStatement("return json.encodeToString(this as ${file.model.classNameRef})")
         }.build().also(file.fileSpecBuilder::addFunction)
 
-        FunSpec.builder("to${file.generatable.name.simpleName}").apply {
+        FunSpec.builder("to${file.model.name.simpleName}").apply {
             receiver(String::class)
-            returns(file.generatable.name)
+            returns(file.model.name)
             // json.decodeFromString<PrimitivesImpl>(this)
-            addStatement("return json.decodeFromString<${file.generatable.classNameRef}>(this)")
+            addStatement("return json.decodeFromString<${file.model.classNameRef}>(this)")
         }.build().also(file.fileSpecBuilder::addFunction)
     }
 
@@ -139,7 +134,7 @@ internal abstract class KDVisitor(
                 null
             }
         }?.also { kdType ->
-            typeCatalog[typeName] = kdType
+            typeCatalog += kdType
             if (kdType is KDType.Generatable) declaration.accept(this, kdType)
         }
     }

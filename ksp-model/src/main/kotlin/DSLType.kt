@@ -16,6 +16,7 @@ import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 internal sealed interface DSLType {
     val name: TypeName
 
+    @ConsistentCopyVisibility
     data class Element private constructor(
         override val name: TypeName,
         val kdType: KDType,
@@ -23,7 +24,7 @@ internal sealed interface DSLType {
     ) : DSLType {
 
         companion object {
-            operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
+            operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean) =
                 Element(
                     (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawType
                     else kdTypeSearchResult.first.name).toNullable(isNullable),
@@ -33,6 +34,7 @@ internal sealed interface DSLType {
         }
     }
 
+    @ConsistentCopyVisibility
     data class Collection private constructor(
         val parameterizedName: ParameterizedTypeName,
         val logger: KDLogger

@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
+import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
 import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
@@ -40,12 +41,13 @@ private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Res
     }
 
 context(options: KDOptions)
-internal fun createOutputFile(declaration: KSClassDeclaration, generatable: KDType.Generatable): KDOutputFile = KDOutputFile(
-    generatable,
-    options.getImplementationPackage(declaration.packageName.asString()),
-    options.getBuilderFunctionName(declaration.simpleName.asString()),
-    options.isUseContextParameters
-)
+internal fun createOutputFile(declaration: KSClassDeclaration, generatable: KDType.Generatable): KDOutputFile =
+    KDOutputFile(
+        generatable,
+        options.getImplementationPackage(declaration.packageName.asString()),
+        options.getBuilderFunctionName(declaration.simpleName.asString()),
+        options.isUseContextParameters
+    )
 
 
 context(options: KDOptions, logger: KDLogger)

@@ -19,11 +19,9 @@ public data class KDOptions private constructor(
     public val subpackage: Subpackage,
     private val generatedClassNameRe: Regex,
     private val generatedClassNameResult: ResultTemplate,
-    private val useContextParameters: UseContextParameters,
+    public val useContextParameters: UseContextParameters,
     public val jsonNamingStrategy: JsonNamingStrategy?
 ) {
-
-    public val isUseContextParameters: Boolean = useContextParameters.boxed
 
     /*
     public fun getImplementationPackage(src: String): PackageName =

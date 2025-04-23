@@ -15,14 +15,14 @@ import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.kddd.Kddd
 
 /**
- * Контейнер `KotlinPoet`-билдеров для генерации билдеров [Kddd]-типа и соответствующих функций-расширений.
+ * Контейнер `KotlinPoet`-билдеров для [KDType.Model] и соответствующих функций-расширений.
  *
  * Билдер состоит из:
  * 1. набора неинициализированных полей (для коллекций — пустые коллекции; нуллабельные коллекции не применяются),
  * 2. функции `build(): MyType`, которая валидирует инициализацию ненуллабельных скалярных полей,
  * 3. конструктора имплементации, которая возвращается этой функцией.
  *
- * Для обычного билдера типы полей совпадают с типами полей [Kddd]-модели.
+ * Для классического билдера типы полей совпадают с типами полей [Kddd]-модели.
  *
  * Для DSL-билдера типы полей определяются их конкретным «примитивизированным» содержимым или строкой. Соответственно,
  * необходимо воссоздать их [Kddd]-тип в теле метода `build()` билдера с помощью соответствующих методов (их
@@ -83,9 +83,11 @@ import ru.it_arch.kddd.Kddd
  *
  * @property options опции фреймворка.
  * @property logger внутренний логгер.
- * @property model
- * @property isDsl
- * @property toBuilderFunHolder контейнер билдера функций-расширений `toBuilder()`/`toDslBuilder()`
+ * @property model [KDType.Model], для которой создаются билдеры.
+ * @property isDsl `true` — для DSL-билдера, `false` — для клоссического билдера.
+ * @property innerBuilderClass [TypeSpec.Builder] для внутреннего класса билдера `class Builder`/`class DslBuilder`.
+ * @property innerBuilderFunBuild [FunSpec.Builder] для метода `build()` в классе билдере [innerBuilderClass].
+ * @property toBuilderFunHolder контейнер [ToBuilderFunHolder] для функций-расширений `toBuilder()`/`toDslBuilder()`.
  * */
 public class BuilderHolder private constructor(
     private val options: KDOptions,
@@ -158,11 +160,8 @@ public class BuilderHolder private constructor(
             addTo(innerBuilderFunBuild)
         }
         // <3>
-        model.nestedTypes.filter { it.value is KDType.Model }.map { it }  keys.forEach { type ->
-            val kdType = model.nestedTypes[type]
-            if (kdType is KDType.Model) {
-
-            }
+        model.nestedTypes.filterIsInstance<KDType.Model>().forEach { type ->
+            type.createDslBuilderFun(options.useContextParameters)
         }
     }
 
@@ -219,6 +218,7 @@ public class BuilderHolder private constructor(
                 +Chunk("%N = %N${substituted.fromDslMapper}", name, name)
                 endStatement()
                 // <2>
+                // TODO: refactor in case no DSL
                 toBuilderFunHolder.fromDsl(name, substituted.toDslMapper)
                 substituted.parameterizedName
                     .let { PropertySpec.builder(name.simpleName, it).initializer(collectionType.initializer(true)) }

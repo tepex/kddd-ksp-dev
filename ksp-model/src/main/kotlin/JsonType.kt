@@ -8,27 +8,28 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDType
 
 internal sealed interface JsonType {
 
-    val typeName: TypeName
+    val name: TypeName
 
-    fun asString(): String
-    fun encodePrimitiveElement(): String
-    fun decodePrimitiveElement(): String
+    val asString: String
+    val encodePrimitiveElementFunName: String
+    val decodePrimitiveElementFunName: String
 
+    @ConsistentCopyVisibility
     data class Element private constructor(
-        override val typeName: TypeName,
+        override val name: TypeName,
         val kdType: KDType,
         // TODO: remove
         val isInner: Boolean
     ): JsonType {
 
-        override fun asString(): String =
+        override val asString: String =
             if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive()
-            else "String?".takeIf { typeName.isNullable } ?: "String"
+            else "String?".takeIf { name.isNullable } ?: "String"
 
-        override fun encodePrimitiveElement(): String =
+        override val encodePrimitiveElementFunName: String =
             "encode${if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
 
-        override fun decodePrimitiveElement(): String =
+        override val decodePrimitiveElementFunName: String =
             "decode${if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
 
         companion object {
@@ -42,7 +43,8 @@ internal sealed interface JsonType {
         }
     }
 
-    data class Collection(
+    @ConsistentCopyVisibility
+    data class Collection private constructor(
         val parameterizedTypeName: ParameterizedTypeName
     ) : JsonType {
 
@@ -65,7 +67,7 @@ internal sealed interface JsonType {
         lateinit var deserializationMapper: String
             private set
 
-        override val typeName: TypeName = parameterizedTypeName
+        override val name: TypeName = parameterizedTypeName
 
         fun addArg(i: Int, node: JsonType) {
             // for descriptor
@@ -76,14 +78,14 @@ internal sealed interface JsonType {
             val localIt = type.getItArgName(i)
             // .map { it.map { it.boxed }.toSet() })
             serializationMappers += when(node) {
-                is Element -> if (node.kdType is KDType.Boxed) node.kdType.asSerialize(localIt, node.typeName.isNullable) else localIt
+                is Element -> if (node.kdType is KDType.Boxed) node.kdType.asSerialize(localIt, node.name.isNullable) else localIt
                 is Collection -> "$localIt${node.serializationMapper}"
             }
             // .map { it.map { it.let(NameImpl::create) }.toSet() }
             // for deserializer
             deserializationMappers += when(node) {
                 is Element ->
-                    if (node.kdType is KDType.Boxed) "${localIt}${"?".takeIf { node.typeName.isNullable } ?: ""}${node.kdType.asDeserialize(node.isInner)}" else "XXXImpl.serializer()"
+                    if (node.kdType is KDType.Boxed) "${localIt}${"?".takeIf { node.name.isNullable } ?: ""}${node.kdType.asDeserialize(node.isInner)}" else "XXXImpl.serializer()"
                 is Collection -> "$localIt${node.deserializationMapper}"
             }
         }
@@ -98,22 +100,20 @@ internal sealed interface JsonType {
             is Element -> {
                 val primitiveType = if (node.kdType is KDType.Boxed && node.kdType.isPrimitive) node.kdType.asSimplePrimitive() else "String"
                 _serializerVarargs += MemberName("kotlinx.serialization.builtins", "serializer")
-                "$primitiveType.%M().%M".takeIf { node.typeName.isNullable }
+                "$primitiveType.%M().%M".takeIf { node.name.isNullable }
                     ?.also { _serializerVarargs += MemberName("kotlinx.serialization.builtins", "nullable") }
                     ?: "$primitiveType.%M()"
             }
             is Collection -> node.serializerTemplate.also { _serializerVarargs.addAll(node.serializerVarargs) }
         }
 
-        override fun encodePrimitiveElement(): String =
-            "encodeSerializableElement"
+        override val encodePrimitiveElementFunName: String = "encodeSerializableElement"
 
-        override fun decodePrimitiveElement(): String =
-            "decodeSerializableElement"
+        override val decodePrimitiveElementFunName: String = "decodeSerializableElement"
 
-        override fun asString(): String = when(val type = parameterizedTypeName.toCollectionType()) {
-            CollectionType.MAP -> "${type.originName}<${args[0].asString()}, ${args[1].asString()}>"
-            else -> "${type.originName}<${args.first().asString()}>"
+        override val asString: String = when(val type = parameterizedTypeName.toCollectionType()) {
+            CollectionType.MAP -> "${type.originName}<${args[0].asString}, ${args[1].asString}>"
+            else               -> "${type.originName}<${args.first().asString}>"
         }
 
         companion object {

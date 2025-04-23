@@ -19,6 +19,7 @@ import ru.it_arch.kddd.Kddd
  * @property annotations список аннотаций [Kddd]-типа.
  * @property properties список свойств [Kddd]-типа.
  * */
+@ConsistentCopyVisibility
 public data class KDTypeContext private constructor(
     val options: KDOptions,
     val logger : KDLogger,
