@@ -41,12 +41,12 @@ private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Res
     }
 
 context(options: KDOptions)
-internal fun createOutputFile(declaration: KSClassDeclaration, generatable: KDType.Generatable): KDOutputFile =
+internal fun createOutputFile(declaration: KSClassDeclaration, model: KDType.Model): KDOutputFile =
     KDOutputFile(
-        generatable,
-        options.getImplementationPackage(declaration.packageName.asString()),
-        options.getBuilderFunctionName(declaration.simpleName.asString()),
-        options.isUseContextParameters
+        model,
+        options.toImplementationClassName(declaration.packageName.asString()),
+        //options.getBuilderFunctionName(declaration.simpleName.asString()),
+        //options.isUseContextParameters
     )
 
 

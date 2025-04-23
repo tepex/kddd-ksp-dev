@@ -66,9 +66,9 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
         public operator fun invoke(
             model: KDType.Model,
-            packageName: PackageName,
+            packageName: String,
             //builderFunName: KDOptions.BuilderFunctionName,
             //useContextParameters: KDOptions.UseContextParameters
-        ): KDOutputFile = KDOutputFile(model, packageName.boxed)
+        ): KDOutputFile = KDOutputFile(model, packageName)
     }
 }

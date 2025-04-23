@@ -21,7 +21,7 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.simpleName
-import ru.it_arch.clean_ddd.ksp_model.utils.OptIn as MyOptIn
+import ru.it_arch.clean_ddd.ksp_model.utils.OptIn as KDOptIn
 
 internal abstract class KDVisitor(
     private val resolver: Resolver,
@@ -46,16 +46,16 @@ internal abstract class KDVisitor(
                 .map { declaration ->
                     //packageName = options.getImplementationPackage(declaration.packageName.asString()).boxed
                     packageName = "TODO"
-                    visitKDDeclaration(declaration).takeIf { it is KDType.Generatable }?.let { kdType ->
-                        with(options) {
-                            createOutputFile(declaration, kdType as KDType.Generatable) to file
-                        }
-                    }
+                    visitKDDeclaration(declaration).let { kdType -> when(kdType) {
+                        is KDType.Model ->
+                            with(options) { createOutputFile(declaration, kdType) to file }
+                        else -> null
+                    } }
                 }.filterNotNull()
         }.toMap()
 
-        outputFiles.keys.filter { it.model is KDType.Model }.forEach { file ->
-            buildAndAddNestedTypes(file.model as KDType.Model)
+        outputFiles.keys.forEach { file ->
+            buildAndAddNestedTypes(file.model)
 
             createBuilders(file.model as KDType.Model)
 
@@ -80,7 +80,7 @@ internal abstract class KDVisitor(
                 options.jsonNamingStrategy?.let { sb.append("namingStrategy = ${it.className}") }
                 sb.append("\n»}")
                 PropertySpec.builder("json", Json::class)
-                    .addAnnotation(AnnotationSpec.builder(MyOptIn::class).addMember("ExperimentalSerializationApi::class").build())
+                    .addAnnotation(AnnotationSpec.builder(KDOptIn::class).addMember("ExperimentalSerializationApi::class").build())
                     .initializer(sb.toString()).build().also(::addProperty)
             }
         }.build().replaceAndWrite(codeGenerator, Dependencies(false))
