@@ -131,7 +131,7 @@ public class BuilderHolder private constructor(
                         // Блок валидации свойств билдера
                         if (property.type.isNullable.not())
                             innerBuilderFunBuild.addStatement(
-                                """${if (isDsl) "requireNotNull(%N)" else "require(::%N.isInitialized)"} { "Property '%N.%N' is not set!" }""",
+                                """${if (isDsl) "requireNotNull(%M)" else "require(::%M.isInitialized)"} { "Property '%T.%M' is not set!" }""",
                                 property.name,
                                 model.name,
                                 property.name
