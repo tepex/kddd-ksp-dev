@@ -111,9 +111,11 @@ internal sealed interface JsonType {
 
         override val decodePrimitiveElementFunName: String = "decodeSerializableElement"
 
-        override val asString: String = when(val type = parameterizedTypeName.toCollectionType()) {
-            CollectionType.MAP -> "${type.originName}<${args[0].asString}, ${args[1].asString}>"
-            else               -> "${type.originName}<${args.first().asString}>"
+        override val asString: String by lazy {
+            when(val type = parameterizedTypeName.toCollectionType()) {
+                CollectionType.MAP -> "${type.originName}<${args[0].asString}, ${args[1].asString}>"
+                else               -> "${type.originName}<${args.first().asString}>"
+            }
         }
 
         companion object {
