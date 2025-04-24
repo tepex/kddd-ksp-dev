@@ -153,9 +153,6 @@ public infix fun KDType.Model.createDslBuilderFun(useContextParameters: KDOption
         returns(name)
     }.build()
 
-public infix fun KDOptions.getImplementationPackage(base: PackageName): PackageName =
-    base.takeUnless { subpackage.isEmpty() } ?: (base + subpackage)
-
 public infix fun KDOptions.toImplementationClassName(kDddType: String): String {
     var result = generatedClassNameResult.boxed
     generatedClassNameRe.find(kDddType)?.groupValues?.forEachIndexed { i, group ->

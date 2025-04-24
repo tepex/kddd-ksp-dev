@@ -9,7 +9,6 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
-import ru.it_arch.clean_ddd.ksp_model.getImplementationPackage
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
@@ -62,7 +61,7 @@ internal fun typeContext(
     //val options: KDOptions = KDOptions
 
     val kDddPackage = PackageName(declaration.packageName.asString())
-    val implPackage = options getImplementationPackage kDddPackage
+    val implPackage = kDddPackage + options.subpackage
 
 /*
     override val className = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
@@ -87,7 +86,7 @@ internal fun typeContext(
     return KDTypeContext(
         typeCatalog,
         kDddPackage,
-        kDddPackage + options.subpackage,
+        implPackage,
         kDddName,
         implClass,
         annotations,
