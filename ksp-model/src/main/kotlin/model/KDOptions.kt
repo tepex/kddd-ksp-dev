@@ -17,31 +17,16 @@ import ru.it_arch.kddd.ValueObject
 @ConsistentCopyVisibility
 public data class KDOptions private constructor(
     public val subpackage: Subpackage,
-    private val generatedClassNameRe: Regex,
-    private val generatedClassNameResult: ResultTemplate,
+    public val generatedClassNameRe: Regex,
+    public val generatedClassNameResult: ResultTemplate,
     public val useContextParameters: UseContextParameters,
     public val jsonNamingStrategy: JsonNamingStrategy?
-) {
+) : ValueObject.Data {
 
-    /*
-    public fun getImplementationPackage(src: String): PackageName =
-        PackageName(subpackage?.let { "$src.${it.boxed}" } ?: src)
-    */
-    public fun toImplementationClassName(kDddType: String): String {
-        var result = generatedClassNameResult.boxed
-        generatedClassNameRe.find(kDddType)?.groupValues?.forEachIndexed { i, group ->
-            group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
-        }
-        return result
-    }
-/*
-    public fun getImplementationClassName(src: String): ClassName =
-        toImplementationName(src).let(ClassName::bestGuess)
+    override fun validate() {}
 
-    @Deprecated("Use variant from ext.kt")
-    public fun getBuilderFunctionName(src: String): BuilderFunctionName =
-        src.replaceFirstChar { it.lowercaseChar() }.let(BuilderFunctionName.Companion::create)
-*/
+    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+        TODO("Not yet implemented")
 
     @JvmInline
     public value class Subpackage(override val boxed: String): ValueObject.Boxed<String> {
@@ -49,8 +34,9 @@ public data class KDOptions private constructor(
             validate()
         }
 
+        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            fork(boxed) as T
+            Subpackage(boxed) as T
 
         // TODO: validate name
         override fun validate() { }
@@ -80,13 +66,14 @@ public data class KDOptions private constructor(
      * ```
      * */
     @JvmInline
-    private value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            fork(boxed) as T
-
+    public value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
         init {
             validate()
         }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+            ResultTemplate(boxed) as T
 
         override fun validate() {
             require(boxed.contains("\\$\\d+".toRegex())) { "KSP arg $OPTION_GENERATED_CLASS_NAME_RESULT: \"$this\" must contain patterns '$<N>'" }
@@ -95,7 +82,7 @@ public data class KDOptions private constructor(
         override fun toString(): String =
             boxed
 
-        companion object {
+        internal companion object {
             operator fun invoke(boxed: String): ResultTemplate =
                 ResultTemplate(boxed)
         }
@@ -116,13 +103,13 @@ public data class KDOptions private constructor(
      * */
     @JvmInline
     public value class UseContextParameters private constructor(override val boxed: Boolean) : ValueObject.Boxed<Boolean> {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<Boolean>> fork(boxed: Boolean): T =
-            UseContextParameters(boxed) as T
-
         init {
             validate()
         }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Boolean>> fork(boxed: Boolean): T =
+            UseContextParameters(boxed) as T
 
         override fun validate() {}
 

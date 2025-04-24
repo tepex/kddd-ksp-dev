@@ -9,13 +9,15 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
-import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
+import ru.it_arch.clean_ddd.ksp_model.getImplementationPackage
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
+import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
 import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.model.KDTypeContext
-import ru.it_arch.clean_ddd.ksp_model.utils.PackageName
+import ru.it_arch.clean_ddd.ksp_model.model.PackageName
+import ru.it_arch.clean_ddd.ksp_model.toImplementationClassName
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.KDSerialName
@@ -44,11 +46,10 @@ context(options: KDOptions)
 internal fun createOutputFile(declaration: KSClassDeclaration, model: KDType.Model): KDOutputFile =
     KDOutputFile(
         model,
-        options.toImplementationClassName(declaration.packageName.asString()),
+        options toImplementationClassName declaration.packageName.asString(),
         //options.getBuilderFunctionName(declaration.simpleName.asString()),
         //options.isUseContextParameters
     )
-
 
 context(options: KDOptions, logger: KDLogger)
 @OptIn(KspExperimental::class)
@@ -61,7 +62,7 @@ internal fun typeContext(
     //val options: KDOptions = KDOptions
 
     val kDddPackage = PackageName(declaration.packageName.asString())
-    val implPackage = kDddPackage + options.subpackage
+    val implPackage = options getImplementationPackage kDddPackage
 
 /*
     override val className = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
@@ -72,7 +73,7 @@ internal fun typeContext(
     val annotations = declaration.getAnnotationsByType(KDGeneratable::class) + declaration.getAnnotationsByType(KDParsable::class)
     // Имя класса имплементации задается через аннотацию `@KDGeneratable` или на основе привила, определенного в опциях.
     val implClass = (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
-        ?.takeIf { it.isNotBlank() } ?: "${implPackage.boxed}.${options.toImplementationClassName(kDddName.toString())}")
+        ?.takeIf { it.isNotBlank() } ?: "${implPackage.boxed}.${options toImplementationClassName kDddName.toString()}")
         .let(ClassName::bestGuess)
 
     val properties = declaration.getAllProperties().map { property ->

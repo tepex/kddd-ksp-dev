@@ -75,7 +75,7 @@ internal sealed interface JsonType {
             // for serializer
             serializerTemplate = if (type == CollectionType.MAP) serializerTemplate.replace("${TMPL_SIGN}$i", serializerReplacement(node))
             else serializerTemplate.replace(TMPL_SIGN, serializerReplacement(node))
-            val localIt = type.getItArgName(i)
+            val localIt = type getItArgNameForIndex i
             // .map { it.map { it.boxed }.toSet() })
             serializationMappers += when(node) {
                 is Element -> if (node.kdType is KDType.Boxed) node.kdType.asSerialize(localIt, node.name.isNullable) else localIt

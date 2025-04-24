@@ -58,7 +58,7 @@ internal sealed interface DSLType {
             val toDslArgs = mutableListOf<String>()
             args = parameterizedName.typeArguments.mapIndexed { i, arg ->
                 transform(arg).also { newArg ->
-                    val localIt = collectionType.getItArgName(i)
+                    val localIt = collectionType getItArgNameForIndex i
                     when(newArg) {
                         is Collection -> {
                             fromDslArgs += "$localIt${newArg.fromDslMapper}"

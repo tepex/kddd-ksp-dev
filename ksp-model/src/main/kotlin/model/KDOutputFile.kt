@@ -1,7 +1,6 @@
 package ru.it_arch.clean_ddd.ksp_model.model
 
 import com.squareup.kotlinpoet.FileSpec
-import ru.it_arch.clean_ddd.ksp_model.utils.PackageName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
@@ -50,7 +49,6 @@ public data class KDOutputFile private constructor(
             }*/
         }
     }
-
 
     override fun validate() {}
 

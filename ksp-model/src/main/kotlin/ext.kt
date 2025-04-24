@@ -25,6 +25,7 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDType.Boxed.Companion.FABRIC_PARSE_
 import ru.it_arch.clean_ddd.ksp_model.model.CollectionType
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
+import ru.it_arch.clean_ddd.ksp_model.model.PackageName
 import ru.it_arch.kddd.Kddd
 import java.util.Locale
 
@@ -33,9 +34,6 @@ internal fun TypeName.toNullable(nullable: Boolean = true) =
 
 internal fun FunSpec.Builder.addUncheckedCast(): FunSpec.Builder =
     addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("\"UNCHECKED_CAST\"").build())
-
-internal fun TypeName.toCollectionTypeOrNull(): CollectionType? =
-    if (this is ParameterizedTypeName) CollectionType.entries.find { it.classNames.contains(rawType) } else null
 
 internal fun ParameterizedTypeName.toCollectionType(): CollectionType =
     CollectionType.entries.find { it.classNames.contains(rawType) }
@@ -88,10 +86,10 @@ internal fun List<String>.createMapper(type: CollectionType, isMutable: Boolean,
 internal val CollectionType.originName: String
     get() = name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 
-internal fun CollectionType.initializer(isMutable: Boolean): String =
+internal infix fun CollectionType.initializer(isMutable: Boolean): String =
     "mutable${originName}Of()".takeIf { isMutable } ?: "empty$originName()"
 
-internal fun CollectionType.getItArgName(i: Int): String = when(this) {
+internal infix fun CollectionType.getItArgNameForIndex(i: Int): String = when(this) {
     MAP  -> "it.key".takeIf { i == 0 } ?: "it.value"
     else -> "it"
 }
@@ -136,7 +134,7 @@ internal val TypeName.dslBuilderName: String
  * @return декларация функции [FunSpec].
  * */
 @OptIn(ExperimentalKotlinPoetApi::class)
-public fun KDType.Model.createDslBuilderFun(useContextParameters: KDOptions.UseContextParameters): FunSpec =
+public infix fun KDType.Model.createDslBuilderFun(useContextParameters: KDOptions.UseContextParameters): FunSpec =
     FunSpec.builder(name.dslBuilderName).apply {
         ParameterSpec.builder(
             "block",
@@ -153,3 +151,14 @@ public fun KDType.Model.createDslBuilderFun(useContextParameters: KDOptions.UseC
         }
         returns(name)
     }.build()
+
+public infix fun KDOptions.getImplementationPackage(base: PackageName): PackageName =
+    base.takeUnless { subpackage.isEmpty() } ?: (base + subpackage)
+
+public infix fun KDOptions.toImplementationClassName(kDddType: String): String {
+    var result = generatedClassNameResult.boxed
+    generatedClassNameRe.find(kDddType)?.groupValues?.forEachIndexed { i, group ->
+        group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
+    }
+    return result
+}

@@ -21,6 +21,7 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.simpleName
+import ru.it_arch.clean_ddd.ksp_model.toImplementationClassName
 import ru.it_arch.clean_ddd.ksp_model.utils.OptIn as KDOptIn
 
 internal abstract class KDVisitor(
@@ -37,6 +38,7 @@ internal abstract class KDVisitor(
     fun generate(symbols: Sequence<KSFile>) {
 
         // TODO: dirty!!! refactor this 💩
+        // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
         var packageName: String? = null
 
         val outputFiles = symbols.flatMap { file ->
@@ -44,12 +46,10 @@ internal abstract class KDVisitor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .map { declaration ->
-                    //packageName = options.getImplementationPackage(declaration.packageName.asString()).boxed
-                    packageName = "TODO"
+                    packageName ?: run { packageName = options toImplementationClassName declaration.packageName.asString() }
                     visitKDDeclaration(declaration).let { kdType -> when(kdType) {
-                        is KDType.Model ->
-                            with(options) { createOutputFile(declaration, kdType) to file }
-                        else -> null
+                        is KDType.Model -> with(options) { createOutputFile(declaration, kdType) to file }
+                        else            -> null
                     } }
                 }.filterNotNull()
         }.toMap()

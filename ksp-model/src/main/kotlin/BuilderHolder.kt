@@ -161,7 +161,7 @@ public class BuilderHolder private constructor(
         }
         // <3>
         model.nestedTypes.filterIsInstance<KDType.Model>().forEach { type ->
-            type.createDslBuilderFun(options.useContextParameters)
+            type createDslBuilderFun options.useContextParameters
         }
     }
 
@@ -221,7 +221,7 @@ public class BuilderHolder private constructor(
                 // TODO: refactor in case no DSL
                 toBuilderFunHolder.fromDsl(name, substituted.toDslMapper)
                 substituted.parameterizedName
-                    .let { PropertySpec.builder(name.simpleName, it).initializer(collectionType.initializer(true)) }
+                    .let { PropertySpec.builder(name.simpleName, it).initializer(collectionType initializer true) }
             }
         } else {
             // <1>
@@ -229,7 +229,7 @@ public class BuilderHolder private constructor(
             endStatement()
             // <2>
             toBuilderFunHolder.asIs(name)
-            PropertySpec.builder(name.simpleName, type).initializer(collectionType.initializer(false))
+            PropertySpec.builder(name.simpleName, type).initializer(collectionType initializer false)
         }
     }
 
