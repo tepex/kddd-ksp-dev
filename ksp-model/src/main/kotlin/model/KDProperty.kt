@@ -3,25 +3,50 @@ package ru.it_arch.clean_ddd.ksp_model.model
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.kddd.KDSerialName
+import ru.it_arch.kddd.Kddd
+import ru.it_arch.kddd.ValueObject
 
 /**
  * Определяет свойство в классе имплементации.
  *
- * @property name имя свойства.
- * @property type [KotlinPoet](https://square.github.io/kotlinpoet/1.x/kotlinpoet/kotlinpoet/com.squareup.kotlinpoet/-type-name/index.html) тип свойства.
- * @property serialName имя сериализированного свойства если применена аннотация [KDSerialName].
+ * @property name имя сериализированного свойства если применена аннотация [KDSerialName].
+ * @property memberName имя свойства.
+ * @property type тип свойства [TypeName].
  * */
 @ConsistentCopyVisibility
 public data class KDProperty private constructor(
-    val name: MemberName,
+    val name: Name,
+    val memberName: MemberName,
     val type: TypeName,
-    private val serialNameAnnotation: KDSerialName?
-) {
+) : ValueObject.Data {
 
-    val serialName: String = serialNameAnnotation?.value ?: name.simpleName
+    init {
+        validate()
+    }
+
+    override fun validate() {}
+
+    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+        TODO("Not yet implemented")
+
+    @JvmInline
+    public value class Name(override val boxed: String): ValueObject.Boxed<String> {
+        init {
+            validate()
+        }
+
+        override fun validate() {}
+
+        override fun toString(): String =
+            boxed
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+            Name(boxed) as T
+    }
 
     public companion object {
-        public operator fun invoke(name: MemberName, type: TypeName, annotation: KDSerialName? = null): KDProperty =
-            KDProperty(name, type, annotation)
+        public operator fun invoke(memberName: MemberName, type: TypeName, annotation: KDSerialName? = null): KDProperty =
+            KDProperty(Name(annotation?.value ?: memberName.simpleName), memberName, type)
     }
 }

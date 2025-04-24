@@ -156,7 +156,7 @@ public sealed interface KDType {
      * */
     public class IEntity private constructor(private val data: Data) : Model by data {
 
-        private val id = properties.find { it.name.simpleName == ID_NAME }
+        private val id = properties.find { it.memberName.simpleName == ID_NAME }
             ?: error("ID parameter not found for Entity $implName")
 
         override fun toString(): String =
@@ -180,7 +180,7 @@ public sealed interface KDType {
         public fun generateBaseContract() {
             FunSpec.builder("hashCode").apply {
                 addModifiers(KModifier.OVERRIDE)
-                addStatement("return %N.hashCode()", id.name)
+                addStatement("return %N.hashCode()", id.memberName)
                 returns(Int::class)
             }.build().also(builder::addFunction)
 
@@ -190,16 +190,16 @@ public sealed interface KDType {
                 addParameter(paramOther)
                 addStatement("if (this === other) return true")
                 addStatement("if (%N !is %T) return false", paramOther, implName)
-                addStatement("if (%N != %N.%N) return false", id.name, paramOther, id.name)
+                addStatement("if (%N != %N.%N) return false", id.memberName, paramOther, id.memberName)
                 addStatement("return true")
                 returns(Boolean::class)
             }.build().also(builder::addFunction)
 
             // override fun toString()
 
-            properties.filter { it.name.simpleName != ID_NAME }
-                .fold(mutableListOf<Pair<String, MemberName>>()) { acc, param -> acc.apply { add("%N: $%N" to param.name) } }
-                .let { it.joinToString { pair -> pair.first } to it.fold(mutableListOf(id.name)) { acc, pair ->
+            properties.filter { it.memberName.simpleName != ID_NAME }
+                .fold(mutableListOf<Pair<String, MemberName>>()) { acc, param -> acc.apply { add("%N: $%N" to param.memberName) } }
+                .let { it.joinToString { pair -> pair.first } to it.fold(mutableListOf(id.memberName)) { acc, pair ->
                     acc.apply {
                         add(pair.second)
                         add(pair.second)
@@ -249,7 +249,7 @@ public sealed interface KDType {
         public val rawType: TypeName =
             boxedType.takeUnless { isParsable && isUseStringInDsl } ?: String::class.asTypeName()
 
-        public fun asIsOrSerialize(variable: String, isNullable: Boolean): String =
+        public fun asIsOrSerialize(variable: KDProperty.Name, isNullable: Boolean): String =
             StringBuilder().apply {
                 append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
                 forGeneration.getAnnotation<KDParsable>()?.serialization.takeIf { isUseStringInDsl }
@@ -265,13 +265,13 @@ public sealed interface KDType {
          * @param isNullable признак нулабельности свойства
          * @return сгенерированный код параметра
          * */
-        public fun asSerialize(variable: String, isNullable: Boolean): String =
+        public fun asSerialize(variable: KDProperty.Name, isNullable: Boolean): String =
             StringBuilder().apply {
                 append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
                 forGeneration.getAnnotation<KDParsable>()?.serialization?.also { append(".$it") }
             }.toString()
 
-        public fun asDeserialize(variable: String, isNullable: Boolean): String =
+        public fun asDeserialize(variable: KDProperty.Name, isNullable: Boolean): String =
             "TODO"
             //if (isNullable) "$variable?.let { $classNameRef(it) }" else "$classNameRef($variable)"
 

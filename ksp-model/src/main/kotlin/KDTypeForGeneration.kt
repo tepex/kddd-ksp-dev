@@ -75,14 +75,14 @@ internal class KDTypeForGeneration(
         // Генерация конструктора
         context.properties.map { param ->
             PropertySpec
-                .builder(param.name.simpleName, param.type, KModifier.OVERRIDE)
-                .initializer(param.name.simpleName)
+                .builder(param.memberName.simpleName, param.type, KModifier.OVERRIDE)
+                .initializer(param.memberName.simpleName)
                 .build()
         }.also(builder::addProperties)
 
         FunSpec.constructorBuilder()
             .addModifiers(KModifier.PRIVATE)
-            .addParameters(context.properties.map { ParameterSpec(it.name.simpleName, it.type) })
+            .addParameters(context.properties.map { ParameterSpec(it.memberName.simpleName, it.type) })
             .addStatement("validate()")
             .build()
             .also(builder::primaryConstructor)
@@ -144,7 +144,7 @@ internal class KDTypeForGeneration(
             returns(typeT)
             addStatement("val ret = ${KDType.Data.BUILDER_CLASS_NAME}().apply {⇥\n")
             properties.forEachIndexed { i, property ->
-                addStatement("%N = args[$i] as %T", property.name, property.type)
+                addStatement("%N = args[$i] as %T", property.memberName, property.type)
             }
             addStatement("⇤}.build() as T")
             addStatement("return ret")

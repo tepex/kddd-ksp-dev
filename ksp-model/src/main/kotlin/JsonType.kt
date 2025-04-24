@@ -78,7 +78,7 @@ internal sealed interface JsonType {
             val localIt = type getItArgNameForIndex i
             // .map { it.map { it.boxed }.toSet() })
             serializationMappers += when(node) {
-                is Element -> if (node.kdType is KDType.Boxed) node.kdType.asSerialize(localIt, node.name.isNullable) else localIt
+                is Element -> if (node.kdType is KDType.Boxed) node.kdType.asSerialize(localIt, node.name.isNullable) else localIt.boxed
                 is Collection -> "$localIt${node.serializationMapper}"
             }
             // .map { it.map { it.let(NameImpl::create) }.toSet() }

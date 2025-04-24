@@ -16,7 +16,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
+import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.utils.OptIn
@@ -44,21 +44,21 @@ public class JsonBuilderHolder private constructor(
     init {
         model.properties.forEachIndexed { index, property -> when (property.type.isCollection()) {
             true ->
-                processCollection(property.name, JsonType.Collection(property.type.toParametrizedType()), false)
+                processCollection(property.memberName, JsonType.Collection(property.type.toParametrizedType()), false)
                     .also { jsonType ->
-                        descriptorPropertyHolder.addCollection(property.serialName, jsonType)
-                        serializeFunHolder.addElement(property.serialName, jsonType)
-                        deserializeFun.addElement(property.serialName, jsonType)
+                        descriptorPropertyHolder.addCollection(property.name, jsonType)
+                        serializeFunHolder.addElement(property.name, jsonType)
+                        deserializeFun.addElement(property.name, jsonType)
                     }
             false -> {
                 val result = model.getKDType(property.type)
                 if (result.first is KDType.Generatable) {
                     descriptorPropertyHolder
-                        .addElement(property.serialName, result.first as KDType.Generatable, property.type.isNullable)
+                        .addElement(property.name, result.first as KDType.Generatable, property.type.isNullable)
                     serializeFunHolder
-                        .addElement(property.name.simpleName, JsonType.Element(result, property.type.isNullable))
+                        .addElement(property.name, JsonType.Element(result, property.type.isNullable))
                     deserializeFun
-                        .addElement(property.name.simpleName, JsonType.Element(result, property.type.isNullable))
+                        .addElement(property.name, JsonType.Element(result, property.type.isNullable))
                 } else {
                     TODO()
                 }
@@ -124,7 +124,7 @@ public class JsonBuilderHolder private constructor(
         val sb = StringBuilder("%M(%T::class.java.name) {«⇥\n")
         private val args = mutableListOf(MemberName("kotlinx.serialization.descriptors", "buildClassSerialDescriptor"), className)
 
-        fun addElement(name: String, kdType: KDType.Generatable, isNullable: Boolean) {
+        fun addElement(name: KDProperty.Name, kdType: KDType.Generatable, isNullable: Boolean) {
             // element<String?>("uuid", isOptional = true)
             // element<InnerImpl>("inner")
             sb.append("%M<%T")
@@ -141,7 +141,7 @@ public class JsonBuilderHolder private constructor(
             args += param
         }
 
-        fun addCollection(name: String, jsonType: JsonType) {
+        fun addCollection(name: KDProperty.Name, jsonType: JsonType) {
             sb.append("%M<${jsonType.asString}>")
             sb.append("(\"$name\")\n")
             args += MemberName("kotlinx.serialization.descriptors", "element")
@@ -165,9 +165,9 @@ public class JsonBuilderHolder private constructor(
         private val funSerialise = FunSpec.builder("serialize")
             .addModifiers(KModifier.OVERRIDE)
 
-        private val elements = mutableListOf<Pair<String, JsonType>>()
+        private val elements = mutableListOf<Pair<KDProperty.Name, JsonType>>()
 
-        fun addElement(propertyName: String, type: JsonType) {
+        fun addElement(propertyName: KDProperty.Name, type: JsonType) {
             elements += propertyName to type
         }
 
@@ -179,7 +179,7 @@ public class JsonBuilderHolder private constructor(
                 addParameter(valueParam)
                 // ```encoder.encodeStructure(descriptor) {```
                 addStatement("%N.%M(%N) {⇥", encoderParam, encoderStructure, descriptor)
-                elements.forEachIndexed { i, el -> when(val jsonType = el.second) {
+                elements.forEachIndexed { i, (name, jsonType) -> when(jsonType) {
                     is JsonType.Element -> {
                         // Формирование параметров метода ```addStatement(tmpl, *args)``` - строкового шаблона и списка аргументов для него
                         val args = mutableListOf<Any>(descriptor)
@@ -190,15 +190,15 @@ public class JsonBuilderHolder private constructor(
                             "encodeNullableSerializableElement(%N, $i, " + when(jsonType.kdType) {
                                 is KDType.Boxed -> if (jsonType.kdType.isPrimitive)
                                     // ```<Primitive>.serializer(), value.<param name>?.boxed[.<serialization fun>()])```
-                                    "${jsonType.kdType.asSimplePrimitive()}.%M(), %N.${jsonType.kdType.asSerialize(el.first, true)})"
+                                    "${jsonType.kdType.asSimplePrimitive()}.%M(), %N.${jsonType.kdType.asSerialize(name, true)})"
                                     else
                                         // Nullable Common type
                                         // ```String.serializer(), value.<param name>?.boxed?.<serialization fun>())```
-                                        "String.%M(), %N.${jsonType.kdType.asSerialize(el.first, true)})"
+                                        "String.%M(), %N.${jsonType.kdType.asSerialize(name, true)})"
                                 is KDType.Generatable ->
                                     // Nullable Inner type
                                     // ```<ClassName>.serializer(), `value`.<param name> as <ClassName>?)```
-                                    "${jsonType.kdType.implName.simpleName}.%M(), %N.${el.first} as %T?)"
+                                    "${jsonType.kdType.implName.simpleName}.%M(), %N.$name as %T?)"
                                         .also { args += jsonType.kdType.implName }
                                 else -> TODO("Unsupported type: ${jsonType.kdType}")
                             }
@@ -208,16 +208,16 @@ public class JsonBuilderHolder private constructor(
                                     args += valueParam
                                     if (jsonType.kdType.isPrimitive)
                                         // ```encode<Primitive>Element(descriptor, <index>, value.<param name>.boxed)```
-                                        "${jsonType.encodePrimitiveElementFunName}(%N, $i, %N.${jsonType.kdType.asSerialize(el.first,false)})"
+                                        "${jsonType.encodePrimitiveElementFunName}(%N, $i, %N.${jsonType.kdType.asSerialize(name,false)})"
                                     else
                                         // Non nullable common type
                                         // ```encodeStringElement(descriptor, <index>, value.<param name>.boxed.<serialization fun>())```
-                                        "${jsonType.encodePrimitiveElementFunName}(%N, $i, %N.${jsonType.kdType.asSerialize(el.first,false)})"
+                                        "${jsonType.encodePrimitiveElementFunName}(%N, $i, %N.${jsonType.kdType.asSerialize(name,false)})"
                                 }
                                 is KDType.Generatable ->
                                     // Non nullable Inner type
                                     // ```encodeSerializableElement(descriptor, <index>, <ClassName>.serializer(), value.<param name> as <ClassName>)```
-                                    "encodeSerializableElement(%N, $i, ${jsonType.kdType.implName.simpleName}.%M(), %N.${el.first} as %T)"
+                                    "encodeSerializableElement(%N, $i, ${jsonType.kdType.implName.simpleName}.%M(), %N.$name as %T)"
                                         .also {
                                             args += MemberName("kotlinx.serialization.builtins", "serializer")
                                             args += valueParam
@@ -228,7 +228,7 @@ public class JsonBuilderHolder private constructor(
                         }.also { addStatement(it, *args.toTypedArray()) }
                     }
                     is JsonType.Collection ->
-                        addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.${el.first}${jsonType.serializationMapper})",
+                        addStatement("encodeSerializableElement(%N, $i, ${jsonType.serializerTemplate}, %N.$name${jsonType.serializationMapper})",
                             *(listOf<Any>(descriptor) + jsonType.serializerVarargs + valueParam).toTypedArray()
                         )
                 } }
@@ -248,13 +248,13 @@ public class JsonBuilderHolder private constructor(
      * */
     private class DeserializeFun(className: ClassName) {
 
-        private val elements = mutableListOf<Pair<String, JsonType>>()
+        private val elements = mutableListOf<Pair<KDProperty.Name, JsonType>>()
 
         private val funDeserialize = FunSpec.builder("deserialize")
             .addModifiers(KModifier.OVERRIDE)
             .returns(className)
 
-        fun addElement(propertyName: String, type: JsonType) {
+        fun addElement(propertyName: KDProperty.Name, type: JsonType) {
             elements += propertyName to type
         }
 
@@ -266,9 +266,9 @@ public class JsonBuilderHolder private constructor(
                 addStatement("val builder = Builder()")
                 addStatement("loop@ while (true) {⇥")
                 addStatement("when (val i = decodeElementIndex(%N)) {⇥", descriptor)
-                elements.forEachIndexed { i, el ->
-                    val prefix = "$i -> builder.${el.first} ="
-                    when(val jsonType = el.second) {
+                elements.forEachIndexed { i, (name, jsonType) ->
+                    val prefix = "$i -> builder.$name ="
+                    when(jsonType) {
                         is JsonType.Element -> {
                             val args = mutableListOf<Any>(descriptor)
 

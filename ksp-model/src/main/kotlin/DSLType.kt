@@ -69,8 +69,8 @@ internal sealed interface DSLType {
                                 fromDslArgs += newArg.kdType.asDeserialize(localIt, arg.isNullable)
                                 toDslArgs += newArg.kdType.asIsOrSerialize(localIt, arg.isNullable)
                             } else {
-                                fromDslArgs += localIt
-                                toDslArgs += localIt
+                                fromDslArgs += localIt.boxed
+                                toDslArgs += localIt.boxed
                             }
                     }
                 }

@@ -126,15 +126,15 @@ public class BuilderHolder private constructor(
         FunSpecStatement(Chunk("return %T(", model.implName)).apply {
             model.properties.forEach { property ->
                 property.type.takeIf { it.isCollection() }?.toParametrizedType()
-                    ?.also { addParameterForCollection(property.name, it) }
+                    ?.also { addParameterForCollection(property.memberName, it) }
                     ?: run { // элемент
                         // Блок валидации свойств билдера
                         if (property.type.isNullable.not())
                             innerBuilderFunBuild.addStatement(
                                 """${if (isDsl) "requireNotNull(%M)" else "require(::%M.isInitialized)"} { "Property '%T.%M' is not set!" }""",
-                                property.name,
+                                property.memberName,
                                 model.name,
-                                property.name
+                                property.memberName
                             )
 
                         // return new PropertySpec
@@ -146,9 +146,9 @@ public class BuilderHolder private constructor(
 
                             if (kdType is KDType.Boxed && isDsl) kdType.rawType else property.type
                         }.let {
-                            if (!isDsl && !property.type.isNullable) PropertySpec.builder(property.name.simpleName, it)
+                            if (!isDsl && !property.type.isNullable) PropertySpec.builder(property.memberName.simpleName, it)
                                 .addModifiers(KModifier.LATEINIT)
-                            else PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null")
+                            else PropertySpec.builder(property.memberName.simpleName, it.toNullable()).initializer("null")
                         }
                     } // PropertySpec.Builder
                         .mutable()
@@ -179,23 +179,23 @@ public class BuilderHolder private constructor(
      * @param property свойство [Kddd]-модели.
      **/
     private fun FunSpecStatement.addParameterForElement(property: KDProperty) {
-        +Chunk("%N = ", property.name)
+        +Chunk("%N = ", property.memberName)
         val element =
             model.getKDType(property.type).let { DSLType.Element(it, property.type.isNullable) }
 
         if (element.kdType is KDType.Boxed && isDsl) {
             // <1>
             val parse = if (element.kdType.isParsable && element.kdType.isUseStringInDsl) ".${KDType.Boxed.FABRIC_PARSE_METHOD}" else ""
-            if (element.name.isNullable) +Chunk("%N?.let { %T$parse(it) }, ", property.name, element.kdType.implName)
-            else +Chunk("%T$parse(%N!!), ", element.kdType.implName, property.name)
+            if (element.name.isNullable) +Chunk("%N?.let { %T$parse(it) }, ", property.memberName, element.kdType.implName)
+            else +Chunk("%T$parse(%N!!), ", element.kdType.implName, property.memberName)
             // <2>
             //logger.log("$property isParsable: ${element.kdType.isParsable} bozedType: ${element.kdType.boxedType} ")
-            toBuilderFunHolder.element(property.name, element.name.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
+            toBuilderFunHolder.element(property.memberName, element.name.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
         } else {
             // <1>
-            +Chunk("%N${if (!element.name.isNullable && isDsl) "!!" else ""},", property.name)
+            +Chunk("%N${if (!element.name.isNullable && isDsl) "!!" else ""},", property.memberName)
             // <2>
-            toBuilderFunHolder.asIs(property.name)
+            toBuilderFunHolder.asIs(property.memberName)
         }
     }
 

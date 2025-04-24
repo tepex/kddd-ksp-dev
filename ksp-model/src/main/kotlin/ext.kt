@@ -24,6 +24,7 @@ import ru.it_arch.clean_ddd.ksp_model.model.CollectionType.SET
 import ru.it_arch.clean_ddd.ksp_model.model.KDType.Boxed.Companion.FABRIC_PARSE_METHOD
 import ru.it_arch.clean_ddd.ksp_model.model.CollectionType
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
+import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.model.PackageName
 import ru.it_arch.kddd.Kddd
@@ -89,9 +90,9 @@ internal val CollectionType.originName: String
 internal infix fun CollectionType.initializer(isMutable: Boolean): String =
     "mutable${originName}Of()".takeIf { isMutable } ?: "empty$originName()"
 
-internal infix fun CollectionType.getItArgNameForIndex(i: Int): String = when(this) {
-    MAP  -> "it.key".takeIf { i == 0 } ?: "it.value"
-    else -> "it"
+internal infix fun CollectionType.getItArgNameForIndex(i: Int): KDProperty.Name = when(this) {
+    MAP  -> KDProperty.Name("it.key".takeIf { i == 0 } ?: "it.value")
+    else -> KDProperty.Name("it")
 }
 
 internal fun TypeName.isCollection(): Boolean =
