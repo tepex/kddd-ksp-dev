@@ -14,7 +14,6 @@ import ru.it_arch.kddd.ValueObject
  * @property options опции фреймворка.
  * @property logger внутренний логгер.
  * @property typeCatalog реестр всех созданных KDDD-типов ([Kddd]-тип -> [KDType]).
- * @property kDddPackage пакет [Kddd]-типа.
  * @property name имя интерфейса исходной [Kddd]-модели.
  * @property implName полностью квалифицированное имя класса имплементации [Kddd]-типа.
  * @property annotations список аннотаций [Kddd]-типа.
@@ -25,8 +24,6 @@ public data class KDTypeContext private constructor(
     val options: KDOptions,
     val logger : KDLogger,
     val typeCatalog: TypeCatalog,
-    val kDddPackage: PackageName,
-    val implPackage: PackageName,
     val name: TypeName,
     val implName: ClassName,
     val fullClassName: FullClassNameBuilder,
@@ -47,8 +44,8 @@ public data class KDTypeContext private constructor(
         context(options: KDOptions, logger: KDLogger)
         public operator fun invoke(
             typeCatalog: TypeCatalog,
-            kDddPackage: PackageName,
-            implPackage: PackageName,
+            //kDddPackage: PackageName,
+            //implPackage: PackageName,
             name: TypeName,
             implName: ClassName,
             fullClassName: FullClassNameBuilder,
@@ -58,8 +55,6 @@ public data class KDTypeContext private constructor(
             options,
             logger,
             typeCatalog,
-            kDddPackage,
-            implPackage,
             name,
             implName,
             fullClassName,

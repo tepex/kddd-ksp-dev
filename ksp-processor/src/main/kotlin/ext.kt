@@ -68,8 +68,6 @@ internal fun typeContext(
 
     //val options: KDOptions = KDOptions
 
-    val implPackage = declaration toImplementationPackage options.subpackage
-
 /*
     override val className = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotBlank() }?.let(ClassName::bestGuess) ?: context.toBeGenerated
@@ -92,8 +90,6 @@ internal fun typeContext(
 
     return KDTypeContext(
         typeCatalog,
-        declaration.kDddPackageName,
-        implPackage,
         kDddName,
         implClass,
         parent + implClass,
