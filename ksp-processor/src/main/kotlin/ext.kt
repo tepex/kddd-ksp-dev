@@ -16,6 +16,7 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.model.KDTypeContext
 import ru.it_arch.clean_ddd.ksp_model.model.PackageName
+import ru.it_arch.clean_ddd.ksp_model.simpleName
 import ru.it_arch.clean_ddd.ksp_model.toImplementationClassName
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
@@ -77,7 +78,7 @@ internal fun typeContext(
     val annotations = declaration.getAnnotationsByType(KDGeneratable::class) + declaration.getAnnotationsByType(KDParsable::class)
     // Имя класса имплементации задается через аннотацию `@KDGeneratable` или на основе привила, определенного в опциях.
     val implClass = (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
-        ?.takeIf { it.isNotBlank() } ?: "${implPackage.boxed}.${options toImplementationClassName kDddName.toString()}")
+        ?.takeIf { it.isNotBlank() } ?: "${options toImplementationClassName kDddName }")
         .let(ClassName::bestGuess)
 
     val properties = declaration.getAllProperties().map { property ->

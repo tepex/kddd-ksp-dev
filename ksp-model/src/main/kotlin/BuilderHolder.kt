@@ -129,12 +129,13 @@ public class BuilderHolder private constructor(
                     ?.also { addParameterForCollection(property.memberName, it) }
                     ?: run { // элемент
                         // Блок валидации свойств билдера
+
                         if (property.type.isNullable.not())
                             innerBuilderFunBuild.addStatement(
-                                """${if (isDsl) "requireNotNull(%M)" else "require(::%M.isInitialized)"} { "Property '%T.%M' is not set!" }""",
-                                property.memberName,
-                                model.name,
-                                property.memberName
+                                """${if (isDsl) "requireNotNull(%N)" else "require(::%N.isInitialized)"} { "Property '%N.%N' is not set!" }""",
+                                property.name.boxed,
+                                model.name.simpleName,
+                                property.name.boxed
                             )
 
                         // return new PropertySpec

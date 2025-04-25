@@ -153,9 +153,9 @@ public infix fun KDType.Model.createDslBuilderFun(useContextParameters: KDOption
         returns(name)
     }.build()
 
-public infix fun KDOptions.toImplementationClassName(kDddType: String): String {
+public infix fun KDOptions.toImplementationClassName(kDddType: TypeName): String {
     var result = generatedClassNameResult.boxed
-    generatedClassNameRe.find(kDddType)?.groupValues?.forEachIndexed { i, group ->
+    generatedClassNameRe.find(kDddType.simpleName)?.groupValues?.forEachIndexed { i, group ->
         group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
     }
     return result
