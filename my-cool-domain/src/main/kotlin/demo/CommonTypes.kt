@@ -1,6 +1,7 @@
 package ru.it_arch.clean_ddd.domain.demo
 
 import ru.it_arch.kddd.KDGeneratable
+import ru.it_arch.kddd.KDIgnore
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.ValueObject
 import java.io.File
@@ -17,6 +18,7 @@ import java.util.UUID
  * `deserialization`, отвечающий за создание объекта из строки. Для объектов, создаваемых через конструктор,
  * параметр `deserialization` не определяется.
  * */
+@KDIgnore
 @KDGeneratable(json = true)
 public interface CommonTypes : ValueObject.Data {
     public val myUri: MyUri

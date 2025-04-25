@@ -20,7 +20,6 @@ import kotlin.Suppress
 import kotlin.Unit
 import kotlin.jvm.JvmInline
 import ru.it_arch.clean_ddd.domain.demo.WithInner
-import ru.it_arch.clean_ddd.domain.demo.impl.WithInnerImpl.MyInnerImpl.Builder
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
@@ -197,7 +196,7 @@ public data class WithInnerCustomImpl private constructor(
 
         public var myOptionalInner: WithInner.MyInner? = null
 
-        public fun myInner(block: context(MyInnerImpl.DslBuilder) () -> Unit): WithInner.MyInner = MyInnerImpl.DslBuilder().apply(block).build()
+        //public fun myInner(block: context(MyInnerImpl.DslBuilder) () -> Unit): WithInner.MyInner = MyInnerImpl.DslBuilder().apply(block).build()
 
         public fun build(): WithInnerCustomImpl {
             requireNotNull(myInner) { "Property 'WithInnerImpl.myInner' is not set!" }
@@ -236,4 +235,4 @@ public data class WithInnerCustomImpl private constructor(
     }
 }
 
-public fun withInnerCustom(block: context(WithInnerCustomImpl.DslBuilder) () -> Unit): WithInnerCustomImpl = WithInnerCustomImpl.DslBuilder().apply(block).build()
+//public fun withInnerCustom(block: context(WithInnerCustomImpl.DslBuilder) () -> Unit): WithInnerCustomImpl = WithInnerCustomImpl.DslBuilder().apply(block).build()

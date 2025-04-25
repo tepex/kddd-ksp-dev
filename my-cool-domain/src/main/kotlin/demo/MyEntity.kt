@@ -1,8 +1,10 @@
 package ru.it_arch.clean_ddd.domain.demo
 
 import ru.it_arch.kddd.IEntity
+import ru.it_arch.kddd.KDIgnore
 import ru.it_arch.kddd.ValueObject
 
+@KDIgnore
 public interface MyEntity : IEntity {
 
     override val id: Id

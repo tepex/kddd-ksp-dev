@@ -30,7 +30,7 @@ internal class StringBufferedWriter(os: OutputStream) : Appendable, Closeable, A
     }
 
     private fun processLine() {
-        buffer.toString().replace("import ru.it_arch.clean_ddd.ksp.model.utils.OptIn", "import kotlinx.serialization.ExperimentalSerializationApi")
+        buffer.toString().replace("import ru.it_arch.kddd.OptIn", "import kotlinx.serialization.ExperimentalSerializationApi")
             .also(out::append)
         buffer.clear()
     }

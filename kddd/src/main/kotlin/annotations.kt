@@ -51,3 +51,25 @@ public annotation class KDSerialName(val value: String)
 @MustBeDocumented
 public annotation class AsIs
 */
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.BINARY)
+@MustBeDocumented
+public annotation class KDIgnore
+
+/**
+ * Грязный хак для генерации аннотации @OptIn(ExperimentalSerializationApi::class).
+ * Проблема в том, что штатным путем с помощью KotlinPoet ее не вставишь из-за ограничения использования. Написать:
+ * ```
+ * AnnotationSpec.builder(OptIn::class)
+ * ```
+ * не получится.
+ *
+ * После кодогенерации в результирующем файле
+ * `import ru.it_arch.kddd.OptIn` подменяется на `import kotlinx.serialization.ExperimentalSerializationApi`
+ * */
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.BINARY)
+@MustBeDocumented
+public annotation class OptIn(val markerClass: String)
+

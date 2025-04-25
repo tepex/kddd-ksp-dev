@@ -1,12 +1,14 @@
 package ru.it_arch.clean_ddd.domain.demo
 
 import ru.it_arch.kddd.KDGeneratable
+import ru.it_arch.kddd.KDIgnore
 import ru.it_arch.kddd.ValueObject
 
 /**
  * Демонстрация использования вложенных типов в качестве полей.
  *
  */
+@KDIgnore
 @KDGeneratable(json = true)
 public interface WithInner : ValueObject.Data {
     public val myInner: MyInner

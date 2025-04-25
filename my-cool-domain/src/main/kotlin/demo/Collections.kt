@@ -1,6 +1,7 @@
 package ru.it_arch.clean_ddd.domain.demo
 
 import ru.it_arch.kddd.KDGeneratable
+import ru.it_arch.kddd.KDIgnore
 import ru.it_arch.kddd.ValueObject
 
 /**
@@ -8,6 +9,7 @@ import ru.it_arch.kddd.ValueObject
  *
  */
 @KDGeneratable(json = true)
+@KDIgnore
 public interface Collections : ValueObject.Data {
 
     public val list: List<Size>

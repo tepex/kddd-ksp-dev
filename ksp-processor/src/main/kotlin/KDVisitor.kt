@@ -1,5 +1,7 @@
 package ru.it_arch.clean_ddd.ksp
 
+import com.google.devtools.ksp.KspExperimental
+import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -22,8 +24,8 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.model.PackageName
 import ru.it_arch.clean_ddd.ksp_model.simpleName
-import ru.it_arch.clean_ddd.ksp_model.toImplementationClassName
-import ru.it_arch.clean_ddd.ksp_model.utils.OptIn as KDOptIn
+import ru.it_arch.kddd.KDIgnore
+import ru.it_arch.kddd.OptIn as KDOptIn
 
 internal abstract class KDVisitor(
     private val resolver: Resolver,
@@ -36,6 +38,7 @@ internal abstract class KDVisitor(
     private val typeCatalog = mutableSetOf<KDType>()
     abstract fun createBuilders(model: KDType.Model)
 
+    @OptIn(KspExperimental::class)
     fun generate(symbols: Sequence<KSFile>) {
 
         // TODO: dirty!!! refactor this 💩
@@ -46,6 +49,10 @@ internal abstract class KDVisitor(
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
+                .filter { decl ->
+                    decl.getAnnotationsByType(KDIgnore::class).toSet().isEmpty()
+                        .also { if (it.not()) kdLogger.log("ignoring: $decl") }
+                }
                 .map { declaration ->
                     packageName ?: run { packageName = declaration toImplementationPackage options.subpackage }
                     visitKDDeclaration(declaration).let { kdType -> when(kdType) {

@@ -19,7 +19,7 @@ import kotlinx.serialization.encoding.Encoder
 import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
-import ru.it_arch.clean_ddd.ksp_model.utils.OptIn
+import ru.it_arch.kddd.OptIn
 
 /**
  *
