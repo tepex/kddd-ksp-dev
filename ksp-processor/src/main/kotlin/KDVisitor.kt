@@ -46,13 +46,10 @@ internal abstract class KDVisitor(
         var packageName: PackageName? = null
 
         val outputFiles = symbols.flatMap { file ->
+            kdLogger.log("process file: $file")
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
-                .filter { it.classKind == ClassKind.INTERFACE }
-                .filter { decl ->
-                    decl.getAnnotationsByType(KDIgnore::class).toSet().isEmpty()
-                        .also { if (it.not()) kdLogger.log("ignoring: $decl") }
-                }
+                .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
                 .map { declaration ->
                     packageName ?: run { packageName = declaration toImplementationPackage options.subpackage }
                     visitKDDeclaration(declaration).let { kdType -> when(kdType) {
@@ -62,10 +59,12 @@ internal abstract class KDVisitor(
                 }.filterNotNull()
         }.toMap()
 
+        kdLogger.log("type catalog: $typeCatalog")
+
         outputFiles.keys.forEach { file ->
             buildAndAddNestedTypes(file.model)
 
-            createBuilders(file.model as KDType.Model)
+            createBuilders(file.model)
 
             // TODO if (file.generatable.hasDsl) createDslBuilderExtensionFunction(file)
             if (file.model.hasJson) createJsonExtensionFunctions(file)
@@ -132,7 +131,7 @@ internal abstract class KDVisitor(
         val typeName = declaration.asType(typeArgs).toTypeName()
         val context = with(options) {
             with(kdLogger) {
-                typeContext(declaration, typeCatalog.toSet(), typeName)
+                typeContext(declaration, typeCatalog, typeName)
             }
         }
 
