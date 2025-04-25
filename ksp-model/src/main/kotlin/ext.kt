@@ -26,7 +26,6 @@ import ru.it_arch.clean_ddd.ksp_model.model.CollectionType
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
-import ru.it_arch.clean_ddd.ksp_model.model.PackageName
 import ru.it_arch.kddd.Kddd
 import java.util.Locale
 
@@ -60,7 +59,7 @@ internal fun KDType.Boxed.asSimplePrimitive(): String {
 }
 
 internal fun KDType.Boxed.asDeserialize(isInner: Boolean): String =
-    if (isParsable) ".let($classNameRef::$FABRIC_PARSE_METHOD)" else ".let { $classNameRef(it) }"
+    if (isParsable) ".let($fullClassName::$FABRIC_PARSE_METHOD)" else ".let { $fullClassName(it) }"
         //(FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let($classNameRef::$it)" }
 //    else "xxx"//TODO()
 // .let(CommonTypesImpl.MyUUIDImpl::parse)
@@ -160,3 +159,8 @@ public infix fun KDOptions.toImplementationClassName(kDddType: TypeName): String
     }
     return result
 }
+
+internal val DSLType.Element.classNameRef: String
+    get() = if (kdType is KDType.Generatable) {
+        kdType.implName.simpleName.takeIf { isInner } ?: kdType.fullClassName.boxed
+    } else TODO("Not supported yet")

@@ -9,6 +9,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
+import ru.it_arch.clean_ddd.ksp_model.FullClassNameBuilder
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
@@ -16,7 +17,6 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.model.KDTypeContext
 import ru.it_arch.clean_ddd.ksp_model.model.PackageName
-import ru.it_arch.clean_ddd.ksp_model.simpleName
 import ru.it_arch.clean_ddd.ksp_model.toImplementationClassName
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
@@ -62,7 +62,8 @@ context(options: KDOptions, logger: KDLogger)
 internal fun typeContext(
     declaration: KSClassDeclaration,
     typeCatalog: TypeCatalog,
-    kDddName: TypeName
+    kDddName: TypeName,
+    parent: FullClassNameBuilder
 ): KDTypeContext {
 
     //val options: KDOptions = KDOptions
@@ -76,7 +77,7 @@ internal fun typeContext(
 */
 
     val annotations = declaration.getAnnotationsByType(KDGeneratable::class) + declaration.getAnnotationsByType(KDParsable::class)
-    // Имя класса имплементации задается через аннотацию `@KDGeneratable` или на основе привила, определенного в опциях.
+    // Имя класса имплементации задается через аннотацию `@KDGeneratable` или на основе правила, определенного в опциях.
     val implClass = (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotBlank() } ?: "${options toImplementationClassName kDddName }")
         .let(ClassName::bestGuess)
@@ -95,6 +96,7 @@ internal fun typeContext(
         implPackage,
         kDddName,
         implClass,
+        parent + implClass,
         annotations,
         properties
     )

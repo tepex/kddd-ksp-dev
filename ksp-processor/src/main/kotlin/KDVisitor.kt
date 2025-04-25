@@ -18,6 +18,7 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import kotlinx.serialization.json.Json
+import ru.it_arch.clean_ddd.ksp_model.FullClassNameBuilder
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
@@ -43,7 +44,7 @@ internal abstract class KDVisitor(
 
         // TODO: dirty!!! refactor this 💩
         // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
-        var packageName: PackageName? = null
+        var basePackageName: PackageName? = null
 
         val outputFiles = symbols.flatMap { file ->
             kdLogger.log("process file: $file")
@@ -51,8 +52,9 @@ internal abstract class KDVisitor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
                 .map { declaration ->
-                    packageName ?: run { packageName = declaration toImplementationPackage options.subpackage }
-                    visitKDDeclaration(declaration).let { kdType -> when(kdType) {
+                    val packageName = declaration toImplementationPackage options.subpackage
+                    basePackageName ?: run { basePackageName = packageName }
+                    visitKDDeclaration(declaration, FullClassNameBuilder(packageName)).let { kdType -> when(kdType) {
                         is KDType.Model -> with(options) { createOutputFile(declaration, kdType) to file }
                         else            -> null
                     } }
@@ -73,7 +75,7 @@ internal abstract class KDVisitor(
         outputFiles.entries
             .forEach { it.key.fileSpecBuilder.build().replaceAndWrite(codeGenerator, Dependencies(false, it.value)) }
 
-        packageName?.let(::generateJsonProperty)
+        basePackageName?.let(::generateJsonProperty)
     }
 
     /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
@@ -97,14 +99,14 @@ internal abstract class KDVisitor(
         FunSpec.builder("toJson").apply {
             receiver(file.model.name)
             returns(String::class)
-            addStatement("return json.encodeToString(this as ${file.model.classNameRef})")
+            addStatement("return json.encodeToString(this as ${file.model.fullClassName})")
         }.build().also(file.fileSpecBuilder::addFunction)
 
         FunSpec.builder("to${file.model.name.simpleName}").apply {
             receiver(String::class)
             returns(file.model.name)
             // json.decodeFromString<PrimitivesImpl>(this)
-            addStatement("return json.decodeFromString<${file.model.classNameRef}>(this)")
+            addStatement("return json.decodeFromString<${file.model.fullClassName}>(this)")
         }.build().also(file.fileSpecBuilder::addFunction)
     }
 
@@ -122,7 +124,7 @@ internal abstract class KDVisitor(
         }
     }
 
-    private fun visitKDDeclaration(declaration: KSClassDeclaration): KDType? {
+    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: FullClassNameBuilder): KDType? {
         val typeArgs = if (declaration.typeParameters.isNotEmpty()) {
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> kdLogger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
@@ -131,7 +133,7 @@ internal abstract class KDVisitor(
         val typeName = declaration.asType(typeArgs).toTypeName()
         val context = with(options) {
             with(kdLogger) {
-                typeContext(declaration, typeCatalog, typeName)
+                typeContext(declaration, typeCatalog, typeName, parent)
             }
         }
 
@@ -151,7 +153,7 @@ internal abstract class KDVisitor(
             .filterIsInstance<KSClassDeclaration>()
             .forEach { nestedDeclaration ->
                 //kdLogger.log("process declaration: $classDeclaration")
-                visitKDDeclaration(nestedDeclaration)
+                visitKDDeclaration(nestedDeclaration, data.fullClassName)
                     // !!! build and add it later !!!
                     ?.also(data::addNestedType)
                     ?: logger.error("Unsupported type declaration", nestedDeclaration)

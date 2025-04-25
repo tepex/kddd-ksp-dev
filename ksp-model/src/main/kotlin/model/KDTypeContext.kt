@@ -2,6 +2,7 @@ package ru.it_arch.clean_ddd.ksp_model.model
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.TypeName
+import ru.it_arch.clean_ddd.ksp_model.FullClassNameBuilder
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.kddd.Kddd
@@ -28,6 +29,7 @@ public data class KDTypeContext private constructor(
     val implPackage: PackageName,
     val name: TypeName,
     val implName: ClassName,
+    val fullClassName: FullClassNameBuilder,
     val annotations: Sequence<Annotation>,
     val properties: List<KDProperty>
 ) : ValueObject.Data {
@@ -49,9 +51,20 @@ public data class KDTypeContext private constructor(
             implPackage: PackageName,
             name: TypeName,
             implName: ClassName,
+            fullClassName: FullClassNameBuilder,
             annotations: Sequence<Annotation>,
             properties: List<KDProperty>
-        ): KDTypeContext =
-            KDTypeContext(options, logger, typeCatalog, kDddPackage, implPackage, name, implName, annotations, properties)
+        ): KDTypeContext = KDTypeContext(
+            options,
+            logger,
+            typeCatalog,
+            kDddPackage,
+            implPackage,
+            name,
+            implName,
+            fullClassName,
+            annotations,
+            properties
+        )
     }
 }

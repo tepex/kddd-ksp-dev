@@ -34,8 +34,7 @@ internal class KDTypeForGeneration(
 ) : KDType.Generatable {
 
     override val implName = context.implName
-    // TODO: add case for inner types
-    override val classNameRef: String = implName.simpleName
+    override val fullClassName = context.fullClassName
     override val builder = TypeSpec.classBuilder(implName).addSuperinterface(context.name)
     override val properties: List<KDProperty>
     override val name: TypeName = context.name

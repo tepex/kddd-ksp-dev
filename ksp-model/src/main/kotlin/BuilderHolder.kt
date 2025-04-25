@@ -185,10 +185,20 @@ public class BuilderHolder private constructor(
             model.getKDType(property.type).let { DSLType.Element(it, property.type.isNullable) }
 
         if (element.kdType is KDType.Boxed && isDsl) {
+
+            if (property.name.boxed == "x" && element.isInner.not()) {
+                logger.log("element: ${element.kdType.implName.canonicalName} package: ${element.kdType.fullClassName}")
+                val clN = ClassName.bestGuess("${element.kdType.fullClassName.boxed}.Qqq")
+                logger.log("ClassName: ${clN.canonicalName}")
+                logger.log("ClassName: ${clN.reflectionName()}")
+                logger.log("impl: ${element.kdType.implName.canonicalName}")
+            }
+
+
             // <1>
             val parse = if (element.kdType.isParsable && element.kdType.isUseStringInDsl) ".${KDType.Boxed.FABRIC_PARSE_METHOD}" else ""
-            if (element.name.isNullable) +Chunk("%N?.let { %T$parse(it) }, ", property.memberName, element.kdType.implName)
-            else +Chunk("%T$parse(%N!!), ", element.kdType.implName, property.memberName)
+            if (element.name.isNullable) +Chunk("%N?.let { ${element.classNameRef}$parse(it) }, ", property.memberName)
+            else +Chunk("${element.classNameRef}$parse(%N!!), ", property.memberName)
             // <2>
             //logger.log("$property isParsable: ${element.kdType.isParsable} bozedType: ${element.kdType.boxedType} ")
             toBuilderFunHolder.element(property.memberName, element.name.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
