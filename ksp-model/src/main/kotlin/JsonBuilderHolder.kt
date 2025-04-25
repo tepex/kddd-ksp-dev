@@ -244,9 +244,9 @@ public class JsonBuilderHolder private constructor(
      * override fun deserialize(decoder: Decoder): MyTypeImpl { ... }
      * ```
      *
-     * @param className имя десериализуемого класса.
+     * @property className имя десериализуемого класса.
      * */
-    private class DeserializeFun(className: ClassName) {
+    private class DeserializeFun(private val className: ClassName) {
 
         private val elements = mutableListOf<Pair<KDProperty.Name, JsonType>>()
 
@@ -331,7 +331,7 @@ public class JsonBuilderHolder private constructor(
                 addStatement("⇤}")
                 addStatement("⇤}")
                 addStatement("builder.build()")
-                addStatement("⇤}\n⇤⇤return ret")
+                addStatement("⇤}\n⇤⇤return ret as %T", className)
             }.build()
         }
     }

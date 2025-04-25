@@ -3,7 +3,7 @@ package ru.it_arch.clean_ddd.domain.demo
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.ValueObject
 
-@KDGeneratable(json = false, dsl = false)
+@KDGeneratable(json = false, dsl = true)
 public interface Point : ValueObject.Data {
     public val x: Coordinate
     public val y: Coordinate
