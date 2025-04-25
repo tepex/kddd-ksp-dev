@@ -13,13 +13,13 @@ import ru.it_arch.kddd.ValueObject
 @ConsistentCopyVisibility
 public data class KDOutputFile private constructor(
     public val model: KDType.Model,
-    private val packageName: String,
+    private val packageName: PackageName,
     //private val builderFunName: KDOptions.BuilderFunctionName,
     //private val useContextParameters: KDOptions.UseContextParameters
 ) : ValueObject.Data {
 
     public val fileSpecBuilder: FileSpec.Builder by lazy {
-        FileSpec.builder(packageName, model.implName.simpleName).also { fileBuilder ->
+        FileSpec.builder(packageName.boxed, model.implName.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
 
             fileBuilder.addType(model.builder.build())
@@ -64,7 +64,7 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
         public operator fun invoke(
             model: KDType.Model,
-            packageName: String,
+            packageName: PackageName,
             //builderFunName: KDOptions.BuilderFunctionName,
             //useContextParameters: KDOptions.UseContextParameters
         ): KDOutputFile = KDOutputFile(model, packageName)

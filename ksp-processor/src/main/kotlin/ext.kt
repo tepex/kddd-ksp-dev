@@ -45,10 +45,16 @@ context(options: KDOptions)
 internal fun createOutputFile(declaration: KSClassDeclaration, model: KDType.Model): KDOutputFile =
     KDOutputFile(
         model,
-        options toImplementationClassName declaration.packageName.asString(),
+        declaration toImplementationPackage options.subpackage,
         //options.getBuilderFunctionName(declaration.simpleName.asString()),
         //options.isUseContextParameters
     )
+
+internal val KSClassDeclaration.kDddPackageName: PackageName
+    get() = PackageName(packageName.asString())
+
+internal infix fun KSClassDeclaration.toImplementationPackage(subpackage: KDOptions.Subpackage) =
+    kDddPackageName + subpackage
 
 context(options: KDOptions, logger: KDLogger)
 @OptIn(KspExperimental::class)
@@ -60,8 +66,7 @@ internal fun typeContext(
 
     //val options: KDOptions = KDOptions
 
-    val kDddPackage = PackageName(declaration.packageName.asString())
-    val implPackage = kDddPackage + options.subpackage
+    val implPackage = declaration toImplementationPackage options.subpackage
 
 /*
     override val className = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
@@ -85,7 +90,7 @@ internal fun typeContext(
 
     return KDTypeContext(
         typeCatalog,
-        kDddPackage,
+        declaration.kDddPackageName,
         implPackage,
         kDddName,
         implClass,

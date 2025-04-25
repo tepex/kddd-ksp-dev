@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.kddd.Kddd
+import ru.it_arch.kddd.ValueObject
 
 /**
  * Контекст, необходимый для генерации имплементаций [KDType] [Kddd]-типов.
@@ -29,7 +30,16 @@ public data class KDTypeContext private constructor(
     val implName: ClassName,
     val annotations: Sequence<Annotation>,
     val properties: List<KDProperty>
-) {
+) : ValueObject.Data {
+
+    init {
+        validate()
+    }
+
+    override fun validate() {}
+
+    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+        TODO("Not yet implemented")
 
     public companion object {
         context(options: KDOptions, logger: KDLogger)

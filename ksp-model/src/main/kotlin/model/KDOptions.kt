@@ -29,14 +29,13 @@ public data class KDOptions private constructor(
         TODO("Not yet implemented")
 
     @JvmInline
-    public value class Subpackage(override val boxed: String): ValueObject.Boxed<String> {
+    public value class Subpackage private constructor(override val boxed: String): ValueObject.Boxed<String> {
         init {
             validate()
         }
 
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            Subpackage(boxed) as T
+            TODO("Not yet implemented")
 
         // TODO: validate name
         override fun validate() { }
@@ -48,7 +47,7 @@ public data class KDOptions private constructor(
 
         public companion object {
             public operator fun invoke(boxed: String?): Subpackage =
-                boxed?.let { Subpackage(".$it") } ?: Subpackage("")
+                boxed?.let { Subpackage(it) } ?: Subpackage("")
         }
     }
 
@@ -71,9 +70,8 @@ public data class KDOptions private constructor(
             validate()
         }
 
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            ResultTemplate(boxed) as T
+            TODO("Not yet implemented")
 
         override fun validate() {
             require(boxed.contains("\\$\\d+".toRegex())) { "KSP arg $OPTION_GENERATED_CLASS_NAME_RESULT: \"$this\" must contain patterns '$<N>'" }
@@ -107,9 +105,8 @@ public data class KDOptions private constructor(
             validate()
         }
 
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<Boolean>> fork(boxed: Boolean): T =
-            UseContextParameters(boxed) as T
+            TODO("Not yet implemented")
 
         override fun validate() {}
 

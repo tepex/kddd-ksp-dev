@@ -20,6 +20,7 @@ import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
+import ru.it_arch.clean_ddd.ksp_model.model.PackageName
 import ru.it_arch.clean_ddd.ksp_model.simpleName
 import ru.it_arch.clean_ddd.ksp_model.toImplementationClassName
 import ru.it_arch.clean_ddd.ksp_model.utils.OptIn as KDOptIn
@@ -39,14 +40,14 @@ internal abstract class KDVisitor(
 
         // TODO: dirty!!! refactor this 💩
         // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
-        var packageName: String? = null
+        var packageName: PackageName? = null
 
         val outputFiles = symbols.flatMap { file ->
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE }
                 .map { declaration ->
-                    packageName ?: run { packageName = options toImplementationClassName declaration.packageName.asString() }
+                    packageName ?: run { packageName = declaration toImplementationPackage options.subpackage }
                     visitKDDeclaration(declaration).let { kdType -> when(kdType) {
                         is KDType.Model -> with(options) { createOutputFile(declaration, kdType) to file }
                         else            -> null
@@ -74,8 +75,8 @@ internal abstract class KDVisitor(
         codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferedWriter(it).use(::writeTo) }
     }
 
-    private fun generateJsonProperty(packageName: String) {
-        FileSpec.builder(packageName, "json").apply {
+    private fun generateJsonProperty(packageName: PackageName) {
+        FileSpec.builder(packageName.boxed, "json").apply {
             StringBuilder("Json {«\nprettyPrint = true\n").also { sb ->
                 options.jsonNamingStrategy?.let { sb.append("namingStrategy = ${it.className}") }
                 sb.append("\n»}")
