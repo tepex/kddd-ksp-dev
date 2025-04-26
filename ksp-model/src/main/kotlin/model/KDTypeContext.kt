@@ -2,7 +2,6 @@ package ru.it_arch.clean_ddd.ksp_model.model
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.TypeName
-import ru.it_arch.clean_ddd.ksp_model.FullClassNameBuilder
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.kddd.Kddd
@@ -26,19 +25,15 @@ public data class KDTypeContext private constructor(
     val typeCatalog: TypeCatalog,
     val name: TypeName,
     val implName: ClassName,
-    val fullClassName: FullClassNameBuilder,
+    val fullClassName: KDClassName.FullClassNameBuilder,
     val annotations: Sequence<Annotation>,
     val properties: List<KDProperty>
 ) : ValueObject.Data {
 
-    init {
-        validate()
-    }
-
     override fun validate() {}
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
-        TODO("Not yet implemented")
+        TODO("Must not used")
 
     public companion object {
         context(options: KDOptions, logger: KDLogger)
@@ -48,7 +43,7 @@ public data class KDTypeContext private constructor(
             //implPackage: PackageName,
             name: TypeName,
             implName: ClassName,
-            fullClassName: FullClassNameBuilder,
+            fullClassName: KDClassName.FullClassNameBuilder,
             annotations: Sequence<Annotation>,
             properties: List<KDProperty>
         ): KDTypeContext = KDTypeContext(

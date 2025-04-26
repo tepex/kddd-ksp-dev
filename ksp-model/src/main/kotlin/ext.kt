@@ -162,5 +162,5 @@ public infix fun KDOptions.toImplementationClassName(kDddType: TypeName): String
 
 internal val DSLType.Element.classNameRef: String
     get() = if (kdType is KDType.Generatable) {
-        kdType.implName.simpleName.takeIf { isInner } ?: kdType.fullClassName.boxed
+        kdType.implName.simpleName.takeIf { isInner } ?: kdType.fullClassName.toString()
     } else TODO("Not supported yet")

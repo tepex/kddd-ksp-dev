@@ -11,7 +11,6 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.encoding.CompositeEncoder
-import ru.it_arch.clean_ddd.ksp_model.FullClassNameBuilder
 import ru.it_arch.clean_ddd.ksp_model.KDTypeForGeneration
 import ru.it_arch.clean_ddd.ksp_model.KDTypeSearchResult
 import ru.it_arch.clean_ddd.ksp_model.toNullable
@@ -52,7 +51,7 @@ public sealed interface KDType {
      * */
     public interface Generatable : KDType {
         public val implName: ClassName
-        public val fullClassName: FullClassNameBuilder
+        public val fullClassName: KDClassName.FullClassNameBuilder
         public val builder: TypeSpec.Builder
         public val properties: List<KDProperty>
         public val nestedTypes: Set<KDType>

@@ -9,7 +9,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
-import ru.it_arch.clean_ddd.ksp_model.FullClassNameBuilder
+import ru.it_arch.clean_ddd.ksp_model.model.KDClassName
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
@@ -63,7 +63,7 @@ internal fun typeContext(
     declaration: KSClassDeclaration,
     typeCatalog: TypeCatalog,
     kDddName: TypeName,
-    parent: FullClassNameBuilder
+    parent: KDClassName.FullClassNameBuilder
 ): KDTypeContext {
 
     //val options: KDOptions = KDOptions

@@ -18,7 +18,7 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import kotlinx.serialization.json.Json
-import ru.it_arch.clean_ddd.ksp_model.FullClassNameBuilder
+import ru.it_arch.clean_ddd.ksp_model.model.KDClassName
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
@@ -54,7 +54,7 @@ internal abstract class KDVisitor(
                 .map { declaration ->
                     val packageName = declaration toImplementationPackage options.subpackage
                     basePackageName ?: run { basePackageName = packageName }
-                    visitKDDeclaration(declaration, FullClassNameBuilder(packageName)).let { kdType -> when(kdType) {
+                    visitKDDeclaration(declaration, KDClassName.FullClassNameBuilder(packageName)).let { kdType -> when(kdType) {
                         is KDType.Model -> with(options) { createOutputFile(declaration, kdType) to file }
                         else            -> null
                     } }
@@ -124,7 +124,7 @@ internal abstract class KDVisitor(
         }
     }
 
-    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: FullClassNameBuilder): KDType? {
+    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: KDClassName.FullClassNameBuilder): KDType? {
         val typeArgs = if (declaration.typeParameters.isNotEmpty()) {
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> kdLogger.log("$declaration type args: ${args.map { it.toTypeName() }}") }

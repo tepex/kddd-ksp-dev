@@ -188,7 +188,7 @@ public class BuilderHolder private constructor(
 
             if (property.serialName.boxed == "x" && element.isInner.not()) {
                 logger.log("element: ${element.kdType.implName.canonicalName} package: ${element.kdType.fullClassName}")
-                val clN = ClassName.bestGuess("${element.kdType.fullClassName.boxed}.Qqq")
+                val clN = ClassName.bestGuess("${element.kdType.fullClassName}.Qqq")
                 logger.log("ClassName: ${clN.canonicalName}")
                 logger.log("ClassName: ${clN.reflectionName()}")
                 logger.log("impl: ${element.kdType.implName.canonicalName}")

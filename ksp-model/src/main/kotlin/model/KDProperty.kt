@@ -31,7 +31,7 @@ public data class KDProperty private constructor(
     override fun validate() {}
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
-        TODO("Not yet implemented")
+        TODO("Must not used")
 
     @JvmInline
     public value class Name(override val boxed: String): ValueObject.Boxed<String> {
@@ -44,9 +44,8 @@ public data class KDProperty private constructor(
         override fun toString(): String =
             boxed
 
-        @Suppress("UNCHECKED_CAST")
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            Name(boxed) as T
+            TODO("Must not used")
     }
 
     public companion object {
