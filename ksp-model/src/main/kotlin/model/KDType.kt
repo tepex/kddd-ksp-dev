@@ -146,7 +146,7 @@ public sealed interface KDType {
      * */
     public class IEntity private constructor(private val data: Data) : Model by data {
 
-        private val id = properties.find { it.memberName.simpleName == ID_NAME }
+        private val id = properties.find { it.name == ID_NAME }
             ?: error("ID parameter not found for Entity $implName")
 
         override fun toString(): String =
@@ -170,7 +170,7 @@ public sealed interface KDType {
         public fun generateBaseContract() {
             FunSpec.builder("hashCode").apply {
                 addModifiers(KModifier.OVERRIDE)
-                addStatement("return %N.hashCode()", id.memberName)
+                addStatement("return %N.hashCode()", id.member)
                 returns(Int::class)
             }.build().also(builder::addFunction)
 
@@ -180,16 +180,16 @@ public sealed interface KDType {
                 addParameter(paramOther)
                 addStatement("if (this === other) return true")
                 addStatement("if (%N !is %T) return false", paramOther, implName)
-                addStatement("if (%N != %N.%N) return false", id.memberName, paramOther, id.memberName)
+                addStatement("if (%N != %N.%N) return false", id.member, paramOther, id.member)
                 addStatement("return true")
                 returns(Boolean::class)
             }.build().also(builder::addFunction)
 
             // override fun toString()
 
-            properties.filter { it.memberName.simpleName != ID_NAME }
-                .fold(mutableListOf<Pair<String, MemberName>>()) { acc, param -> acc.apply { add("%N: $%N" to param.memberName) } }
-                .let { it.joinToString { pair -> pair.first } to it.fold(mutableListOf(id.memberName)) { acc, pair ->
+            properties.filter { it.name != ID_NAME }
+                .fold(mutableListOf<Pair<String, MemberName>>()) { acc, param -> acc.apply { add("%N: $%N" to param.member) } }
+                .let { it.joinToString { pair -> pair.first } to it.fold(mutableListOf(id.member)) { acc, pair ->
                     acc.apply {
                         add(pair.second)
                         add(pair.second)

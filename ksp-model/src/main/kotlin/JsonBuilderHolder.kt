@@ -44,21 +44,21 @@ public class JsonBuilderHolder private constructor(
     init {
         model.properties.forEachIndexed { index, property -> when (property.type.isCollection()) {
             true ->
-                processCollection(property.memberName, JsonType.Collection(property.type.toParametrizedType()), false)
+                processCollection(property.member, JsonType.Collection(property.type.toParametrizedType()), false)
                     .also { jsonType ->
-                        descriptorPropertyHolder.addCollection(property.name, jsonType)
-                        serializeFunHolder.addElement(property.name, jsonType)
-                        deserializeFun.addElement(property.name, jsonType)
+                        descriptorPropertyHolder.addCollection(property.serialName, jsonType)
+                        serializeFunHolder.addElement(property.serialName, jsonType)
+                        deserializeFun.addElement(property.serialName, jsonType)
                     }
             false -> {
                 val result = model.getKDType(property.type)
                 if (result.first is KDType.Generatable) {
                     descriptorPropertyHolder
-                        .addElement(property.name, result.first as KDType.Generatable, property.type.isNullable)
+                        .addElement(property.serialName, result.first as KDType.Generatable, property.type.isNullable)
                     serializeFunHolder
-                        .addElement(property.name, JsonType.Element(result, property.type.isNullable))
+                        .addElement(property.serialName, JsonType.Element(result, property.type.isNullable))
                     deserializeFun
-                        .addElement(property.name, JsonType.Element(result, property.type.isNullable))
+                        .addElement(property.serialName, JsonType.Element(result, property.type.isNullable))
                 } else {
                     TODO()
                 }

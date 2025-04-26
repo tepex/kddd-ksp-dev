@@ -9,16 +9,20 @@ import ru.it_arch.kddd.ValueObject
 /**
  * Определяет свойство в классе имплементации.
  *
- * @property name имя сериализированного свойства если применена аннотация [KDSerialName].
- * @property memberName имя свойства.
+ * @property serialName имя сериализированного свойства если применена аннотация [KDSerialName].
+ * @property member имя свойства [MemberName].
  * @property type тип свойства [TypeName].
+ * @property name текстовое имя свойства.
  * */
 @ConsistentCopyVisibility
 public data class KDProperty private constructor(
-    val name: Name,
-    val memberName: MemberName,
+    val serialName: Name,
+    val member: MemberName,
     val type: TypeName,
 ) : ValueObject.Data {
+
+    public val name: String =
+        member.simpleName
 
     init {
         validate()

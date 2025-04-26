@@ -126,16 +126,16 @@ public class BuilderHolder private constructor(
         FunSpecStatement(Chunk("return %T(", model.implName)).apply {
             model.properties.forEach { property ->
                 property.type.takeIf { it.isCollection() }?.toParametrizedType()
-                    ?.also { addParameterForCollection(property.memberName, it) }
+                    ?.also { addParameterForCollection(property.member, it) }
                     ?: run { // элемент
                         // Блок валидации свойств билдера
 
                         if (property.type.isNullable.not())
                             innerBuilderFunBuild.addStatement(
                                 """${if (isDsl) "requireNotNull(%N)" else "require(::%N.isInitialized)"} { "Property '%N.%N' is not set!" }""",
-                                property.name.boxed,
+                                property.serialName.boxed,
                                 model.name.simpleName,
-                                property.name.boxed
+                                property.serialName.boxed
                             )
 
                         // return new PropertySpec
@@ -147,9 +147,9 @@ public class BuilderHolder private constructor(
 
                             if (kdType is KDType.Boxed && isDsl) kdType.rawType else property.type
                         }.let {
-                            if (!isDsl && !property.type.isNullable) PropertySpec.builder(property.memberName.simpleName, it)
+                            if (!isDsl && !property.type.isNullable) PropertySpec.builder(property.name, it)
                                 .addModifiers(KModifier.LATEINIT)
-                            else PropertySpec.builder(property.memberName.simpleName, it.toNullable()).initializer("null")
+                            else PropertySpec.builder(property.name, it.toNullable()).initializer("null")
                         }
                     } // PropertySpec.Builder
                         .mutable()
@@ -180,13 +180,13 @@ public class BuilderHolder private constructor(
      * @param property свойство [Kddd]-модели.
      **/
     private fun FunSpecStatement.addParameterForElement(property: KDProperty) {
-        +Chunk("%N = ", property.memberName)
+        +Chunk("%N = ", property.member)
         val element =
             model.getKDType(property.type).let { DSLType.Element(it, property.type.isNullable) }
 
         if (element.kdType is KDType.Boxed && isDsl) {
 
-            if (property.name.boxed == "x" && element.isInner.not()) {
+            if (property.serialName.boxed == "x" && element.isInner.not()) {
                 logger.log("element: ${element.kdType.implName.canonicalName} package: ${element.kdType.fullClassName}")
                 val clN = ClassName.bestGuess("${element.kdType.fullClassName.boxed}.Qqq")
                 logger.log("ClassName: ${clN.canonicalName}")
@@ -197,16 +197,16 @@ public class BuilderHolder private constructor(
 
             // <1>
             val parse = if (element.kdType.isParsable && element.kdType.isUseStringInDsl) ".${KDType.Boxed.FABRIC_PARSE_METHOD}" else ""
-            if (element.name.isNullable) +Chunk("%N?.let { ${element.classNameRef}$parse(it) }, ", property.memberName)
-            else +Chunk("${element.classNameRef}$parse(%N!!), ", property.memberName)
+            if (element.name.isNullable) +Chunk("%N?.let { ${element.classNameRef}$parse(it) }, ", property.member)
+            else +Chunk("${element.classNameRef}$parse(%N!!), ", property.member)
             // <2>
             //logger.log("$property isParsable: ${element.kdType.isParsable} bozedType: ${element.kdType.boxedType} ")
-            toBuilderFunHolder.element(property.memberName, element.name.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
+            toBuilderFunHolder.element(property.member, element.name.isNullable, element.kdType.isParsable && element.kdType.isUseStringInDsl)
         } else {
             // <1>
-            +Chunk("%N${if (!element.name.isNullable && isDsl) "!!" else ""},", property.memberName)
+            +Chunk("%N${if (!element.name.isNullable && isDsl) "!!" else ""},", property.member)
             // <2>
-            toBuilderFunHolder.asIs(property.memberName)
+            toBuilderFunHolder.asIs(property.member)
         }
     }
 
