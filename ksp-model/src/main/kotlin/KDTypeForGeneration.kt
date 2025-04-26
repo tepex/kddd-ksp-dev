@@ -52,6 +52,7 @@ internal class KDTypeForGeneration(
 
     init {
         //context.logger.log("className: $classNameRef, package: ${context.packageName}, impl package: ${context.options.getImplementationPackage(context.packageName.boxed)}")
+        context.logger.log("for: ${implName.simpleName} full: $fullClassName")
         properties = boxedType?.let {
             boxedType(boxedType)
             listOf(KDProperty(implName.member(KDType.Boxed.PARAM_NAME), boxedType))

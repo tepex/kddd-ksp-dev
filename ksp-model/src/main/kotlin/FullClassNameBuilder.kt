@@ -18,19 +18,20 @@ import ru.it_arch.kddd.ValueObject
  *         Результат: "<package>.Clazz.Inner"
  *
  * */
-@JvmInline
-public value class FullClassNameBuilder private constructor(override val boxed: String): ValueObject.Boxed<String> {
-    init {
-        validate()
-    }
+public class FullClassNameBuilder private constructor(
+    public val boxed: String
+) {
 
-    override fun validate() {}
-
-    override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-        TODO("Not yet implemented")
+    //public val nested = mutableListOf<String>()
 
     override fun toString(): String =
         boxed
+
+    /*
+    public operator fun plus(className: ClassName): FullClassNameBuilder {
+        boxed = "$boxed.${className.simpleName}"
+        return this
+    }*/
 
     public operator fun plus(className: ClassName): FullClassNameBuilder =
         FullClassNameBuilder("$boxed.${className.simpleName}")
