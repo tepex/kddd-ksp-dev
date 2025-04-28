@@ -14,11 +14,11 @@ import ru.it_arch.clean_ddd.ksp_model.model.KDType
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 
 internal sealed interface DSLType {
-    val name: TypeName
+    val kddd: TypeName
 
     @ConsistentCopyVisibility
     data class Element private constructor(
-        override val name: TypeName,
+        override val kddd: TypeName,
         val kdType: KDType,
         val isInner: Boolean
     ) : DSLType {
@@ -27,7 +27,7 @@ internal sealed interface DSLType {
             operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean) =
                 Element(
                     (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawType
-                    else kdTypeSearchResult.first.name).toNullable(isNullable),
+                    else kdTypeSearchResult.first.kddd).toNullable(isNullable),
                     kdTypeSearchResult.first,
                     kdTypeSearchResult.second,
                 )
@@ -48,7 +48,7 @@ internal sealed interface DSLType {
         lateinit var fromDslMapper: String
         lateinit var toDslMapper: String
 
-        override val name = parameterizedName
+        override val kddd = parameterizedName
 
         fun substituteOrNull(): Collection? =
             if (isSubstituted) substitute().also { isSubstituted = true } else null
@@ -94,7 +94,7 @@ internal sealed interface DSLType {
             SET -> MUTABLE_SET
             MAP -> MUTABLE_MAP
             else -> error("Unsupported collection for mutable: $this")
-        }.parameterizedBy(args.map { it.name })
+        }.parameterizedBy(args.map { it.kddd })
 
         companion object {
             operator fun invoke(name: ParameterizedTypeName, logger: KDLogger): Collection =

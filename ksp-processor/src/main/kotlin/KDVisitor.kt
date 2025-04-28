@@ -52,9 +52,8 @@ internal abstract class KDVisitor(
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
                 .map { declaration ->
-                    val packageName = declaration toImplementationPackage options.subpackage
-                    basePackageName ?: run { basePackageName = packageName }
-                    visitKDDeclaration(declaration, KDClassName.FullClassNameBuilder(packageName)).let { kdType -> when(kdType) {
+                    basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
+                    visitKDDeclaration(declaration, null).let { kdType -> when(kdType) {
                         is KDType.Model -> with(options) { createOutputFile(declaration, kdType) to file }
                         else            -> null
                     } }
@@ -97,16 +96,16 @@ internal abstract class KDVisitor(
 
     private fun createJsonExtensionFunctions(file: KDOutputFile) {
         FunSpec.builder("toJson").apply {
-            receiver(file.model.name)
+            receiver(file.model.kddd)
             returns(String::class)
-            addStatement("return json.encodeToString(this as ${file.model.fullClassName})")
+            addStatement("return json.encodeToString(this as %T", file.model.impl.className)
         }.build().also(file.fileSpecBuilder::addFunction)
 
-        FunSpec.builder("to${file.model.name.simpleName}").apply {
+        FunSpec.builder("to${file.model.kddd.simpleName}").apply {
             receiver(String::class)
-            returns(file.model.name)
-            // json.decodeFromString<PrimitivesImpl>(this)
-            addStatement("return json.decodeFromString<${file.model.fullClassName}>(this)")
+            returns(file.model.kddd)
+            // json.decodeFromString<MyTypeImpl>(this)
+            addStatement("return json.decodeFromString<%T>(this)", file.model.impl.className)
         }.build().also(file.fileSpecBuilder::addFunction)
     }
 
@@ -124,7 +123,7 @@ internal abstract class KDVisitor(
         }
     }
 
-    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: KDClassName.FullClassNameBuilder): KDType? {
+    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: KDClassName?): KDType? {
         val typeArgs = if (declaration.typeParameters.isNotEmpty()) {
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> kdLogger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
@@ -153,7 +152,7 @@ internal abstract class KDVisitor(
             .filterIsInstance<KSClassDeclaration>()
             .forEach { nestedDeclaration ->
                 //kdLogger.log("process declaration: $classDeclaration")
-                visitKDDeclaration(nestedDeclaration, data.fullClassName)
+                visitKDDeclaration(nestedDeclaration, data.impl)
                     // !!! build and add it later !!!
                     ?.also(data::addNestedType)
                     ?: logger.error("Unsupported type declaration", nestedDeclaration)

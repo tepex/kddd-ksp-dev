@@ -13,8 +13,8 @@ import ru.it_arch.kddd.ValueObject
  * @property options опции фреймворка.
  * @property logger внутренний логгер.
  * @property typeCatalog реестр всех созданных KDDD-типов ([Kddd]-тип -> [KDType]).
- * @property name имя интерфейса исходной [Kddd]-модели.
- * @property implName полностью квалифицированное имя класса имплементации [Kddd]-типа.
+ * @property kddd имя интерфейса исходной [Kddd]-модели.
+ * @property impl полностью квалифицированное имя класса имплементации [Kddd]-типа.
  * @property annotations список аннотаций [Kddd]-типа.
  * @property properties список свойств [Kddd]-типа.
  * */
@@ -23,9 +23,9 @@ public data class KDTypeContext private constructor(
     val options: KDOptions,
     val logger : KDLogger,
     val typeCatalog: TypeCatalog,
-    val name: TypeName,
-    val implName: ClassName,
-    val fullClassName: KDClassName.FullClassNameBuilder,
+    val kddd: TypeName,
+    val impl: KDClassName,
+    //val fullClassName: KDClassName.FullClassNameBuilder,
     val annotations: Sequence<Annotation>,
     val properties: List<KDProperty>
 ) : ValueObject.Data {
@@ -39,20 +39,16 @@ public data class KDTypeContext private constructor(
         context(options: KDOptions, logger: KDLogger)
         public operator fun invoke(
             typeCatalog: TypeCatalog,
-            //kDddPackage: PackageName,
-            //implPackage: PackageName,
-            name: TypeName,
-            implName: ClassName,
-            fullClassName: KDClassName.FullClassNameBuilder,
+            kddd: TypeName,
+            impl: KDClassName,
             annotations: Sequence<Annotation>,
             properties: List<KDProperty>
         ): KDTypeContext = KDTypeContext(
             options,
             logger,
             typeCatalog,
-            name,
-            implName,
-            fullClassName,
+            kddd,
+            impl,
             annotations,
             properties
         )

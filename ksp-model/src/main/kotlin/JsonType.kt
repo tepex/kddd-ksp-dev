@@ -36,7 +36,7 @@ internal sealed interface JsonType {
             operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
                 Element(
                     (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawType
-                    else kdTypeSearchResult.first.name).toNullable(isNullable),
+                    else kdTypeSearchResult.first.kddd).toNullable(isNullable),
                     kdTypeSearchResult.first,
                     kdTypeSearchResult.second
                 )
@@ -85,7 +85,8 @@ internal sealed interface JsonType {
             // for deserializer
             deserializationMappers += when(node) {
                 is Element ->
-                    if (node.kdType is KDType.Boxed) "${localIt}${"?".takeIf { node.name.isNullable } ?: ""}${node.kdType.asDeserialize(node.isInner)}" else "XXXImpl.serializer()"
+                    //
+                    if (node.kdType is KDType.Boxed) "${localIt}${"?".takeIf { node.name.isNullable } ?: ""}${node.kdType.deserializationCode}" else "XXXImpl.serializer()"
                 is Collection -> "$localIt${node.deserializationMapper}"
             }
         }

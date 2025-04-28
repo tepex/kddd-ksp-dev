@@ -63,7 +63,7 @@ internal fun typeContext(
     declaration: KSClassDeclaration,
     typeCatalog: TypeCatalog,
     kDddName: TypeName,
-    parent: KDClassName.FullClassNameBuilder
+    parent: KDClassName?
 ): KDTypeContext {
 
     //val options: KDOptions = KDOptions
@@ -87,6 +87,7 @@ internal fun typeContext(
             property.getAnnotationsByType(KDSerialName::class).firstOrNull()
         )
     }.toList()
+
 
     return KDTypeContext(
         typeCatalog,

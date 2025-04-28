@@ -19,7 +19,7 @@ public data class KDOutputFile private constructor(
 ) : ValueObject.Data {
 
     public val fileSpecBuilder: FileSpec.Builder by lazy {
-        FileSpec.builder(packageName.boxed, model.implName.simpleName).also { fileBuilder ->
+        FileSpec.builder(packageName.boxed, model.impl.simpleName).also { fileBuilder ->
             fileBuilder.addFileComment(FILE_HEADER_STUB)
 
             fileBuilder.addType(model.builder.build())

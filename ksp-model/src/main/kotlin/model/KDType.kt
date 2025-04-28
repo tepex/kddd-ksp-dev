@@ -13,6 +13,7 @@ import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.encoding.CompositeEncoder
 import ru.it_arch.clean_ddd.ksp_model.KDTypeForGeneration
 import ru.it_arch.clean_ddd.ksp_model.KDTypeSearchResult
+import ru.it_arch.clean_ddd.ksp_model.simpleName
 import ru.it_arch.clean_ddd.ksp_model.toNullable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
@@ -23,10 +24,10 @@ import ru.it_arch.kddd.ValueObject
  *
  * Определяет все возможные [Kddd]-типы.
  *
- * @property name имя интерфейса исходной [Kddd]-модели.
+ * @property kddd имя интерфейса исходной [Kddd]-модели.
  * */
 public sealed interface KDType {
-    public val name: TypeName
+    public val kddd: TypeName
 
     /**
      * Определяет вид корневой [Kddd]-модели: [ValueObject.Data] или [IEntity].
@@ -42,7 +43,7 @@ public sealed interface KDType {
     /**
      * Определяет тип, генерирующий объекты `KotlinPoet.`
      *
-     * @property implName полностью квалифицированное имя класса имплементации для [KDType.name].
+     * @property impl полностью квалифицированное имя класса имплементации для [KDType.kddd].
      * @property builder [KotlinPoet](https://square.github.io/kotlinpoet/1.x/kotlinpoet/kotlinpoet/com.squareup.kotlinpoet/-type-spec/-builder/index.html) билдер класса имплементации.
      * @property properties список свойств [Kddd]-типа.
      * @property nestedTypes внутренний реестр вложенных [KDType] типов объявленных в [Kddd]-типе.
@@ -50,8 +51,8 @@ public sealed interface KDType {
      * @property hasJson наличие фичи JSON-сериализации.
      * */
     public interface Generatable : KDType {
-        public val implName: ClassName
-        public val fullClassName: KDClassName.FullClassNameBuilder
+        public val impl: KDClassName
+        //public val fullClassName: KDClassName.FullClassNameBuilder
         public val builder: TypeSpec.Builder
         public val properties: List<KDProperty>
         public val nestedTypes: Set<KDType>
@@ -81,12 +82,12 @@ public sealed interface KDType {
      * */
     @JvmInline
     public value class Sealed private constructor(
-        override val name: TypeName,
+        override val kddd: TypeName,
     ) : KDType {
 
         public companion object {
             context(ctx: KDTypeContext)
-            public operator fun invoke(): Sealed = Sealed(ctx.name)
+            public operator fun invoke(): Sealed = Sealed(ctx.kddd)
         }
     }
 
@@ -94,7 +95,7 @@ public sealed interface KDType {
      * TODO: Not implemented yet
      * */
     public data object Abstraction : KDType {
-        override val name: TypeName = ValueObject::class.asTypeName()
+        override val kddd: TypeName = ValueObject::class.asTypeName()
         val TYPENAME: TypeName = ValueObject::class.asTypeName()
 
         override fun toString(): String = "Abstraction"
@@ -109,19 +110,19 @@ public sealed interface KDType {
         private val forGeneration: KDTypeForGeneration
     ) : Generatable by forGeneration, Model {
 
-        override val innerBuilderClassName: ClassName = ClassName.bestGuess("${implName.simpleName}.$BUILDER_CLASS_NAME")
-        override val innerDslBuilderClassName: ClassName = ClassName.bestGuess("${implName.simpleName}.$DSL_BUILDER_CLASS_NAME")
+        override val innerBuilderClassName: ClassName = ClassName.bestGuess("${impl.simpleName}.$BUILDER_CLASS_NAME")
+        override val innerDslBuilderClassName: ClassName = ClassName.bestGuess("${impl.simpleName}.$DSL_BUILDER_CLASS_NAME")
 
         override fun toString(): String =
-            "Data(${implName})"
+            "Data(${kddd.simpleName})"
 
         override fun hashCode(): Int =
-            forGeneration.name.hashCode()
+            kddd.hashCode()
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Data) return false
-            if (forGeneration.name != other.forGeneration.name) return false
+            if (kddd != other.kddd) return false
             return true
         }
 
@@ -146,7 +147,7 @@ public sealed interface KDType {
     public class IEntity private constructor(private val data: Data) : Model by data {
 
         private val id = properties.find { it.name == ID_NAME }
-            ?: error("ID parameter not found for Entity $implName")
+            ?: error("ID parameter not found for Entity $impl")
 
         override fun toString(): String =
             "IEntity[id: $id, data: $data]"
@@ -178,7 +179,7 @@ public sealed interface KDType {
                 addModifiers(KModifier.OVERRIDE)
                 addParameter(paramOther)
                 addStatement("if (this === other) return true")
-                addStatement("if (%N !is %T) return false", paramOther, implName)
+                addStatement("if (%N !is %T) return false", paramOther, impl)
                 addStatement("if (%N != %N.%N) return false", id.member, paramOther, id.member)
                 addStatement("return true")
                 returns(Boolean::class)
@@ -238,9 +239,12 @@ public sealed interface KDType {
         public val rawType: TypeName =
             boxedType.takeUnless { isParsable && isUseStringInDsl } ?: String::class.asTypeName()
 
+        // TODO: объединить с `asSerialize`. Генерить `asString()`, аналогичную `Companion.parse()`
         public fun asIsOrSerialize(variable: KDProperty.Name, isNullable: Boolean): String =
             StringBuilder().apply {
-                append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
+                append(variable.boxed)
+                if (isNullable) append('?')
+                append(".$PARAM_NAME")
                 forGeneration.getAnnotation<KDParsable>()?.serialization.takeIf { isUseStringInDsl }
                     ?.also { append(".$it") }
             }.toString()
@@ -256,7 +260,9 @@ public sealed interface KDType {
          * */
         public fun asSerialize(variable: KDProperty.Name, isNullable: Boolean): String =
             StringBuilder().apply {
-                append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
+                append(variable.boxed)
+                if (isNullable) append('?')
+                append(".$PARAM_NAME")
                 forGeneration.getAnnotation<KDParsable>()?.serialization?.also { append(".$it") }
             }.toString()
 

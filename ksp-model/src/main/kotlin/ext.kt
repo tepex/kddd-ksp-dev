@@ -21,11 +21,11 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.ksp_model.model.CollectionType.MAP
 import ru.it_arch.clean_ddd.ksp_model.model.CollectionType.SET
-import ru.it_arch.clean_ddd.ksp_model.model.KDType.Boxed.Companion.FABRIC_PARSE_METHOD
 import ru.it_arch.clean_ddd.ksp_model.model.CollectionType
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
 import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
+import ru.it_arch.clean_ddd.ksp_model.model.KDType.Boxed.Companion.FABRIC_PARSE_METHOD
 import ru.it_arch.kddd.Kddd
 import java.util.Locale
 
@@ -58,11 +58,16 @@ internal fun KDType.Boxed.asSimplePrimitive(): String {
     return rawType.toString().substringAfterLast('.')
 }
 
+/* TODO: why and where??? Use KDType.Boxed.deserializationCode
 internal fun KDType.Boxed.asDeserialize(isInner: Boolean): String =
     if (isParsable) ".let($fullClassName::$FABRIC_PARSE_METHOD)" else ".let { $fullClassName(it) }"
         //(FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let($classNameRef::$it)" }
 //    else "xxx"//TODO()
-// .let(CommonTypesImpl.MyUUIDImpl::parse)
+// .let(CommonTypesImpl.MyUUIDImpl::parse) */
+
+internal val KDType.Boxed.deserializationCode: String
+    get() = if (isParsable) ".let(${impl.className.canonicalName}::$FABRIC_PARSE_METHOD)" else ".let { ${impl.className.canonicalName}(it) }"
+
 
 /**
  * Результат метода [KDType.Generatable.getKDType].
@@ -135,7 +140,7 @@ internal val TypeName.dslBuilderName: String
  * */
 @OptIn(ExperimentalKotlinPoetApi::class)
 public infix fun KDType.Model.createDslBuilderFun(useContextParameters: KDOptions.UseContextParameters): FunSpec =
-    FunSpec.builder(name.dslBuilderName).apply {
+    FunSpec.builder(kddd.dslBuilderName).apply {
         ParameterSpec.builder(
             "block",
             if (useContextParameters.boxed) LambdaTypeName.get(
@@ -149,18 +154,14 @@ public infix fun KDType.Model.createDslBuilderFun(useContextParameters: KDOption
             addParameter(param)
             addStatement("return ${KDType.Data.APPLY_BUILDER}", innerDslBuilderClassName, param)
         }
-        returns(name)
+        returns(kddd)
     }.build()
 
-public infix fun KDOptions.toImplementationClassName(kDddType: TypeName): String {
-    var result = generatedClassNameResult.boxed
-    generatedClassNameRe.find(kDddType.simpleName)?.groupValues?.forEachIndexed { i, group ->
-        group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
-    }
-    return result
-}
 
+
+/* TODO: why and where???
 internal val DSLType.Element.classNameRef: String
     get() = if (kdType is KDType.Generatable) {
-        kdType.implName.simpleName.takeIf { isInner } ?: kdType.fullClassName.toString()
+        kdType.impl.simpleName.takeIf { isInner } ?: kdType.fullClassName.toString()
     } else TODO("Not supported yet")
+*/

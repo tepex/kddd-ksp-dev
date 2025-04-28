@@ -33,11 +33,10 @@ internal class KDTypeForGeneration(
     isEntity: Boolean = false
 ) : KDType.Generatable {
 
-    override val implName = context.implName
-    override val fullClassName = context.fullClassName
-    override val builder = TypeSpec.classBuilder(implName).addSuperinterface(context.name)
+    override val impl = context.impl
+    override val builder = TypeSpec.classBuilder(impl.className).addSuperinterface(context.kddd)
     override val properties: List<KDProperty>
-    override val name: TypeName = context.name
+    override val kddd: TypeName = context.kddd
 
     private val _nestedTypes = mutableSetOf<KDType>()
     override val nestedTypes: Set<KDType>
@@ -52,10 +51,10 @@ internal class KDTypeForGeneration(
 
     init {
         //context.logger.log("className: $classNameRef, package: ${context.packageName}, impl package: ${context.options.getImplementationPackage(context.packageName.boxed)}")
-        context.logger.log("for: ${implName.simpleName} full: $fullClassName")
+        //context.logger.log("for: ${impl.simpleName} full: $fullClassName")
         properties = boxedType?.let {
             boxedType(boxedType)
-            listOf(KDProperty(implName.member(KDType.Boxed.PARAM_NAME), boxedType))
+            listOf(KDProperty(impl.className.member(KDType.Boxed.PARAM_NAME), boxedType))
         } ?: run {
             // not Boxed
             if (!isEntity) {
@@ -66,7 +65,7 @@ internal class KDTypeForGeneration(
 
             if (hasJson) {
                 AnnotationSpec.builder(Serializable::class).apply {
-                    addMember("with = %L", "${implName.simpleName}.Companion::class")
+                    addMember("with = %L", "${impl.simpleName}.Companion::class")
                 }.build().also(builder::addAnnotation)
             }
             context.properties
@@ -93,6 +92,8 @@ internal class KDTypeForGeneration(
         builder.addAnnotation(JvmInline::class)
 
         val boxedParam = ParameterSpec.builder(KDType.Boxed.PARAM_NAME, boxedType).build()
+
+        // generate `toString()`
         FunSpec.builder("toString").apply {
             addModifiers(KModifier.OVERRIDE)
             returns(String::class)
@@ -110,7 +111,7 @@ internal class KDTypeForGeneration(
                 addModifiers(KModifier.OVERRIDE)
                 addUncheckedCast()
                 returns(tvn)
-                addStatement("return %T(%N) as %T", implName, boxedParam, tvn)
+                addStatement("return %T(%N) as %T", impl, boxedParam, tvn)
             }.build().also(builder::addFunction)
         }
 
@@ -119,8 +120,8 @@ internal class KDTypeForGeneration(
             FunSpec.builder("invoke").apply {
                 addModifiers(KModifier.OPERATOR)
                 addParameter(boxedParam)
-                returns(context.name)
-                addStatement("return %T(%N)", implName, boxedParam)
+                returns(context.kddd)
+                addStatement("return %T(%N)", impl, boxedParam)
             }.build().let(::addFunction)
             this@KDTypeForGeneration.getAnnotation<KDParsable>()
                 ?.also {
@@ -155,8 +156,8 @@ internal class KDTypeForGeneration(
         FunSpec.builder(KDType.Boxed.FABRIC_PARSE_METHOD).apply {
             val srcParam = ParameterSpec.builder("src", String::class).build()
             addParameter(srcParam)
-            returns(implName)
-            addStatement("return %T${parsable.deserialization.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%T)", boxedType, srcParam, implName)
+            returns(impl.className)
+            addStatement("return %T${parsable.deserialization.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%T)", boxedType, srcParam, impl)
         }.build()
 
     inline fun <reified T : Annotation> getAnnotation(): T? =
@@ -167,13 +168,13 @@ internal class KDTypeForGeneration(
     }
 
     override fun getKDType(name: TypeName): KDTypeSearchResult = name.toNullable(false).let { key ->
-        if (key == KDType.Abstraction.TYPENAME) /*KDType.Abstraction */error("${context.name}: WIP. Abstraction not supported yet.")
+        if (key == KDType.Abstraction.TYPENAME) /*KDType.Abstraction */error("${context.kddd}: WIP. Abstraction not supported yet.")
         else {
-            nestedTypes.find { it.name.toNullable(false) == key }?.let { it to true }
-                ?: context.typeCatalog.find { it.name.toNullable(false) == key }?.let { it to false }
+            nestedTypes.find { it.kddd.toNullable(false) == key }?.let { it to true }
+                ?: context.typeCatalog.find { it.kddd.toNullable(false) == key }?.let { it to false }
                     ?.also { context.logger.log("found: ${it.first}") }
                 ?: run {
-                    error("Can't find implementation for $key in $implName")
+                    error("Can't find implementation for $key in $impl")
                 }
         }
     }
