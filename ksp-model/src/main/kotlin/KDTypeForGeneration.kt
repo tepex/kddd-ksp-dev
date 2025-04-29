@@ -71,7 +71,7 @@ internal class KDTypeForGeneration(
             context.properties
         }
 
-        // Генерация конструктора
+        // Генерация свойств
         context.properties.map { param ->
             PropertySpec
                 .builder(param.name, param.type, KModifier.OVERRIDE)
@@ -79,6 +79,7 @@ internal class KDTypeForGeneration(
                 .build()
         }.also(builder::addProperties)
 
+        // Генерация конструктора
         FunSpec.constructorBuilder()
             .addModifiers(KModifier.PRIVATE)
             .addParameters(context.properties.map { ParameterSpec(it.name, it.type) })
@@ -167,7 +168,7 @@ internal class KDTypeForGeneration(
         _nestedTypes += type
     }
 
-    override fun getKDType(name: TypeName): KDTypeSearchResult = name.toNullable(false).let { key ->
+    override fun geÏtKDType(name: TypeName): KDTypeSearchResult = name.toNullable(false).let { key ->
         if (key == KDType.Abstraction.TYPENAME) /*KDType.Abstraction */error("${context.kddd}: WIP. Abstraction not supported yet.")
         else {
             nestedTypes.find { it.kddd.toNullable(false) == key }?.let { it to true }

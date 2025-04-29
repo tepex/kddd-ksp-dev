@@ -12,39 +12,32 @@ import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
-import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.ksp.toTypeName
-import kotlinx.serialization.json.Json
 import ru.it_arch.clean_ddd.ksp_model.model.KDClassName
-import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
-import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
 import ru.it_arch.clean_ddd.ksp_model.model.KDType
-import ru.it_arch.clean_ddd.ksp_model.model.PackageName
-import ru.it_arch.clean_ddd.ksp_model.simpleName
+import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.kddd.KDIgnore
-import ru.it_arch.kddd.OptIn as KDOptIn
 
-internal abstract class KDVisitor(
+context(options: KDOptions, logger: KSPLogger)
+internal class KDVisitor(
     private val resolver: Resolver,
-    private val options: KDOptions,
     private val codeGenerator: CodeGenerator,
-    private val logger: KSPLogger
 ) : KSDefaultVisitor<KDType.Generatable, Unit>() {
+
+    //val options: KDOptions = KDOptions
+    //val logger: KSPLogger = KSPLogger
 
     protected val kdLogger: KDLogger = KDLoggerImpl(logger)
     private val typeCatalog = mutableSetOf<KDType>()
-    abstract fun createBuilders(model: KDType.Model)
 
     @OptIn(KspExperimental::class)
     fun generate(symbols: Sequence<KSFile>) {
 
         // TODO: dirty!!! refactor this 💩
         // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
-        var basePackageName: PackageName? = null
+        var basePackageName: KDClassName.PackageName? = null
 
         val outputFiles = symbols.flatMap { file ->
             kdLogger.log("process file: $file")
@@ -65,48 +58,38 @@ internal abstract class KDVisitor(
         outputFiles.keys.forEach { file ->
             buildAndAddNestedTypes(file.model)
 
-            createBuilders(file.model)
+            //createBuilders(file.model)
 
             // TODO if (file.generatable.hasDsl) createDslBuilderExtensionFunction(file)
-            if (file.model.hasJson) createJsonExtensionFunctions(file)
+            //if (file.model.hasJson) createJsonExtensionFunctions(file)
         }
 
         outputFiles.entries
             .forEach { it.key.fileSpecBuilder.build().replaceAndWrite(codeGenerator, Dependencies(false, it.value)) }
 
-        basePackageName?.let(::generateJsonProperty)
+        //basePackageName?.let(::generateJsonProperty)
     }
+
+    override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Generatable) {
+        classDeclaration.declarations
+            .filterIsInstance<KSClassDeclaration>()
+            .forEach { nestedDeclaration ->
+                //kdLogger.log("process declaration: $classDeclaration")
+                visitKDDeclaration(nestedDeclaration, data.impl)
+                    // !!! build and add it later !!!
+                    ?.also(data::addNestedType)
+                    ?: logger.error("Unsupported type declaration", nestedDeclaration)
+            }
+
+        // TODO: to ext
+        //if (data is KDType.IEntity) data.generateBaseContract()
+    }
+
+    override fun defaultHandler(node: KSNode, data: KDType.Generatable) {}
 
     /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
     private fun FileSpec.replaceAndWrite(codeGenerator: CodeGenerator, dependencies: Dependencies) {
         codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferedWriter(it).use(::writeTo) }
-    }
-
-    private fun generateJsonProperty(packageName: PackageName) {
-        FileSpec.builder(packageName.boxed, "json").apply {
-            StringBuilder("Json {«\nprettyPrint = true\n").also { sb ->
-                options.jsonNamingStrategy?.let { sb.append("namingStrategy = ${it.className}") }
-                sb.append("\n»}")
-                PropertySpec.builder("json", Json::class)
-                    .addAnnotation(AnnotationSpec.builder(KDOptIn::class).addMember("ExperimentalSerializationApi::class").build())
-                    .initializer(sb.toString()).build().also(::addProperty)
-            }
-        }.build().replaceAndWrite(codeGenerator, Dependencies(false))
-    }
-
-    private fun createJsonExtensionFunctions(file: KDOutputFile) {
-        FunSpec.builder("toJson").apply {
-            receiver(file.model.kddd)
-            returns(String::class)
-            addStatement("return json.encodeToString(this as %T", file.model.impl.className)
-        }.build().also(file.fileSpecBuilder::addFunction)
-
-        FunSpec.builder("to${file.model.kddd.simpleName}").apply {
-            receiver(String::class)
-            returns(file.model.kddd)
-            // json.decodeFromString<MyTypeImpl>(this)
-            addStatement("return json.decodeFromString<%T>(this)", file.model.impl.className)
-        }.build().also(file.fileSpecBuilder::addFunction)
     }
 
     private tailrec fun buildAndAddNestedTypes(model: KDType.Model, isFinish: Boolean = false) {
@@ -114,8 +97,10 @@ internal abstract class KDVisitor(
         return if (nestedModels.isEmpty() || isFinish) {
             // append
             model.nestedTypes.filterIsInstance<KDType.Generatable>().forEach { type ->
-                if (type is KDType.Model) createBuilders(type)
-                model.builder.addType(type.builder.build())
+                //if (type is KDType.Model) createBuilders(type)
+
+                // TODO:
+                // model.builder.addType(type.builder.build())
             }
         } else {
             nestedModels.forEach(::buildAndAddNestedTypes)
@@ -146,20 +131,4 @@ internal abstract class KDVisitor(
             if (kdType is KDType.Generatable) declaration.accept(this, kdType)
         }
     }
-
-    override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KDType.Generatable) {
-        classDeclaration.declarations
-            .filterIsInstance<KSClassDeclaration>()
-            .forEach { nestedDeclaration ->
-                //kdLogger.log("process declaration: $classDeclaration")
-                visitKDDeclaration(nestedDeclaration, data.impl)
-                    // !!! build and add it later !!!
-                    ?.also(data::addNestedType)
-                    ?: logger.error("Unsupported type declaration", nestedDeclaration)
-            }
-
-        if (data is KDType.IEntity) data.generateBaseContract()
-    }
-
-    override fun defaultHandler(node: KSNode, data: KDType.Generatable) {}
 }

@@ -94,9 +94,9 @@ internal val CollectionType.originName: String
 internal infix fun CollectionType.initializer(isMutable: Boolean): String =
     "mutable${originName}Of()".takeIf { isMutable } ?: "empty$originName()"
 
-internal infix fun CollectionType.getItArgNameForIndex(i: Int): KDProperty.Name = when(this) {
-    MAP  -> KDProperty.Name("it.key".takeIf { i == 0 } ?: "it.value")
-    else -> KDProperty.Name("it")
+internal infix fun CollectionType.getItArgNameForIndex(i: Int): KDProperty.SerialName = when(this) {
+    MAP  -> KDProperty.SerialName("it.key".takeIf { i == 0 } ?: "it.value")
+    else -> KDProperty.SerialName("it")
 }
 
 internal fun TypeName.isCollection(): Boolean =

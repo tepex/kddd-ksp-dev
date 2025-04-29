@@ -32,10 +32,13 @@ internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> 
     return Result.success(null)
 }
 
+/**
+ * ValueObject.* -> KDType.*
+ */
 context(_: KDTypeContext)
 private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Result<KDType>? =
     when(toString().substringBefore('<')) {
-        KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed())
+        //KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed())
         KDType.Data::class.java.simpleName    -> Result.success(KDType.Data())
         KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity())
         KDType.Boxed::class.java.simpleName   -> runCatching { KDType.Boxed(annotations.toList(), toTypeName()) }
