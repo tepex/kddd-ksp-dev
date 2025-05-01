@@ -23,6 +23,6 @@ dependencies {
     implementation(libs.ksp.api)
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
-    implementation(project(":ksp-model"))
+    implementation(project(":kddd-domain"))
     implementation(project(":kddd"))
 }

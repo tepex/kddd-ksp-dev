@@ -1,21 +1,23 @@
 package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.kddd.KDParsable
-import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
 public sealed interface Type {
 
-    //public val kddd: FullClassName
+    public val kddd: ClassName
 
     public interface Model : Generatable {
     }
 
     public interface Generatable : Type {
-        //public val impl: ClassName
+        public val impl: ClassName
+        public val properties: List<Property>
     }
 
-    public class Data private constructor(
+    public open class Data protected constructor(
+        override val kddd: ClassName,
+        override val impl: ClassName,
+        override val properties: List<Property>
     ) : Model {
 
         public companion object {
@@ -31,12 +33,14 @@ public sealed interface Type {
 
         public companion object {
             public const val ID_NAME: String = "id"
-
         }
     }
 
     public class Boxed private constructor(
-    ) : Type {
+        kddd: ClassName,
+        impl: ClassName,
+        boxed: Property
+    ) : Data(kddd, impl, listOf(boxed)) {
 
         override fun toString(): String =
             "KDType.Boxed<>"
@@ -47,16 +51,12 @@ public sealed interface Type {
             public const val FABRIC_PARSE_METHOD: String = "parse"
             public const val CREATE_METHOD: String = "fork"
 
+            public operator fun invoke(kddd: ClassName, impl: ClassName, boxedType: String): Boxed =
+                Property.DslBuilder().apply {
+                    name = PARAM_NAME
+                    serialName = PARAM_NAME
+                    type = boxedType
+                }.build().let { Boxed(kddd, impl, it) }
         }
-    }
-
-    @JvmInline
-    public value class FullClassName(override val boxed: String) : ValueObject.Boxed<String> {
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            TODO("Not yet implemented")
-
-        override fun validate() {}
-
-        override fun toString(): String = boxed
     }
 }

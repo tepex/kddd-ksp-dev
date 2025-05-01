@@ -16,7 +16,7 @@ import ru.it_arch.kddd.ValueObject
 public data class Property private constructor(
     val name: Name,
     val serialName: SerialName,
-    val type: Type.FullClassName,
+    val type: ClassName,
 ) : ValueObject.Data {
 
     init {
@@ -61,7 +61,7 @@ public data class Property private constructor(
     public class Builder {
         public var name: Name? = null
         public var serialName: SerialName? = null
-        public var type: Type.FullClassName? = null
+        public var type: ClassName? = null
 
         public fun build(): Property {
             requireNotNull(name) { "Property 'name' must be initialized!" }
@@ -74,13 +74,17 @@ public data class Property private constructor(
     public class DslBuilder {
         public var name: String? = null
         public var serialName: String? = null
-        public var type: String? = null
+        public var fullClassName: String? = null
 
         public fun build(): Property {
             requireNotNull(name) { "Property 'name' must be initialized!" }
             requireNotNull(serialName) { "Property 'serialName' must be initialized!" }
-            requireNotNull(type) { "Property 'type' must be initialized!" }
-            return Property(Name(name!!), SerialName(serialName!!), Type.FullClassName(type!!))
+            requireNotNull(fullClassName) { "Property 'fullClassName' must be initialized!" }
+            return Property(
+                Name(name!!),
+                SerialName(serialName!!),
+                ClassName(ClassName.PackageName(packageName!!), className!!)
+            )
         }
     }
 

@@ -19,6 +19,20 @@ public data class ClassName private constructor(
     public val enclosing: ClassName?
 ) : ValueObject.Data {
 
+    public val shortClassName: String by lazy {
+        var current = enclosing
+        var className = name.boxed
+        while (current != null) {
+            className = "${current.name}.$className"
+            current = current.enclosing
+        }
+        className
+    }
+
+    public val fullClassName: String by lazy {
+        "$packageName.$shortClassName"
+    }
+
     override fun validate() {}
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
@@ -73,6 +87,12 @@ public data class ClassName private constructor(
             requireNotNull(packageName) { "Property 'packageName' must be initialized!" }
 
             return ClassName(Name(name!!), PackageName(packageName!!), enclosing)
+        }
+    }
+
+    public companion object {
+        public operator fun invoke(fullClassName: String): ClassName {
+
         }
     }
 }

@@ -8,23 +8,15 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
-import ru.it_arch.clean_ddd.ksp_model.model.KDClassName
-import ru.it_arch.clean_ddd.ksp_model.model.KDOptions
-import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
-import ru.it_arch.clean_ddd.ksp_model.model.KDOutputFile
-import ru.it_arch.clean_ddd.ksp_model.model.KDProperty
-import ru.it_arch.clean_ddd.ksp_model.model.KDType
-import ru.it_arch.clean_ddd.ksp_model.model.KDTypeContext
-import ru.it_arch.clean_ddd.ksp_model.model.PackageName
-import ru.it_arch.clean_ddd.ksp_model.toImplementationClassName
+import ru.it_arch.clean_ddd.domain.KDLogger
+import ru.it_arch.clean_ddd.domain.Type
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.KDSerialName
 
 context(_: KDTypeContext)
 @OptIn(KspExperimental::class)
-internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> {
+internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<Type?> {
     val annotations = getAnnotationsByType(KDGeneratable::class) + getAnnotationsByType(KDParsable::class)
     //logger.log("$this ${annotations.toList()}")
     superTypes.forEach { item -> item.kdTypeOrNull(annotations)?.also { return it } }
@@ -36,7 +28,7 @@ internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> 
  * ValueObject.* -> KDType.*
  */
 context(_: KDTypeContext)
-private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Result<KDType>? =
+private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Result<Type>? =
     when(toString().substringBefore('<')) {
         //KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed())
         KDType.Data::class.java.simpleName    -> Result.success(KDType.Data())

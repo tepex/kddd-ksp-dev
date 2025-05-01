@@ -1,7 +1,5 @@
 package ru.it_arch.clean_ddd.ksp_model.model
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.clean_ddd.ksp_model.TypeCatalog
 import ru.it_arch.clean_ddd.ksp_model.utils.KDLogger
 import ru.it_arch.kddd.Kddd
