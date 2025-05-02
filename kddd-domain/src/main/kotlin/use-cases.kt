@@ -18,9 +18,10 @@ public fun Map<String, String>.toOptions(): Options = options {
  * @receiver опции фреймворка.
  * @return [ClassName] имплементации.
  * */
-public fun Options.toImplementationClassName(kDddClassName: String): String {
-    var result = generatedClassNameResult.boxed
-    generatedClassNameRe.find(kDddClassName)?.groupValues?.forEachIndexed { i, group ->
+context(options: Options)
+public fun String.toImplementationClassName(): String {
+    var result = options.generatedClassNameResult.boxed
+    options.generatedClassNameRe.find(this)?.groupValues?.forEachIndexed { i, group ->
         group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
     }
     return result

@@ -1,17 +1,22 @@
 package ru.it_arch.clean_ddd.domain
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.types.shouldBeInstanceOf
 import java.util.UUID
 
 class ClassNameTest : FunSpec({
-    pos("'String' class name must be 'ClassName.Name.Primitive.STRING'") {
-        "String".toBoxedClassName() shouldBe className { name = ClassName.Name.Primitive.STRING }
+
+    context("""'"<Primitive>".toBoxedClassName()' must return appropriate """) {
+        withData(
+            nameFn = { (src, _) -> "'ClassName(name = ClassName.Name.Primitive.${src.uppercase()})'" },
+            ts = ClassName.Name.Primitive.entries
+                .map { primitive -> primitive.name.lowercase().replaceFirstChar { it.uppercaseChar() } to className { name = primitive } }
+        ) { (primitive, className) ->  primitive.toBoxedClassName() shouldBe className }
     }
 
-    pos("'UUID' class name must be 'ClassName.Name.Common'") {
+    pos("""'UUID.toBoxedClassName()' must return 'ClassName(name = ClassName.Name.Common("UUID"))'""") {
         "UUID".toBoxedClassName() shouldBe className { name = ClassName.Name.Common(UUID::class.java.simpleName) }
     }
 

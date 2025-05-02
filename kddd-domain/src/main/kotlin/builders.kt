@@ -15,8 +15,8 @@ public fun property(block: Property.Builder.() -> Unit): Property =
 /**
  *
  * */
-public fun options(block: Options.DslBuilder.() -> Unit): Options =
-    Options.DslBuilder().apply(block).build()
+public fun options(block: Options.Builder.() -> Unit): Options =
+    Options.Builder().apply(block).build()
 
 /**
  *

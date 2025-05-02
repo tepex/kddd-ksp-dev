@@ -61,7 +61,6 @@ public data class Options private constructor(
      * ```
      * generatedClassNameRe = "I(\\w+)(\\d+)"
      * generatedClassNameResult = "$1Default$2"
-     *
      * ```
      * */
     @JvmInline
@@ -136,37 +135,19 @@ public data class Options private constructor(
     }
 
     public class Builder {
-        public var subpackage: Subpackage? = null
-        public var generatedClassNameRe: Regex? = null  
-        public var generatedClassNameResult: ResultTemplate? = null
-        public var useContextParameters: UseContextParameters? = null
-        public var jsonNamingStrategy: JsonNamingStrategy? = null
-
-        public fun build(): Options =
-            Options(
-                subpackage ?: Subpackage(""),
-                generatedClassNameRe ?: DEFAULT_RE.toRegex(),
-                generatedClassNameResult ?: ResultTemplate(DEFAULT_RESULT),
-                useContextParameters ?: UseContextParameters(false),
-                jsonNamingStrategy
-            )
-    }
-
-    public class DslBuilder {
         public var subpackage: String? = null
         public var generatedClassNameRe: String? = null
         public var generatedClassNameResult: String? = null
         public var useContextParameters: Boolean? = null
         public var jsonNamingStrategy: String? = null
 
-        public fun build(): Options =
-            Options(
-                Subpackage(subpackage.orEmpty()),
-                (generatedClassNameRe ?: DEFAULT_RE).toRegex(),
-                ResultTemplate(generatedClassNameResult ?: DEFAULT_RESULT),
-                UseContextParameters(useContextParameters ?: false),
-                JsonNamingStrategy.entries.find { it.key == jsonNamingStrategy }
-            )
+        public fun build(): Options = Options(
+            Subpackage(subpackage.orEmpty()),
+            (generatedClassNameRe ?: DEFAULT_RE).toRegex(),
+            ResultTemplate(generatedClassNameResult ?: DEFAULT_RESULT),
+            UseContextParameters(useContextParameters ?: false),
+            JsonNamingStrategy.entries.find { it.key == jsonNamingStrategy }
+        )
     }
 
     public companion object {
