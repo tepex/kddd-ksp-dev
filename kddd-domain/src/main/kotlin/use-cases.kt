@@ -1,6 +1,7 @@
 package ru.it_arch.clean_ddd.domain
 
 import ru.it_arch.kddd.Kddd
+import ru.it_arch.kddd.ValueObject
 
 public fun Map<String, String>.toOptions(): Options = options {
     subpackage = get(Options.OPTION_IMPLEMENTATION_SUBPACKAGE)
@@ -26,7 +27,13 @@ public fun Options.toImplementationClassName(kDddClassName: String): String {
 }
 
 /**
+ * Преобразование строкового имени класса (вложенного) в цепочку [ClassName].
  *
+ * Пример:
+ * ```
+ * "A.B.C": ClassName(name = "C").enclosing -> ClassName(name = "B").enclosing -> ClassName(name = "A").enclosing = null
+ * ```
+ * @see "src/test/kotlin/ClassNameTest.kt"
  * */
 //context(_: PackageName)
 public fun String.toKddClassName(): ClassName {
@@ -42,7 +49,8 @@ public fun String.toKddClassName(): ClassName {
 }
 
 /**
- *
+ * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [ClassName] с соотвествующим типом [ClassName.Name].
+ * @see "src/test/kotlin/ClassNameTest.kt"
  * */
 public fun String.toBoxedClassName(): ClassName = className {
     name = ClassName.Name.Primitive.entries.find { it.name == this@toBoxedClassName.uppercase() }
