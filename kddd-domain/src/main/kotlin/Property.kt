@@ -59,38 +59,15 @@ public data class Property private constructor(
     }
 
     public class Builder {
-        public var name: Name? = null
-        public var serialName: SerialName? = null
+        public var name: String? = null
+        public var serialName: String? = null
         public var type: ClassName? = null
 
         public fun build(): Property {
             requireNotNull(name) { "Property 'name' must be initialized!" }
             requireNotNull(serialName) { "Property 'serialName' must be initialized!" }
             requireNotNull(type) { "Property 'type' must be initialized!" }
-            return Property(name!!, serialName!!, type!!)
+            return Property(Name(name!!), SerialName(serialName!!), type!!)
         }
     }
-
-    public class DslBuilder {
-        public var name: String? = null
-        public var serialName: String? = null
-        public var fullClassName: String? = null
-
-        public fun build(): Property {
-            requireNotNull(name) { "Property 'name' must be initialized!" }
-            requireNotNull(serialName) { "Property 'serialName' must be initialized!" }
-            requireNotNull(fullClassName) { "Property 'fullClassName' must be initialized!" }
-            return Property(
-                Name(name!!),
-                SerialName(serialName!!),
-                ClassName(ClassName.PackageName(packageName!!), className!!)
-            )
-        }
-    }
-
-    /*
-    public companion object {
-        public operator fun invoke(memberName: MemberName, type: TypeName, annotation: KDSerialName? = null): KDProperty =
-            KDProperty(SerialName(annotation?.value ?: memberName.simpleName), memberName, type)
-    }*/
 }

@@ -15,10 +15,11 @@ import ru.it_arch.kddd.ValueObject
 @ConsistentCopyVisibility
 public data class ClassName private constructor(
     public val name: Name,
-    public val packageName: PackageName,
+    //public val packageName: PackageName,
     public val enclosing: ClassName?
 ) : ValueObject.Data {
 
+    /*
     public val shortClassName: String by lazy {
         var current = enclosing
         var className = name.boxed
@@ -27,11 +28,12 @@ public data class ClassName private constructor(
             current = current.enclosing
         }
         className
-    }
+    }*/
 
+    /*
     public val fullClassName: String by lazy {
         "$packageName.$shortClassName"
-    }
+    }*/
 
     override fun validate() {}
 
@@ -44,7 +46,7 @@ public data class ClassName private constructor(
     }*/
 
     @JvmInline
-    public value class Name(override val boxed: String) : ValueObject.Boxed<String> {
+    public value class Name_Old(override val boxed: String) : ValueObject.Boxed<String> {
         override fun validate() {}
 
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
@@ -52,8 +54,34 @@ public data class ClassName private constructor(
 
         override fun toString(): String = boxed
     }
+    
+    public sealed interface Name {
+        public enum class Primitive : Name {
+            STRING,
+            BOOLEAN,
+            BYTE,
+            CHAR,
+            FLOAT,
+            DOUBLE,
+            INT,
+            LONG,
+            SHORT
+        }
 
-    /** Тип для имени пакета. */
+        @JvmInline
+        public value class Common(public val name: String) : Name {
+            override fun toString(): String = name
+        }
+
+        public data class KdddType(
+            public val name: String
+        ) : Name {
+            override fun toString(): String = name
+        }
+
+    }
+
+    /** Тип для имени пакета. Not used? 
     @JvmInline
     public value class PackageName(override val boxed: String) : ValueObject.Boxed<String> {
         override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
@@ -62,21 +90,22 @@ public data class ClassName private constructor(
         override fun validate() {}
 
         override fun toString(): String = boxed
-    }
+    }*/
 
     public class Builder {
         public var name: Name? = null
-        public var packageName: PackageName? = null
+        //public var packageName: PackageName? = null
         public var enclosing: ClassName? = null
 
         public fun build(): ClassName {
             requireNotNull(name) { "Property 'name' must be initialized!" }
-            requireNotNull(packageName) { "Property 'packageName' must be initialized!" }
-
-            return ClassName(name!!, packageName!!, enclosing)
+            //requireNotNull(packageName) { "Property 'packageName' must be initialized!" }
+            
+            return ClassName(name!!, /*packageName!!,*/ enclosing)
         }
     }
 
+    /*
     public class DslBuilder {
         public var name: String? = null
         public var packageName: String? = null
@@ -88,11 +117,5 @@ public data class ClassName private constructor(
 
             return ClassName(Name(name!!), PackageName(packageName!!), enclosing)
         }
-    }
-
-    public companion object {
-        public operator fun invoke(fullClassName: String): ClassName {
-
-        }
-    }
+    }*/
 }

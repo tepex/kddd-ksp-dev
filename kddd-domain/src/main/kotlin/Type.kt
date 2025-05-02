@@ -5,6 +5,7 @@ import ru.it_arch.kddd.ValueObject
 public sealed interface Type {
 
     public val kddd: ClassName
+    //public val enclosing: Type?
 
     public interface Model : Generatable {
     }
@@ -37,8 +38,8 @@ public sealed interface Type {
     }
 
     public class Boxed private constructor(
-        kddd: ClassName,
-        impl: ClassName,
+        override val kddd: ClassName,
+        override val impl: ClassName,
         boxed: Property
     ) : Data(kddd, impl, listOf(boxed)) {
 
@@ -52,11 +53,11 @@ public sealed interface Type {
             public const val CREATE_METHOD: String = "fork"
 
             public operator fun invoke(kddd: ClassName, impl: ClassName, boxedType: String): Boxed =
-                Property.DslBuilder().apply {
+                property {
                     name = PARAM_NAME
                     serialName = PARAM_NAME
-                    type = boxedType
-                }.build().let { Boxed(kddd, impl, it) }
+                    type = boxedType.toBoxedClassName()
+                }.let { Boxed(kddd, impl, it) }
         }
     }
 }

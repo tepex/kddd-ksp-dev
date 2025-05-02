@@ -2,7 +2,7 @@
 # plugins
 kotlin = "2.1.20"
 #kotlin = "1.9.0"
-ksp = "2.1.20-2.0.0"
+ksp = "2.1.20-2.0.1"
 #ksp = "1.9.0-1.0.13"
 kotlinpoet = "2.1.0"
 
@@ -13,7 +13,7 @@ serialization-json = "1.8.1"
 
 # test
 junit = "4.13.2"
-kover = "0.9.0"
+kover = "0.9.1"
 kotest = "5.9.1"
 test-report = "1.4"
 

@@ -91,6 +91,7 @@ internal class KDVisitor(
                 .also { args -> logger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
         } else emptyList()
 
+        // full class name
         val typeName = declaration.asType(typeArgs).toTypeName()
 
         val context = with(options) {

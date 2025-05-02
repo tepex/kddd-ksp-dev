@@ -2,6 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.test.report)
+    alias(libs.plugins.kover)
 }
 
 kotlin {
@@ -19,6 +21,41 @@ kotlin {
     explicitApi()
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+    /*
+    testLogging {
+        events("passed", "skipped", "failed")
+    }*/
+}
+
 dependencies {
     implementation(project(":kddd"))
+
+    testImplementation(libs.kotest)
+    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.kotest.datatest)
+}
+
+kover {
+    reports {
+        filters {
+            includes {
+                packages("ru.it_arch.clean_ddd.domain")
+            }
+        }
+        total {
+            html {
+                onCheck = true
+            }
+            verify {
+                rule {
+                    disabled = false
+                    bound {
+                        minValue = 1
+                    }
+                }
+            }
+        }
+    }
 }
