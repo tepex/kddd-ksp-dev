@@ -124,6 +124,7 @@ internal class KDTypeForGeneration(
                 returns(context.kddd)
                 addStatement("return %T(%N)", impl, boxedParam)
             }.build().let(::addFunction)
+
             this@KDTypeForGeneration.getAnnotation<KDParsable>()
                 ?.also {
                     createParseFun(boxedType, it).let(::addFunction)

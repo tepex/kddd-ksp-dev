@@ -14,21 +14,21 @@ import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.ClassName
-import ru.it_arch.clean_ddd.domain.KDLogger
+import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
-import ru.it_arch.clean_ddd.domain.Type
+import ru.it_arch.clean_ddd.domain.type.KdddType
 import ru.it_arch.kddd.KDIgnore
 
 context(options: KDOptions, logger: KDLogger)
 internal class KDVisitor(
     private val resolver: Resolver,
     private val codeGenerator: CodeGenerator,
-) : KSDefaultVisitor<Type.Generatable, Unit>() {
+) : KSDefaultVisitor<KdddType.Generatable, Unit>() {
 
     val options: Options = Options
-    val logger: KDLogger = KDLogger
+    val logger: ILogger = ILogger
 
-    private val typeCatalog = mutableSetOf<Type>()
+    private val typeCatalog = mutableSetOf<KdddType>()
 
     @OptIn(KspExperimental::class)
     fun generate(symbols: Sequence<KSFile>) {
@@ -45,7 +45,7 @@ internal class KDVisitor(
                 .map { declaration ->
                     //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
                     visitKDDeclaration(declaration, null).let { kdType -> when(kdType) {
-                        is Type.Model -> with(options) { createOutputFile(declaration, kdType) to file }
+                        is KdddType.Model -> with(options) { createOutputFile(declaration, kdType) to file }
                         else            -> null
                     } }
                 }.filterNotNull()
@@ -68,7 +68,7 @@ internal class KDVisitor(
         //basePackageName?.let(::generateJsonProperty)
     }
 
-    override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Type.Generatable) {
+    override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KdddType.Generatable) {
         classDeclaration.declarations
             .filterIsInstance<KSClassDeclaration>()
             .forEach { nestedDeclaration ->
@@ -83,9 +83,10 @@ internal class KDVisitor(
         //if (data is KDType.IEntity) data.generateBaseContract()
     }
 
-    override fun defaultHandler(node: KSNode, data: Type.Generatable) {}
+    override fun defaultHandler(node: KSNode, data: KdddType.Generatable) {}
 
-    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: ClassName?): Type? {
+    // TODO: parent -> KDType
+    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: ClassName?): KdddType? {
         val typeArgs = if (declaration.typeParameters.isNotEmpty()) {
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> logger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
@@ -107,7 +108,7 @@ internal class KDVisitor(
             }
         }?.also { kdType ->
             typeCatalog += kdType
-            if (kdType is Type.Generatable) declaration.accept(this, kdType)
+            if (kdType is KdddType.Generatable) declaration.accept(this, kdType)
         }
     }
 
@@ -116,11 +117,11 @@ internal class KDVisitor(
         codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferedWriter(it).use(::writeTo) }
     }
 
-    private tailrec fun buildAndAddNestedTypes(model: Type.Model, isFinish: Boolean = false) {
-        val nestedModels = model.nestedTypes.filterIsInstance<Type.Model>()
+    private tailrec fun buildAndAddNestedTypes(model: KdddType.Model, isFinish: Boolean = false) {
+        val nestedModels = model.nestedTypes.filterIsInstance<KdddType.Model>()
         return if (nestedModels.isEmpty() || isFinish) {
             // append
-            model.nestedTypes.filterIsInstance<Type.Generatable>().forEach { type ->
+            model.nestedTypes.filterIsInstance<KdddType.Generatable>().forEach { type ->
                 //if (type is KDType.Model) createBuilders(type)
 
                 // TODO:

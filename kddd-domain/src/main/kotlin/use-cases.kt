@@ -1,7 +1,11 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.type.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.type.BoxedWithPrimitive
+import ru.it_arch.clean_ddd.domain.type.GeneratableDelegate
+import ru.it_arch.clean_ddd.domain.type.KdddType
+import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
-import ru.it_arch.kddd.ValueObject
 
 public fun Map<String, String>.toOptions(): Options = options {
     subpackage = get(Options.OPTION_IMPLEMENTATION_SUBPACKAGE)
@@ -37,9 +41,10 @@ public fun String.toImplementationClassName(): String {
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
 //context(_: PackageName)
-public fun String.toKddClassName(): ClassName {
+/*
+public fun String.toKddClassName(): KdddType.KdddClassName {
     val classNames = split('.')
-    var parent: ClassName? = null
+    var parent: KdddType.KdddClassName? = null
     classNames.forEach { className ->
         parent = className {
             name = ClassName.Name.KdddType(className)
@@ -47,13 +52,13 @@ public fun String.toKddClassName(): ClassName {
         }
     }
     return parent!!
-}
+}*/
 
 /**
- * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [ClassName] с соотвествующим типом [ClassName.Name].
+ * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.Boxed] с соотвествующим типом `boxed`.
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
-public fun String.toBoxedClassName(): ClassName = className {
-    name = ClassName.Name.Primitive.entries.find { it.name == this@toBoxedClassName.uppercase() }
-        ?: ClassName.Name.Common(this@toBoxedClassName)
-}
+public infix fun String.toBoxedTypeWith(generatable: GeneratableDelegate): KdddType.Boxed =
+    BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == this@toBoxedTypeWith.uppercase() }
+        ?.let { BoxedWithPrimitive(generatable, it) }
+        ?: BoxedWithCommon(generatable, BoxedWithCommon.CommonClassName(this@toBoxedTypeWith), KDParsable())

@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.type.KdddType
 import ru.it_arch.kddd.KDSerialName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
@@ -16,7 +17,8 @@ import ru.it_arch.kddd.ValueObject
 public data class Property private constructor(
     val name: Name,
     val serialName: SerialName,
-    val type: ClassName,
+    val type: KdddType,
+    val isNullable: Boolean
 ) : ValueObject.Data {
 
     init {
@@ -61,13 +63,15 @@ public data class Property private constructor(
     public class Builder {
         public var name: String? = null
         public var serialName: String? = null
-        public var type: ClassName? = null
+        public var type: KdddType? = null
+        public var isNullable: Boolean? = null
 
         public fun build(): Property {
             requireNotNull(name) { "Property 'name' must be initialized!" }
             requireNotNull(serialName) { "Property 'serialName' must be initialized!" }
             requireNotNull(type) { "Property 'type' must be initialized!" }
-            return Property(Name(name!!), SerialName(serialName!!), type!!)
+            requireNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
+            return Property(Name(name!!), SerialName(serialName!!), type!!, isNullable!!)
         }
     }
 }
