@@ -1,13 +1,13 @@
 package ru.it_arch.clean_ddd.domain.type
 
-import ru.it_arch.clean_ddd.domain.type.KdddType.Model
+import ru.it_arch.clean_ddd.domain.type.KdddType.ModelContainer
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class IEntity private constructor(
     private val data: Data
-) : Model by data, ValueObject.Data {
+) : ModelContainer by data, ValueObject.Data {
 
     private val id = data.properties.find { it.name.boxed == ID_NAME }
         ?: error("ID parameter not found for Entity $impl")

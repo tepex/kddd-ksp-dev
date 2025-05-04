@@ -2,7 +2,7 @@ package ru.it_arch.clean_ddd.domain.type
 
 import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.clean_ddd.domain.type.KdddType.Generatable
-import ru.it_arch.clean_ddd.domain.type.KdddType.Model
+import ru.it_arch.clean_ddd.domain.type.KdddType.ModelContainer
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
@@ -10,13 +10,21 @@ import ru.it_arch.kddd.ValueObject
 public data class Data private constructor(
     private val generatable: GeneratableDelegate,
     public val properties: List<Property>
-) : Generatable by generatable, Model, ValueObject.Data {
+) : Generatable by generatable, ModelContainer, ValueObject.Data {
+
+    private val _nestedTypes = mutableSetOf<KdddType>()
+    override val nestedTypes: Set<KdddType>
+        get() = _nestedTypes.toSet()
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
         TODO("Not yet implemented")
     }
 
     override fun validate() {}
+
+    override fun addNestedType(kdddType: KdddType) {
+        _nestedTypes += kdddType
+    }
 
     public companion object {
         public const val BUILDER_CLASS_NAME: String = "Builder"

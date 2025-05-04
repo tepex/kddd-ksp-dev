@@ -13,13 +13,12 @@ import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.domain.ClassName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.type.KdddType
 import ru.it_arch.kddd.KDIgnore
 
-context(options: KDOptions, logger: KDLogger)
+context(options: Options, logger: KDLogger)
 internal class KDVisitor(
     private val resolver: Resolver,
     private val codeGenerator: CodeGenerator,
@@ -35,7 +34,7 @@ internal class KDVisitor(
 
         // TODO: dirty!!! refactor this 💩
         // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
-        var basePackageName: ClassName.PackageName? = null
+        //var basePackageName: ClassName.PackageName? = null
 
         val outputFiles = symbols.flatMap { file ->
             logger.log("process file: $file")
@@ -45,7 +44,7 @@ internal class KDVisitor(
                 .map { declaration ->
                     //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
                     visitKDDeclaration(declaration, null).let { kdType -> when(kdType) {
-                        is KdddType.Model -> with(options) { createOutputFile(declaration, kdType) to file }
+                        is KdddType.ModelContainer -> with(options) { createOutputFile(declaration, kdType) to file }
                         else            -> null
                     } }
                 }.filterNotNull()
@@ -86,13 +85,13 @@ internal class KDVisitor(
     override fun defaultHandler(node: KSNode, data: KdddType.Generatable) {}
 
     // TODO: parent -> KDType
-    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: ClassName?): KdddType? {
+    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: ?): KdddType? {
         val typeArgs = if (declaration.typeParameters.isNotEmpty()) {
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> logger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
         } else emptyList()
 
-        // full class name
+        // full class name. kdddName
         val typeName = declaration.asType(typeArgs).toTypeName()
 
         val context = with(options) {
@@ -117,8 +116,8 @@ internal class KDVisitor(
         codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferedWriter(it).use(::writeTo) }
     }
 
-    private tailrec fun buildAndAddNestedTypes(model: KdddType.Model, isFinish: Boolean = false) {
-        val nestedModels = model.nestedTypes.filterIsInstance<KdddType.Model>()
+    private tailrec fun buildAndAddNestedTypes(model: KdddType.ModelContainer, isFinish: Boolean = false) {
+        val nestedModels = model.nestedTypes.filterIsInstance<KdddType.ModelContainer>()
         return if (nestedModels.isEmpty() || isFinish) {
             // append
             model.nestedTypes.filterIsInstance<KdddType.Generatable>().forEach { type ->
