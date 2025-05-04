@@ -8,7 +8,10 @@ import java.util.UUID
 
 class ClassNameTest : FunSpec({
 
-    val gd = GeneratableDelegate("", "")
+    val gd = generatable {
+        kdddClassName = "not used"
+        implClassName = "not used"
+    }
 
     context("""'"<Primitive>".toBoxedTypeWith()' must return appropriate """) {
 

@@ -15,8 +15,20 @@ public data class GeneratableDelegate private constructor(
 
     override fun validate() {}
 
-    public companion object {
-        public operator fun invoke(kddd: String, impl: String, enclosing: KdddType.ModelContainer? = null): GeneratableDelegate =
-            GeneratableDelegate(KdddType.Generatable.KdddClassName(kddd), KdddType.Generatable.ImplClassName(impl), enclosing)
+    public class Builder {
+        public var kdddClassName: String? = null
+        public var implClassName: String? = null
+        public var enclosing: KdddType.ModelContainer? = null
+
+        public fun build(): GeneratableDelegate {
+            checkNotNull(kdddClassName) { "Property 'kdddClassName' must be initialized!" }
+            checkNotNull(implClassName) { "Property 'implClassName' must be initialized!" }
+
+            return GeneratableDelegate(
+                KdddType.Generatable.KdddClassName(kdddClassName!!),
+                KdddType.Generatable.ImplClassName(implClassName!!),
+                enclosing
+            )
+        }
     }
 }

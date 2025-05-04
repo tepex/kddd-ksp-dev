@@ -66,10 +66,10 @@ public data class Property private constructor(
         public var isNullable: Boolean? = null
 
         public fun build(): Property {
-            requireNotNull(name) { "Property 'name' must be initialized!" }
-            requireNotNull(serialName) { "Property 'serialName' must be initialized!" }
-            requireNotNull(type) { "Property 'type' must be initialized!" }
-            requireNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
+            checkNotNull(name) { "Property 'name' must be initialized!" }
+            checkNotNull(serialName) { "Property 'serialName' must be initialized!" }
+            checkNotNull(type) { "Property 'type' must be initialized!" }
+            checkNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
             return Property(Name(name!!), SerialName(serialName!!), type!!, isNullable!!)
         }
     }

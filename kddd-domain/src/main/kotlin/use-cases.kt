@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
 
@@ -13,12 +14,25 @@ public fun Map<String, String>.toOptions(): Options = options {
 
 context(options: Options)
 /**
- * Создание класса имплементации из имени класса [Kddd]-типа.
+ * Создание класса имплементации [KdddType.Generatable.ImplClassName] из имени класса [Kddd]-типа.
  *
- * @receiver исходное полное имя класса.
+ * @receiver исходное полное имя [Kddd]-типа.
+ * @param annotations список аннотаций, возможно содержащий аннотацию [KDGeneratable], переопределяющую имя имплементации.
+ * @return класс имплементации [KdddType.Generatable.ImplClassName].
+ * */
+internal infix fun String.`to implementation class name with @KDGeneratable annotation in`(annotations: List<Annotation>): KdddType.Generatable.ImplClassName =
+    (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
+        ?.takeIf { it.isNotEmpty() } ?: `to implementation class name`)
+        .let { KdddType.Generatable.ImplClassName(it) }
+
+context(options: Options)
+/**
+ * Создание имени класса имплементации из имени класса [Kddd]-типа.
+ *
+ * @receiver исходное полное имя [Kddd]-типа.
  * @return имя класса имплементации.
  * */
-public fun String.toImplementationClassName(): String {
+internal val String.`to implementation class name`: String get() {
     var result = options.generatedClassNameResult.boxed
     options.generatedClassNameRe.find(this)?.groupValues?.forEachIndexed { i, group ->
         group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }

@@ -7,7 +7,7 @@ class OptionsTest : FunSpec({
 
     pos("Default options must generate '<MyType>Impl' class name") {
         with(options { }) {
-            "MyType".toImplementationClassName() shouldBe "MyTypeImpl"
+            "MyType".`to implementation class name` shouldBe "MyTypeImpl"
         }
     }
 
@@ -16,7 +16,7 @@ class OptionsTest : FunSpec({
             generatedClassNameRe = "I(\\D+)([\\d]+)Test"
             generatedClassNameResult = "$1_$2_Impl"
         }) {
-            "IMyType33Test".toImplementationClassName() shouldBe "MyType_33_Impl"
+            "IMyType33Test".`to implementation class name` shouldBe "MyType_33_Impl"
         }
     }
 })
