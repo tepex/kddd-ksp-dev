@@ -15,14 +15,13 @@ public fun Map<String, String>.toOptions(): Options = options {
     jsonNamingStrategy = get(Options.OPTION_JSON_NAMING_STRATEGY)
 }
 
+context(options: Options)
 /**
  * Создание класса имплементации из имени класса [Kddd]-типа.
  *
- * @param kDddClassName исходное полное имя класса.
- * @receiver опции фреймворка.
- * @return [ClassName] имплементации.
+ * @receiver исходное полное имя класса.
+ * @return имя класса имплементации.
  * */
-context(options: Options)
 public fun String.toImplementationClassName(): String {
     var result = options.generatedClassNameResult.boxed
     options.generatedClassNameRe.find(this)?.groupValues?.forEachIndexed { i, group ->
@@ -55,7 +54,12 @@ public fun String.toKddClassName(): KdddType.KdddClassName {
 }*/
 
 /**
- * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.Boxed] с соотвествующим типом `boxed`.
+ * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.Boxed] с соотвествующим
+ * типом `boxed`: [BoxedWithPrimitive.PrimitiveClassName] или [BoxedWithCommon.CommonClassName].
+ *
+ * @param необходимый делегат [KdddType.Generatable].
+ * @receiver имя параметризированного типа.
+ * @return созданный [KdddType.Boxed].
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
 public infix fun String.toBoxedTypeWith(generatable: GeneratableDelegate): KdddType.Boxed =

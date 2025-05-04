@@ -9,7 +9,7 @@ public data class GeneratableDelegate private constructor(
     override val kddd: Generatable.KdddClassName,
     override val impl: Generatable.ImplClassName,
     override val enclosing: KdddType?
-) : ValueObject.Data, Generatable {
+) : Generatable {
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
         TODO("Not yet implemented")

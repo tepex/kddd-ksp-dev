@@ -11,7 +11,7 @@ public sealed interface KdddType {
     }
 
     // Model, Boxed
-    public interface Generatable : KdddType {
+    public interface Generatable : KdddType, ValueObject.Data {
         public val kddd: KdddClassName
         public val impl: ImplClassName
         public val enclosing: KdddType?

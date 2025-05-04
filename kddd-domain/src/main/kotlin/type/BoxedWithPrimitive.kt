@@ -9,7 +9,7 @@ import ru.it_arch.kddd.ValueObject
 public data class BoxedWithPrimitive private constructor(
     private val generatable: GeneratableDelegate,
     public val boxed: PrimitiveClassName
-) : Generatable by generatable, Boxed, ValueObject.Data {
+) : Generatable by generatable, Boxed {
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
         TODO("Not yet implemented")

@@ -13,7 +13,7 @@ public data class BoxedWithCommon private constructor(
     public val serializationMethod: SerializationMethodName,
     public val deserializationMethod: DeserializationMethodName,
     public val isStringInDsl: Boolean
-) : Generatable by generatable, Boxed, ValueObject.Data {
+) : Generatable by generatable, Boxed {
 
     override fun validate() {}
 
