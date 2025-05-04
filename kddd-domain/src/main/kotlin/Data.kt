@@ -1,8 +1,5 @@
-package ru.it_arch.clean_ddd.domain.type
+package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.Property
-import ru.it_arch.clean_ddd.domain.type.KdddType.Generatable
-import ru.it_arch.clean_ddd.domain.type.KdddType.ModelContainer
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
@@ -10,7 +7,7 @@ import ru.it_arch.kddd.ValueObject
 public data class Data private constructor(
     private val generatable: GeneratableDelegate,
     public val properties: List<Property>
-) : Generatable by generatable, ModelContainer, ValueObject.Data {
+) : KdddType.Generatable by generatable, KdddType.ModelContainer, ValueObject.Data {
 
     private val _nestedTypes = mutableSetOf<KdddType>()
     override val nestedTypes: Set<KdddType>

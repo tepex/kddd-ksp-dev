@@ -3,9 +3,6 @@ package ru.it_arch.clean_ddd.domain
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
-import ru.it_arch.clean_ddd.domain.type.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.type.BoxedWithPrimitive
-import ru.it_arch.clean_ddd.domain.type.GeneratableDelegate
 import ru.it_arch.kddd.KDParsable
 import java.util.UUID
 

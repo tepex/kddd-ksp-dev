@@ -1,7 +1,5 @@
-package ru.it_arch.clean_ddd.domain.type
+package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.type.KdddType.Boxed
-import ru.it_arch.clean_ddd.domain.type.KdddType.Generatable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
@@ -13,7 +11,7 @@ public data class BoxedWithCommon private constructor(
     public val serializationMethod: SerializationMethodName,
     public val deserializationMethod: DeserializationMethodName,
     public val isStringInDsl: Boolean
-) : Generatable by generatable, Boxed {
+) : KdddType.Generatable by generatable, KdddType.Boxed {
 
     override fun validate() {}
 

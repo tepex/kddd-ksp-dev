@@ -1,15 +1,13 @@
-package ru.it_arch.clean_ddd.domain.type
+package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.type.KdddType.Generatable
 import ru.it_arch.kddd.Kddd
-import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class GeneratableDelegate private constructor(
-    override val kddd: Generatable.KdddClassName,
-    override val impl: Generatable.ImplClassName,
+    override val kddd: KdddType.Generatable.KdddClassName,
+    override val impl: KdddType.Generatable.ImplClassName,
     override val enclosing: KdddType.ModelContainer?
-) : Generatable {
+) : KdddType.Generatable {
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
         TODO("Not yet implemented")
@@ -19,6 +17,6 @@ public data class GeneratableDelegate private constructor(
 
     public companion object {
         public operator fun invoke(kddd: String, impl: String, enclosing: KdddType.ModelContainer? = null): GeneratableDelegate =
-            GeneratableDelegate(Generatable.KdddClassName(kddd), Generatable.ImplClassName(impl), enclosing)
+            GeneratableDelegate(KdddType.Generatable.KdddClassName(kddd), KdddType.Generatable.ImplClassName(impl), enclosing)
     }
 }

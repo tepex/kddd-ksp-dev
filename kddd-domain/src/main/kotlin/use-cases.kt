@@ -1,9 +1,5 @@
 package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.type.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.type.BoxedWithPrimitive
-import ru.it_arch.clean_ddd.domain.type.GeneratableDelegate
-import ru.it_arch.clean_ddd.domain.type.KdddType
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
 
@@ -63,6 +59,6 @@ public fun String.toKddClassName(): KdddType.KdddClassName {
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
 public infix fun String.toBoxedTypeWith(generatable: GeneratableDelegate): KdddType.Boxed =
-    BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == this@toBoxedTypeWith.uppercase() }
+    BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == uppercase() }
         ?.let { BoxedWithPrimitive(generatable, it) }
-        ?: BoxedWithCommon(generatable, BoxedWithCommon.CommonClassName(this@toBoxedTypeWith), KDParsable())
+        ?: BoxedWithCommon(generatable, BoxedWithCommon.CommonClassName(this), KDParsable())

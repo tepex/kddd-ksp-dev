@@ -1,15 +1,12 @@
-package ru.it_arch.clean_ddd.domain.type
+package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.type.KdddType.Boxed
-import ru.it_arch.clean_ddd.domain.type.KdddType.Generatable
 import ru.it_arch.kddd.Kddd
-import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class BoxedWithPrimitive private constructor(
     private val generatable: GeneratableDelegate,
     public val boxed: PrimitiveClassName
-) : Generatable by generatable, Boxed {
+) : KdddType.Generatable by generatable, KdddType.Boxed {
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
         TODO("Not yet implemented")
