@@ -3,7 +3,7 @@ package ru.it_arch.clean_ddd.domain
 import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility
-public data class GeneratableDelegate private constructor(
+internal data class GeneratableImpl private constructor(
     override val kddd: KdddType.Generatable.KdddClassName,
     override val impl: KdddType.Generatable.ImplClassName,
     override val enclosing: KdddType.ModelContainer?
@@ -15,20 +15,29 @@ public data class GeneratableDelegate private constructor(
 
     override fun validate() {}
 
-    public class Builder {
-        public var kdddClassName: String? = null
-        public var implClassName: String? = null
-        public var enclosing: KdddType.ModelContainer? = null
+    class Builder {
+        var kdddClassName: String? = null
+        var implClassName: String? = null
+        var enclosing: KdddType.ModelContainer? = null
 
-        public fun build(): GeneratableDelegate {
+        fun build(): KdddType.Generatable {
             checkNotNull(kdddClassName) { "Property 'kdddClassName' must be initialized!" }
             checkNotNull(implClassName) { "Property 'implClassName' must be initialized!" }
 
-            return GeneratableDelegate(
+            return GeneratableImpl(
                 KdddType.Generatable.KdddClassName(kdddClassName!!),
                 KdddType.Generatable.ImplClassName(implClassName!!),
                 enclosing
             )
         }
+    }
+
+    companion object {
+        operator fun invoke(
+            kddd: KdddType.Generatable.KdddClassName,
+            impl: KdddType.Generatable.ImplClassName,
+            enclosing: KdddType.ModelContainer?
+        ): KdddType.Generatable =
+            GeneratableImpl(kddd, impl, enclosing)
     }
 }

@@ -4,7 +4,7 @@ import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility
 public data class BoxedWithPrimitive private constructor(
-    private val generatable: GeneratableDelegate,
+    private val generatable: KdddType.Generatable,
     public val boxed: PrimitiveClassName
 ) : KdddType.Generatable by generatable, KdddType.Boxed {
 
@@ -27,7 +27,7 @@ public data class BoxedWithPrimitive private constructor(
     }
 
     public companion object {
-        public operator fun invoke(gd: GeneratableDelegate, boxed: PrimitiveClassName): BoxedWithPrimitive =
-            BoxedWithPrimitive(gd, boxed)
+        public operator fun invoke(generatable: KdddType.Generatable, boxed: PrimitiveClassName): BoxedWithPrimitive =
+            BoxedWithPrimitive(generatable, boxed)
     }
 }

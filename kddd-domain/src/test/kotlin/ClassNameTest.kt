@@ -8,24 +8,46 @@ import java.util.UUID
 
 class ClassNameTest : FunSpec({
 
-    val gd = generatable {
+    val generatable = generatable {
         kdddClassName = "not used"
         implClassName = "not used"
     }
 
-    context("""'"<Primitive>".toBoxedTypeWith()' must return appropriate """) {
+    val options = options {  }
 
+    val defaultContext = with(options) {
+        kDddContext {
+            kdddClassName = "not used"
+            properties = emptyList()
+        }
+    }
+
+    context("""'"<Primitive>".toBoxedTypeWith()' must return appropriate """) {
         withData(
             nameFn = { (src, _) -> "'BoxedWithPrimitive(...${src.uppercase()})'" },
             ts = BoxedWithPrimitive.PrimitiveClassName.entries
                 .map { primitive ->
-                    primitive.name.lowercase().replaceFirstChar { it.uppercaseChar() } to BoxedWithPrimitive(gd, primitive)
+                    primitive.name.lowercase().replaceFirstChar { it.uppercaseChar() } to BoxedWithPrimitive(generatable, primitive)
                 }
-        ) { (primitive, boxed) ->  primitive toBoxedTypeWith gd shouldBe boxed }
+        ) { (primitive, boxed) ->
+            with(options) {
+                with(defaultContext) {
+                    primitive toBoxedTypeWith generatable shouldBe boxed
+                }
+            }
+        }
     }
 
     pos("""'"UUID".toBoxedTypeWith()' must return 'BoxedWithCommon(boxed = CommonClassName("UUID"))'""") {
-        "UUID" toBoxedTypeWith gd shouldBe BoxedWithCommon(gd, BoxedWithCommon.CommonClassName(UUID::class.java.simpleName), KDParsable())
+        with(options) {
+            with(defaultContext) {
+                "UUID" toBoxedTypeWith generatable shouldBe BoxedWithCommon(
+                    generatable,
+                    BoxedWithCommon.CommonClassName(UUID::class.java.simpleName),
+                    KDParsable()
+                )
+            }
+        }
     }
 
     /*

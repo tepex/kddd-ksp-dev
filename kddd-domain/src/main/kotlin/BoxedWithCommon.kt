@@ -6,7 +6,7 @@ import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class BoxedWithCommon private constructor(
-    private val generatable: GeneratableDelegate,
+    private val generatable: KdddType.Generatable,
     public val boxed: CommonClassName,
     public val serializationMethod: SerializationMethodName,
     public val deserializationMethod: DeserializationMethodName,
@@ -64,11 +64,11 @@ public data class BoxedWithCommon private constructor(
 
     public companion object {
         public operator fun invoke(
-            gd: GeneratableDelegate,
+            generatable: KdddType.Generatable,
             boxed: CommonClassName,
             parsable: KDParsable
         ): BoxedWithCommon = BoxedWithCommon(
-            gd,
+            generatable,
             boxed,
             SerializationMethodName(parsable.serialization),
             DeserializationMethodName(parsable.deserialization),

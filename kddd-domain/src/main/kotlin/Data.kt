@@ -5,7 +5,7 @@ import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class Data private constructor(
-    private val generatable: GeneratableDelegate,
+    private val generatable: KdddType.Generatable,
     public val properties: List<Property>
 ) : KdddType.Generatable by generatable, KdddType.ModelContainer, ValueObject.Data {
 
@@ -29,7 +29,7 @@ public data class Data private constructor(
         public const val BUILDER_BUILD_METHOD_NAME: String = "build"
         public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-        public operator fun invoke(generatable: GeneratableDelegate, properties: List<Property>): Data =
+        public operator fun invoke(generatable: KdddType.Generatable, properties: List<Property>): Data =
             Data(generatable, properties)
     }
 }

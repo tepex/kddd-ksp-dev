@@ -14,15 +14,18 @@ import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.ILogger
+import ru.it_arch.clean_ddd.domain.KdddType
 import ru.it_arch.clean_ddd.domain.Options
-import ru.it_arch.clean_ddd.domain.type.KdddType
+import ru.it_arch.clean_ddd.domain.kDddContext
+import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDIgnore
+import ru.it_arch.kddd.KDParsable
 
-context(options: Options, logger: KDLogger)
+context(options: Options, logger: ILogger)
 internal class KDVisitor(
     private val resolver: Resolver,
     private val codeGenerator: CodeGenerator,
-) : KSDefaultVisitor<KdddType.Generatable, Unit>() {
+) : KSDefaultVisitor<KdddType.ModelContainer, Unit>() {
 
     val options: Options = Options
     val logger: ILogger = ILogger
@@ -67,12 +70,12 @@ internal class KDVisitor(
         //basePackageName?.let(::generateJsonProperty)
     }
 
-    override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KdddType.Generatable) {
+    override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KdddType.ModelContainer) {
         classDeclaration.declarations
             .filterIsInstance<KSClassDeclaration>()
             .forEach { nestedDeclaration ->
                 //kdLogger.log("process declaration: $classDeclaration")
-                visitKDDeclaration(nestedDeclaration, data.impl)
+                visitKDDeclaration(nestedDeclaration, data)
                     // !!! build and add it later !!!
                     ?.also(data::addNestedType)
                     ?: logger.err("Unsupported type declaration $nestedDeclaration")
@@ -82,34 +85,33 @@ internal class KDVisitor(
         //if (data is KDType.IEntity) data.generateBaseContract()
     }
 
-    override fun defaultHandler(node: KSNode, data: KdddType.Generatable) {}
+    override fun defaultHandler(node: KSNode, data: KdddType.ModelContainer) {}
 
-    // TODO: parent -> KDType
-    private fun visitKDDeclaration(declaration: KSClassDeclaration, parent: ?): KdddType? {
-        val typeArgs = if (declaration.typeParameters.isNotEmpty()) {
+    @OptIn(KspExperimental::class)
+    private fun visitKDDeclaration(declaration: KSClassDeclaration, container: KdddType.ModelContainer?): KdddType? =
+        (if (declaration.typeParameters.isNotEmpty())
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> logger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
-        } else emptyList()
-
-        // full class name. kdddName
-        val typeName = declaration.asType(typeArgs).toTypeName()
-
-        val context = with(options) {
-            with(logger) {
-                typeContext(declaration, typeCatalog, typeName, parent)
+        else emptyList()).let { typeArgs ->
+            with(options) {
+                with(kDddContext {
+                    kdddClassName = declaration.asType(typeArgs).toTypeName().toString()
+                    parent = container
+                    annotations = (declaration.getAnnotationsByType(KDGeneratable::class) +
+                        declaration.getAnnotationsByType(KDParsable::class)
+                    ).toList()
+                    declaration.getAllProperties().map { it.toProperty() }
+                }) {
+                    declaration.superTypes.firstOrNull()?.toKdddTypeOrNull() ?: run {
+                        logger.log("Cant parse parent type: $declaration")
+                        null
+                    }
+                }
+            }?.also { kdddType ->
+                typeCatalog += kdddType
+                if (kdddType is KdddType.ModelContainer) declaration.accept(this, kdddType)
             }
         }
-
-        return with(context) {
-            declaration.kdTypeOrNull(kdLogger).getOrElse {
-                this@KDVisitor.logger.log(it.message ?: "Cant parse parent type: $declaration")
-                null
-            }
-        }?.also { kdType ->
-            typeCatalog += kdType
-            if (kdType is KdddType.Generatable) declaration.accept(this, kdType)
-        }
-    }
 
     /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
     private fun FileSpec.replaceAndWrite(codeGenerator: CodeGenerator, dependencies: Dependencies) {

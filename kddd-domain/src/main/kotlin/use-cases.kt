@@ -63,16 +63,40 @@ public fun String.toKddClassName(): KdddType.KdddClassName {
     return parent!!
 }*/
 
+context(ctx: Context)
 /**
  * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.Boxed] с соотвествующим
  * типом `boxed`: [BoxedWithPrimitive.PrimitiveClassName] или [BoxedWithCommon.CommonClassName].
  *
- * @param необходимый делегат [KdddType.Generatable].
+ * @param generatable необходимый делегат [KdddType.Generatable].
  * @receiver имя параметризированного типа.
  * @return созданный [KdddType.Boxed].
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
-public infix fun String.toBoxedTypeWith(generatable: GeneratableDelegate): KdddType.Boxed =
-    BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == uppercase() }
+public infix fun String.toBoxedTypeWith(generatable: KdddType.Generatable): KdddType.Boxed {
+    //val ctx = kDddContext {  }
+    return BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == uppercase() }
         ?.let { BoxedWithPrimitive(generatable, it) }
-        ?: BoxedWithCommon(generatable, BoxedWithCommon.CommonClassName(this), KDParsable())
+        ?: BoxedWithCommon(
+            generatable,
+            BoxedWithCommon.CommonClassName(this),
+            ctx.getAnnotation<KDParsable>() ?: KDParsable()
+        )
+}
+
+context(ctx: Context)
+internal fun toGeneratable(): KdddType.Generatable =
+    GeneratableImpl(ctx.kddd, ctx.impl, ctx.parent)
+
+internal inline fun <reified T : Annotation> Context.getAnnotation(): T? =
+    annotations.filterIsInstance<T>().firstOrNull()
+
+context(ctx: Context)
+public fun String.toKDddTypeOrNull(): KdddType? = toGeneratable().let { generatable ->
+    when(this) {
+        Data::class.java.simpleName    -> Data(generatable, ctx.properties)
+        IEntity::class.java.simpleName -> IEntity(Data(generatable, ctx.properties))
+        KdddType.Boxed::class.java.simpleName -> this toBoxedTypeWith generatable
+        else -> null
+    }
+}
