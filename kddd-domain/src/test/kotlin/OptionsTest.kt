@@ -19,4 +19,12 @@ class OptionsTest : FunSpec({
             "IMyType33Test".`to implementation class name` shouldBe "MyType_33_Impl"
         }
     }
+
+    pos(""" "<package name>".toImplementationPackage must be added with 'Options.subpackage'""") {
+        val basePackage = "com.example.domain"
+        val impl = "test"
+        with(options { subpackage = impl }) {
+            basePackage.toImplementationPackage shouldBe "$basePackage.$impl"
+        }
+    }
 })

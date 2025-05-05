@@ -100,3 +100,7 @@ public fun String.toKDddTypeOrNull(): KdddType? = toGeneratable().let { generata
         else -> null
     }
 }
+
+context(options: Options)
+public val String.toImplementationPackage: String
+    get() ="$this.${options.subpackage}"
