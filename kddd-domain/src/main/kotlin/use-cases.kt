@@ -20,7 +20,7 @@ context(options: Options)
  * @param annotations список аннотаций, возможно содержащий аннотацию [KDGeneratable], переопределяющую имя имплементации.
  * @return класс имплементации [KdddType.Generatable.ImplClassName].
  * */
-internal infix fun String.`to implementation class name with @KDGeneratable annotation in`(annotations: List<Annotation>): KdddType.Generatable.ImplClassName =
+internal infix fun String.`to implementation class name with @KDGeneratable in`(annotations: List<Annotation>): KdddType.Generatable.ImplClassName =
     (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotEmpty() } ?: `to implementation class name`)
         .let { KdddType.Generatable.ImplClassName(it) }

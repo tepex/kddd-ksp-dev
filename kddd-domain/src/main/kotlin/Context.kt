@@ -31,7 +31,7 @@ public data class Context private constructor(
 
             return Context(
                 KdddType.Generatable.KdddClassName(kdddClassName!!),
-                kdddClassName!! `to implementation class name with @KDGeneratable annotation in` annotations,
+                kdddClassName!! `to implementation class name with @KDGeneratable in` annotations,
                 parent,
                 annotations,
                 properties!!
