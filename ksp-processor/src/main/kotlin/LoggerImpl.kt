@@ -3,7 +3,7 @@ package ru.it_arch.clean_ddd.ksp
 import com.google.devtools.ksp.processing.KSPLogger
 import ru.it_arch.clean_ddd.domain.ILogger
 
-public class KDLoggerImpl private constructor(private val kspLogger: KSPLogger) : ILogger {
+internal class LoggerImpl private constructor(private val kspLogger: KSPLogger) : ILogger {
     override fun log(text: String) {
         kspLogger.warn(text)
     }
@@ -12,7 +12,7 @@ public class KDLoggerImpl private constructor(private val kspLogger: KSPLogger) 
         kspLogger.error(text)
     }
 
-    public companion object {
-        public operator fun invoke(logger: KSPLogger): ILogger = KDLoggerImpl(logger)
+    companion object {
+        operator fun invoke(logger: KSPLogger): ILogger = LoggerImpl(logger)
     }
 }

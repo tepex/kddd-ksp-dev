@@ -1,34 +1,68 @@
 package ru.it_arch.clean_ddd.ksp
 
+import com.google.devtools.ksp.KspExperimental
+import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.CodeGenerator
-import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.validate
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import ru.it_arch.clean_ddd.domain.ILogger
+import ru.it_arch.clean_ddd.domain.KdddType
 import ru.it_arch.clean_ddd.domain.Options
+import ru.it_arch.kddd.KDIgnore
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
-    private val _logger: KSPLogger,
     private val options: Options,
+    private val logger: ILogger,
     private val isTesting: Boolean
 ) : SymbolProcessor {
 
+    @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val symbols = resolver.getNewFiles()
-        if (!symbols.iterator().hasNext()) return emptyList()
-
-        val logger = KDLoggerImpl(_logger)
         logger.log("options: $options, isTesting: $isTesting")
-        logger.log("symbols: ${symbols.toList()}")
+        val visitor = Visitor(resolver, options, logger)
 
-        with(options) {
-            with(logger) {
-                KDVisitor(resolver, codeGenerator).generate(symbols)
-            }
+        // TODO: dirty!!! refactor this 💩
+        // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
+        //var basePackageName: ClassName.PackageName? = null
+
+        val outputFiles = resolver.getNewFiles().toList().mapNotNull { file ->
+            logger.log("process file: $file")
+            file.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
+                .firstOrNull()
+                ?.let { declaration ->
+                    //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
+                    visitor.visitKDDeclaration(declaration, null).let { kdddType ->
+                        if (kdddType is KdddType.ModelContainer) with(options) { declaration.toOutputFile(kdddType, file) }
+                        else null
+                    }
+                }
         }
 
-        return symbols.filterNot { it.validate() }.toList()
+
+        logger.log("type catalog: ${visitor.typeCatalog}")
+
+        /*
+        outputFiles.keys.forEach { file ->
+            visitor.buildAndAddNestedTypes(file.first)
+
+            //createBuilders(file.model)
+
+            // TODO if (file.generatable.hasDsl) createDslBuilderExtensionFunction(file)
+            //if (file.model.hasJson) createJsonExtensionFunctions(file)
+        }*/
+
+        /*
+        outputFiles.entries
+            .forEach { it.key.fileSpecBuilder.build().replaceAndWrite(codeGenerator, Dependencies(false, it.value)) }*/
+
+        //basePackageName?.let(::generateJsonProperty)
+
+        return emptyList()
     }
 }
