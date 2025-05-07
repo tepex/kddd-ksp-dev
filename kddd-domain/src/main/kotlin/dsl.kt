@@ -6,6 +6,9 @@ package ru.it_arch.clean_ddd.domain
 public fun property(block: Property.Builder.() -> Unit): Property =
     Property.Builder().apply(block).build()
 
+public fun compositeClassName(block: CompositeClassName.Builder.() -> Unit): CompositeClassName =
+    CompositeClassName.Builder().apply(block).build()
+
 /**
  *
  * */

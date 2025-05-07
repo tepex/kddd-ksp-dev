@@ -4,14 +4,14 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import ru.it_arch.kddd.KDGeneratable
 
-class ImplClassNameTest : FunSpec({
+class GeneratableImplTest : FunSpec({
 
     pos("ClassNameImpl must be as '@KDGeneratable.implementationName'") {
         val resultClassName = "MyTestImpl"
         val annotations = listOf(KDGeneratable(implementationName = resultClassName))
         with(options {}) {
             "MyType" `to implementation class name with @KDGeneratable in` annotations shouldBe
-                KdddType.Generatable.ImplClassName(resultClassName)
+                CompositeClassName.ClassName(resultClassName)
         }
     }
 
@@ -19,7 +19,7 @@ class ImplClassNameTest : FunSpec({
         val resultClassName = "MyTypeImpl"
         with(options {}) {
             "MyType" `to implementation class name with @KDGeneratable in` emptyList() shouldBe
-                KdddType.Generatable.ImplClassName(resultClassName)
+                CompositeClassName.ClassName(resultClassName)
         }
     }
 })

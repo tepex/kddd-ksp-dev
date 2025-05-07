@@ -30,12 +30,12 @@ internal class DddProcessor(
         //var basePackageName: ClassName.PackageName? = null
 
         val outputFiles = resolver.getNewFiles().toList().mapNotNull { file ->
-            logger.log("process file: $file")
             file.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
                 .firstOrNull()
                 ?.let { declaration ->
+                    logger.log("process file: $file, declaration: $declaration")
                     //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
                     visitor.visitKDDeclaration(declaration, null).let { kdddType ->
                         if (kdddType is KdddType.ModelContainer) with(options) { declaration.toOutputFile(kdddType, file) }
@@ -45,7 +45,7 @@ internal class DddProcessor(
         }
 
 
-        logger.log("type catalog: ${visitor.typeCatalog}")
+        logger.log("type catalog: ")
 
         /*
         outputFiles.keys.forEach { file ->

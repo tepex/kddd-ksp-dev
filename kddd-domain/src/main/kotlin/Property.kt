@@ -16,15 +16,26 @@ import ru.it_arch.kddd.ValueObject
 public data class Property private constructor(
     val name: Name,
     val serialName: SerialName,
-    val className: ClassName,
+    val className: CompositeClassName.FullClassName,
     val isNullable: Boolean
 ) : ValueObject.Data {
+
+    private val asCode: String by lazy {
+        StringBuilder(name.boxed).apply {
+            if (serialName.boxed != name.boxed) append("""[serialName="${serialName}"]""")
+            append(": $className")
+            if (isNullable) append('?')
+        }.toString()
+    }
 
     init {
         validate()
     }
 
     override fun validate() {}
+
+    override fun toString(): String =
+        asCode
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
         TODO("Must not used")
@@ -59,22 +70,6 @@ public data class Property private constructor(
             TODO("Must not used")
     }
 
-    @JvmInline
-    public value class ClassName private constructor(override val boxed: String) : ValueObject.Boxed<String> {
-        override fun validate() {}
-
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
-            TODO("Not yet implemented")
-        }
-
-        override fun toString(): String = boxed
-
-        public companion object {
-            public operator fun invoke(value: String): ClassName =
-                ClassName(value)
-        }
-    }
-
     public class Builder {
         public var name: String? = null
         public var serialName: String? = null
@@ -85,7 +80,12 @@ public data class Property private constructor(
             checkNotNull(name) { "Property 'name' must be initialized!" }
             checkNotNull(className) { "Property 'className' must be initialized!" }
             checkNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
-            return Property(Name(name!!), SerialName(serialName ?: name!!), ClassName(className!!), isNullable!!)
+            return Property(
+                Name(name!!),
+                SerialName(serialName ?: name!!),
+                CompositeClassName.FullClassName(className!!),
+                isNullable!!
+            )
         }
     }
 }

@@ -21,7 +21,7 @@ internal fun KSPropertyDeclaration.toProperty(): Property = type.toTypeName().le
     }
 }
 
-context(_: Context)
+context(_: Context, _: Options)
 /**
  * ValueObject.* -> KdddType.*
  */

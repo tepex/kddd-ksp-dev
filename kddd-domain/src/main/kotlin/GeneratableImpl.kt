@@ -4,8 +4,8 @@ import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility
 internal data class GeneratableImpl private constructor(
-    override val kddd: KdddType.Generatable.KdddClassName,
-    override val impl: KdddType.Generatable.ImplClassName,
+    override val kddd: CompositeClassName.ClassName,
+    override val impl: CompositeClassName.ClassName,
     override val enclosing: KdddType.ModelContainer?
 ) : KdddType.Generatable {
 
@@ -16,28 +16,15 @@ internal data class GeneratableImpl private constructor(
     override fun validate() {}
 
     class Builder {
-        var kdddClassName: String? = null
-        var implClassName: String? = null
+        var kddd: CompositeClassName.ClassName? = null
+        var impl: CompositeClassName.ClassName? = null
         var enclosing: KdddType.ModelContainer? = null
 
         fun build(): KdddType.Generatable {
-            checkNotNull(kdddClassName) { "Property 'kdddClassName' must be initialized!" }
-            checkNotNull(implClassName) { "Property 'implClassName' must be initialized!" }
+            checkNotNull(kddd) { "Property 'kddd' must be initialized!" }
+            checkNotNull(impl) { "Property 'impl' must be initialized!" }
 
-            return GeneratableImpl(
-                KdddType.Generatable.KdddClassName(kdddClassName!!),
-                KdddType.Generatable.ImplClassName(implClassName!!),
-                enclosing
-            )
+            return GeneratableImpl(kddd!!, impl!!, enclosing)
         }
-    }
-
-    companion object {
-        operator fun invoke(
-            kddd: KdddType.Generatable.KdddClassName,
-            impl: KdddType.Generatable.ImplClassName,
-            enclosing: KdddType.ModelContainer?
-        ): KdddType.Generatable =
-            GeneratableImpl(kddd, impl, enclosing)
     }
 }

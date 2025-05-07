@@ -9,15 +9,18 @@ import java.util.UUID
 class ClassNameTest : FunSpec({
 
     val generatable = generatable {
-        kdddClassName = "not used"
-        implClassName = "not used"
+        kddd = CompositeClassName.ClassName("not used")
+        impl = CompositeClassName.ClassName("not used")
     }
 
     val options = options {  }
 
     val defaultContext = with(options) {
         kDddContext {
-            kdddClassName = "not used"
+            kddd = compositeClassName {
+                packageName = "not used"
+                className = "not used"
+            }
             properties = emptyList()
         }
     }

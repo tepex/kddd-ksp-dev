@@ -14,6 +14,7 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.KdddType
 import ru.it_arch.clean_ddd.domain.Options
+import ru.it_arch.clean_ddd.domain.compositeClassName
 import ru.it_arch.clean_ddd.domain.kDddContext
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
@@ -51,23 +52,32 @@ internal class Visitor(
             declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
                 .also { args -> logger.log("$declaration type args: ${args.map { it.toTypeName() }}") }
         else emptyList()).let { typeArgs ->
+            val kdddTypeName = declaration.asType(typeArgs).toTypeName()
+            val fullClassName = compositeClassName {
+                packageName = declaration.packageName.asString()
+                className = kdddTypeName.toString()
+            }
             with(options) {
                 with(kDddContext {
-                    kdddClassName = declaration.asType(typeArgs).toTypeName().toString()
+                    kddd = fullClassName
                     parent = container
                     annotations = (declaration.getAnnotationsByType(KDGeneratable::class) +
                         declaration.getAnnotationsByType(KDParsable::class)
                     ).toList()
-                    declaration.getAllProperties().map { it.toProperty() }
-                }) {
+                    properties = declaration.getAllProperties().map { propDecl ->
+                        val typeName = propDecl.type.toTypeName() // -> _typeCatalog
+                        propDecl.toProperty()
+                    }.toList()
+                }.also { logger.log("context<$declaration, container: ${container?.kddd }>") }) {
                     declaration.superTypes.firstOrNull()?.toKdddTypeOrNull() ?: run {
                         logger.log("Cant parse parent type: $declaration")
                         null
                     }
                 }
-            }?.also { kdddType ->
-                _typeCatalog += kdddType
-                if (kdddType is KdddType.ModelContainer) declaration.accept(this, kdddType)
+            }?.also { type ->
+                logger.log("type: $type")
+                _typeCatalog += type
+                if (type is KdddType.ModelContainer) declaration.accept(this, type)
             }
         }
 
