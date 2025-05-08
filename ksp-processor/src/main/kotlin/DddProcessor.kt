@@ -3,11 +3,13 @@ package ru.it_arch.clean_ddd.ksp
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.squareup.kotlinpoet.FileSpec
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.KdddType
 import ru.it_arch.clean_ddd.domain.Options
@@ -29,23 +31,20 @@ internal class DddProcessor(
         // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
         //var basePackageName: ClassName.PackageName? = null
 
-        val outputFiles = resolver.getNewFiles().toList().mapNotNull { file ->
-            file.declarations
-                .filterIsInstance<KSClassDeclaration>()
-                .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
-                .firstOrNull()
-                ?.let { declaration ->
-                    logger.log("process file: $file, declaration: $declaration")
-                    //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
-                    visitor.visitKDDeclaration(declaration, null).let { kdddType ->
-                        if (kdddType is KdddType.ModelContainer) with(options) { declaration.toOutputFile(kdddType, file) }
-                        else null
-                    }
+        val outputFiles = resolver.getNewFiles().toList().mapNotNull {
+            with(options) {
+                with(logger) {
+                    it `to OutputFile with` visitor
                 }
+            }
+
         }
 
 
-        logger.log("type catalog: ")
+        logger.log("type catalog:")
+        visitor.typeCatalog.entries.forEach { pair ->
+            logger.log("${pair.key} -> ${pair.value}")
+        }
 
         /*
         outputFiles.keys.forEach { file ->
@@ -64,5 +63,27 @@ internal class DddProcessor(
         //basePackageName?.let(::generateJsonProperty)
 
         return emptyList()
+    }
+
+
+    /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
+    private fun FileSpec.replaceAndWrite(codeGenerator: CodeGenerator, dependencies: Dependencies) {
+        codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferedWriter(it).use(::writeTo) }
+    }
+
+    tailrec fun buildAndAddNestedTypes(model: KdddType.ModelContainer, isFinish: Boolean = false) {
+        val nestedModels = model.nestedTypes.filterIsInstance<KdddType.ModelContainer>()
+        return if (nestedModels.isEmpty() || isFinish) {
+            // append
+            model.nestedTypes.filterIsInstance<KdddType.Generatable>().forEach { type ->
+                //if (type is KDType.Model) createBuilders(type)
+
+                // TODO:
+                // model.builder.addType(type.builder.build())
+            }
+        } else {
+            nestedModels.forEach(::buildAndAddNestedTypes)
+            buildAndAddNestedTypes(model, true)
+        }
     }
 }

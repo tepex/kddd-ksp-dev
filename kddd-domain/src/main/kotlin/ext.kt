@@ -4,9 +4,6 @@ import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
 
-internal val CompositeClassName.fullClassName: CompositeClassName.FullClassName
-    get() = CompositeClassName.FullClassName("$packageName.$className")
-
 internal inline fun <reified T : Annotation> Context.getAnnotation(): T? =
     annotations.filterIsInstance<T>().firstOrNull()
 

@@ -19,7 +19,7 @@ class ClassNameTest : FunSpec({
         kDddContext {
             kddd = compositeClassName {
                 packageName = "not used"
-                className = "not used"
+                fullClassName = "not used"
             }
             properties = emptyList()
         }

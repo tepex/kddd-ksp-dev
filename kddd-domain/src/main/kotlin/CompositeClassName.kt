@@ -68,20 +68,15 @@ public data class CompositeClassName(
 
     public class Builder {
         public var packageName: String? = null
-        public var className: String? = null
+        public var fullClassName: String? = null
 
         public fun build(): CompositeClassName {
             checkNotNull(packageName) { "Property 'packageName' must be initialized!" }
-            checkNotNull(className) { "Property 'className' must be initialized!" }
-            return CompositeClassName(PackageName(packageName!!), ClassName(className!!))
-        }
-    }
-
-    public companion object {
-        public operator fun invoke(fullClassName: String, packageName: String): CompositeClassName =
-            CompositeClassName(
-                PackageName(packageName),
-                ClassName(fullClassName.substringAfterLast("$packageName."))
+            checkNotNull(fullClassName) { "Property 'fullClassName' must be initialized!" }
+            return CompositeClassName(
+                PackageName(packageName!!),
+                ClassName(fullClassName!!.substringAfterLast("$packageName."))
             )
+        }
     }
 }
