@@ -22,7 +22,6 @@ internal class DddProcessor(
     private val isTesting: Boolean
 ) : SymbolProcessor {
 
-    @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
         logger.log("options: $options, isTesting: $isTesting")
         val visitor = Visitor(resolver, options, logger)
@@ -31,12 +30,13 @@ internal class DddProcessor(
         // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
         //var basePackageName: ClassName.PackageName? = null
 
-        val outputFiles = resolver.getNewFiles().toList().mapNotNull {
-            with(options) {
-                with(logger) {
-                    it `to OutputFile with` visitor
-                }
-            }
+        resolver.getNewFiles().toList().mapNotNull { file ->
+            logger.log("process $file")
+            with(options) { file `to OutputFile with` visitor }
+        }.also {
+            logger.log("shortest: ${it.findShortestPackageName()}")
+        }
+            .forEach { file ->
 
         }
 

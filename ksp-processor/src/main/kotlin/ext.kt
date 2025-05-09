@@ -8,8 +8,8 @@ import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.ksp.toTypeName
+import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.Context
-import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.KdddType
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.Property
@@ -33,9 +33,11 @@ context(_: Context, _: Options)
 internal fun KSTypeReference.toKdddTypeOrNull(): KdddType? =
     toString().substringBefore('<').toKDddTypeOrNull()
 
-internal typealias OutputFile = Triple<KdddType.ModelContainer, String, KSFile>
+/**
+ * */
+internal typealias OutputFile = Triple<KdddType.ModelContainer, CompositeClassName.PackageName, KSFile>
 
-context(options: Options, logger: ILogger)
+context(options: Options)
 @OptIn(KspExperimental::class)
 internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
     declarations
@@ -43,7 +45,6 @@ internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
         .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
         .firstOrNull()
         ?.let { declaration ->
-            logger.log("process file: $this, declaration: $declaration")
             //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
             visitor.visitKDDeclaration(declaration, null).let { kdddType ->
                 if (kdddType is KdddType.ModelContainer)
@@ -51,3 +52,8 @@ internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
                 else null
             }
         }
+
+internal fun List<OutputFile>.findShortestPackageName(): CompositeClassName.PackageName =
+    reduce { acc, outputFile ->
+        outputFile.takeIf { it.second.boxed.length < acc.second.boxed.length } ?: acc
+    }.second

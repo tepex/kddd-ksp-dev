@@ -42,8 +42,8 @@ public fun String.toKDddTypeOrNull(): KdddType? = toGeneratable(ctx.annotations)
 }
 
 context(options: Options)
-public val String.toImplementationPackage: String
-    get() ="$this.${options.subpackage}"
+public val String.toImplementationPackage: CompositeClassName.PackageName
+    get() = CompositeClassName.PackageName("$this.${options.subpackage}")
 
 public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
     get() = CompositeClassName.FullClassName("$packageName.$className")
