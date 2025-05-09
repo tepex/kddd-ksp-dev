@@ -24,7 +24,7 @@ class OptionsTest : FunSpec({
         val basePackage = "com.example.domain"
         val impl = "test"
         with(options { subpackage = impl }) {
-            basePackage.toImplementationPackage shouldBe "$basePackage.$impl"
+            basePackage.toImplementationPackage shouldBe CompositeClassName.PackageName("$basePackage.$impl")
         }
     }
 })

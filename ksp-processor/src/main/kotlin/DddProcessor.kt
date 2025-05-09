@@ -1,19 +1,15 @@
 package ru.it_arch.clean_ddd.ksp
 
-import com.google.devtools.ksp.KspExperimental
-import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
-import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.FileSpec
 import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.KdddType
+import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
-import ru.it_arch.kddd.KDIgnore
+import ru.it_arch.clean_ddd.domain.core.Generatable
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -75,7 +71,7 @@ internal class DddProcessor(
         val nestedModels = model.nestedTypes.filterIsInstance<KdddType.ModelContainer>()
         return if (nestedModels.isEmpty() || isFinish) {
             // append
-            model.nestedTypes.filterIsInstance<KdddType.Generatable>().forEach { type ->
+            model.nestedTypes.filterIsInstance<Generatable>().forEach { type ->
                 //if (type is KDType.Model) createBuilders(type)
 
                 // TODO:

@@ -9,8 +9,8 @@ import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.CompositeClassName
+import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Context
-import ru.it_arch.clean_ddd.domain.KdddType
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.clean_ddd.domain.property

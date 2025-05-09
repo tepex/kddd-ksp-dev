@@ -1,5 +1,9 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.core.BoxedWithPrimitive
+import ru.it_arch.clean_ddd.domain.core.Generatable
+import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
@@ -7,12 +11,12 @@ import ru.it_arch.kddd.Kddd
 internal inline fun <reified T : Annotation> Context.getAnnotation(): T? =
     annotations.filterIsInstance<T>().firstOrNull()
 
-context(ctx: Context, _: Options)
-internal fun toGeneratable(annotations: List<Annotation>): KdddType.Generatable =
+context(_: Options)
+internal fun Context.toGeneratable(): Generatable =
     generatable {
-        kddd = ctx.kddd
-        impl = ctx.kddd.boxed `to implementation class name with @KDGeneratable in` annotations
-        enclosing = ctx.parent
+        kddd = this@toGeneratable.kddd
+        impl = this@toGeneratable.kddd.boxed `to implementation class name with @KDGeneratable in` annotations
+        enclosing = this@toGeneratable.enclosing
     }
 
 context(_: Options)
@@ -53,7 +57,7 @@ context(ctx: Context)
  * @return созданный [KdddType.Boxed].
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
-internal infix fun String.toBoxedTypeWith(generatable: KdddType.Generatable): KdddType.Boxed =
+internal infix fun String.toBoxedTypeWith(generatable: Generatable): KdddType.Boxed =
     BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == uppercase() }
         ?.let { BoxedWithPrimitive(generatable, it) }
         ?: BoxedWithCommon(

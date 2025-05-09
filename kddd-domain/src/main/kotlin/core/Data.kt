@@ -1,13 +1,13 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.clean_ddd.domain.core
 
+import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.kddd.Kddd
-import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class Data private constructor(
-    private val generatable: KdddType.Generatable,
+    private val generatable: Generatable,
     public val properties: List<Property>
-) : KdddType.Generatable by generatable, KdddType.ModelContainer, ValueObject.Data {
+) : Generatable by generatable, KdddType.ModelContainer {
 
     private val _nestedTypes = mutableSetOf<KdddType>()
     override val nestedTypes: Set<KdddType>
@@ -29,7 +29,7 @@ public data class Data private constructor(
         public const val BUILDER_BUILD_METHOD_NAME: String = "build"
         public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-        public operator fun invoke(generatable: KdddType.Generatable, properties: List<Property>): Data =
+        public operator fun invoke(generatable: Generatable, properties: List<Property>): Data =
             Data(generatable, properties)
     }
 }

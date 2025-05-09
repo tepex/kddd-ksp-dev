@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.clean_ddd.domain.core
 
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
@@ -6,12 +6,12 @@ import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class BoxedWithCommon private constructor(
-    private val generatable: KdddType.Generatable,
+    private val generatable: Generatable,
     public val boxed: CommonClassName,
     public val serializationMethod: SerializationMethodName,
     public val deserializationMethod: DeserializationMethodName,
     public val isStringInDsl: Boolean
-) : KdddType.Generatable by generatable, KdddType.Boxed {
+) : Generatable by generatable, KdddType.Boxed {
 
     override fun validate() {}
 
@@ -64,7 +64,7 @@ public data class BoxedWithCommon private constructor(
 
     public companion object {
         public operator fun invoke(
-            generatable: KdddType.Generatable,
+            generatable: Generatable,
             boxed: CommonClassName,
             parsable: KDParsable
         ): BoxedWithCommon = BoxedWithCommon(

@@ -11,7 +11,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.KdddType
+import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.compositeClassName
 import ru.it_arch.clean_ddd.domain.fullClassName
@@ -57,7 +57,7 @@ internal class Visitor(
                 with(options) {
                     with(
                         kDddContext {
-                            parent = container
+                            enclosing = container
                             kddd = className
                             annotations = (declaration.getAnnotationsByType(KDGeneratable::class) +
                                 declaration.getAnnotationsByType(KDParsable::class)

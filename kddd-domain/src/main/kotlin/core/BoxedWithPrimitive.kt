@@ -1,12 +1,12 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.clean_ddd.domain.core
 
 import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility
 public data class BoxedWithPrimitive private constructor(
-    private val generatable: KdddType.Generatable,
+    private val generatable: Generatable,
     public val boxed: PrimitiveClassName
-) : KdddType.Generatable by generatable, KdddType.Boxed {
+) : Generatable by generatable, KdddType.Boxed {
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
         TODO("Not yet implemented")
@@ -27,7 +27,7 @@ public data class BoxedWithPrimitive private constructor(
     }
 
     public companion object {
-        public operator fun invoke(generatable: KdddType.Generatable, boxed: PrimitiveClassName): BoxedWithPrimitive =
+        public operator fun invoke(generatable: Generatable, boxed: PrimitiveClassName): BoxedWithPrimitive =
             BoxedWithPrimitive(generatable, boxed)
     }
 }

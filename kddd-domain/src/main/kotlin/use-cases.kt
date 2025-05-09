@@ -1,5 +1,9 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.core.Data
+import ru.it_arch.clean_ddd.domain.core.IEntity
+import ru.it_arch.clean_ddd.domain.core.KdddType
+
 public fun Map<String, String>.toOptions(): Options = options {
     subpackage = get(Options.OPTION_IMPLEMENTATION_SUBPACKAGE)
     generatedClassNameRe = get(Options.OPTION_GENERATED_CLASS_NAME_RE)
@@ -32,10 +36,10 @@ public fun String.toKddClassName(): KdddType.KdddClassName {
 }*/
 
 context(ctx: Context, _: Options)
-public fun String.toKDddTypeOrNull(): KdddType? = toGeneratable(ctx.annotations).let { generatable ->
-    when(this) {
-        Data::class.java.simpleName    -> Data(generatable, ctx.properties)
-        IEntity::class.java.simpleName -> IEntity(Data(generatable, ctx.properties))
+public fun String.toKDddTypeOrNull(): KdddType? = ctx.toGeneratable().let { generatable ->
+    when (this) {
+        Data::class.java.simpleName           -> Data(generatable, ctx.properties)
+        IEntity::class.java.simpleName        -> IEntity(Data(generatable, ctx.properties))
         KdddType.Boxed::class.java.simpleName -> this toBoxedTypeWith generatable
         else -> null
     }

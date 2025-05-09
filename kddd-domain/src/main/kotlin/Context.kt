@@ -1,12 +1,13 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class Context private constructor(
     val kddd: CompositeClassName.ClassName,
-    val parent: KdddType.ModelContainer?,
+    val enclosing: KdddType.ModelContainer?,
     val annotations: List<Annotation>,
     val properties: List<Property>
 ) : ValueObject.Data {
@@ -19,7 +20,7 @@ public data class Context private constructor(
 
     public class Builder {
         public var kddd: CompositeClassName? = null
-        public var parent: KdddType.ModelContainer? = null
+        public var enclosing: KdddType.ModelContainer? = null
         public var annotations: List<Annotation> = emptyList()
         public var properties: List<Property>? = null
 
@@ -30,7 +31,7 @@ public data class Context private constructor(
 
             return Context(
                 kddd!!.className,
-                parent,
+                enclosing,
                 annotations,
                 properties!!
             )
