@@ -6,6 +6,7 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.TypeSpec
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
@@ -29,11 +30,18 @@ internal class DddProcessor(
         resolver.getNewFiles().toList().mapNotNull { file ->
             logger.log("process $file")
             with(options) { file `to OutputFile with` visitor }
-        }.also {
-            logger.log("shortest: ${it.findShortestPackageName()}")
-        }
-            .forEach { file ->
+        }.forEach { file ->
+            val (model, packageName, dependencies) = file
+            //buildAndAddNestedTypes(file.first)
 
+            //logger.log("creating file: {$packageName, ${model.impl}}")
+
+            // add model content and build()
+            val qqqq = TypeSpec.classBuilder("")
+            val fileSpecBuilder = file.fileSpecBuilder.build()
+
+            codeGenerator.createNewFile(dependencies, packageName.boxed, model.impl.boxed)
+                .also { StringBufferedWriter(it).use(fileSpecBuilder::writeTo) }
         }
 
 
@@ -71,7 +79,7 @@ internal class DddProcessor(
         val nestedModels = model.nestedTypes.filterIsInstance<KdddType.ModelContainer>()
         return if (nestedModels.isEmpty() || isFinish) {
             // append
-            model.nestedTypes.filterIsInstance<Generatable>().forEach { type ->
+            model.nestedTypes.forEach { type ->
                 //if (type is KDType.Model) createBuilders(type)
 
                 // TODO:

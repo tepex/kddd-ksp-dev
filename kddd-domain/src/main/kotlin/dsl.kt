@@ -41,7 +41,7 @@ context(_: Options)
 internal fun Context.toGeneratable(): Generatable =
     generatable {
         kddd = this@toGeneratable.kddd
-        impl = this@toGeneratable.kddd.boxed `to implementation class name with @KDGeneratable in` annotations
+        impl = this@toGeneratable.kddd.className.boxed `to implementation class name with @KDGeneratable in` annotations
         enclosing = this@toGeneratable.enclosing
     }
 

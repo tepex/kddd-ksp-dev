@@ -6,7 +6,7 @@ import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 public data class Context private constructor(
-    val kddd: CompositeClassName.ClassName,
+    val kddd: CompositeClassName,
     val enclosing: KdddType.ModelContainer?,
     val annotations: List<Annotation>,
     val properties: List<Property>
@@ -30,7 +30,7 @@ public data class Context private constructor(
             checkNotNull(properties) { "Property 'properties' must be initialized!" }
 
             return Context(
-                kddd!!.className,
+                kddd!!,
                 enclosing,
                 annotations,
                 properties!!

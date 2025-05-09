@@ -11,7 +11,10 @@ import java.util.UUID
 class ClassNameTest : FunSpec({
 
     val generatable = generatable {
-        kddd = CompositeClassName.ClassName("not used")
+        kddd = compositeClassName {
+            packageName = "not used"
+            fullClassName = "not used"
+        }
         impl = CompositeClassName.ClassName("not used")
     }
 
