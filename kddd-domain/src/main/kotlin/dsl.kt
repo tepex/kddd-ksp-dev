@@ -41,7 +41,7 @@ context(_: Options)
 internal fun Context.toGeneratable(): Generatable =
     generatable {
         kddd = this@toGeneratable.kddd
-        impl = this@toGeneratable.kddd.className.boxed `to implementation class name with @KDGeneratable in` annotations
+        impl = this@toGeneratable.kddd `to implementation class name from options or from` annotations
         enclosing = this@toGeneratable.enclosing
     }
 
@@ -51,12 +51,18 @@ context(_: Options)
  *
  * @receiver исходное полное имя [Kddd]-типа.
  * @param annotations список аннотаций, возможно содержащий аннотацию [KDGeneratable], переопределяющую имя имплементации.
- * @return класс имплементации [CompositeClassName.ClassName].
+ * @return класс имплементации [CompositeClassName].
  * */
-internal infix fun String.`to implementation class name with @KDGeneratable in`(annotations: List<Annotation>): CompositeClassName.ClassName =
+internal infix fun CompositeClassName.`to implementation class name from options or from`(annotations: List<Annotation>): CompositeClassName =
     (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
-        ?.takeIf { it.isNotEmpty() } ?: `to implementation class name`)
-        .let { CompositeClassName.ClassName(it) }
+        ?.takeIf { it.isNotEmpty() }?.let { CompositeClassName.ClassName(it) }
+        ?: className.`to implementation class name from options`)
+        .let { CompositeClassName(packageName.toImplementationPackage, it) }
+
+context(options: Options)
+internal val CompositeClassName.PackageName.toImplementationPackage: CompositeClassName.PackageName
+    get() = this + options.subpackage
+
 
 context(options: Options)
 /**
@@ -65,12 +71,12 @@ context(options: Options)
  * @receiver исходное полное имя [Kddd]-типа.
  * @return имя класса имплементации.
  * */
-internal val String.`to implementation class name`: String get() {
+internal val CompositeClassName.ClassName.`to implementation class name from options`: CompositeClassName.ClassName get() {
     var result = options.generatedClassNameResult.boxed
-    options.generatedClassNameRe.find(this)?.groupValues?.forEachIndexed { i, group ->
+    options.generatedClassNameRe.find(boxed)?.groupValues?.forEachIndexed { i, group ->
         group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
     }
-    return result
+    return CompositeClassName.ClassName(result)
 }
 
 context(ctx: Context)

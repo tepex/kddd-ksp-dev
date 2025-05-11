@@ -3,7 +3,8 @@ package ru.it_arch.clean_ddd.domain
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
-public data class CompositeClassName(
+@ConsistentCopyVisibility
+public data class CompositeClassName private constructor(
     public val packageName: PackageName,
     public val className: ClassName
 ) : ValueObject.Data {
@@ -25,6 +26,9 @@ public data class CompositeClassName(
 
         override fun toString(): String =
             boxed
+
+        public operator fun plus(subpackage: Options.Subpackage): PackageName =
+            PackageName(subpackage.takeUnless { it.isEmpty() }?.let { "$boxed.$subpackage" } ?: boxed)
 
         public companion object {
             public operator fun invoke(value: String): PackageName =
@@ -78,5 +82,10 @@ public data class CompositeClassName(
                 ClassName(fullClassName!!.substringAfterLast("$packageName."))
             )
         }
+    }
+
+    public companion object {
+        public operator fun invoke(packageName: PackageName, className: ClassName): CompositeClassName =
+            CompositeClassName(packageName, className)
     }
 }

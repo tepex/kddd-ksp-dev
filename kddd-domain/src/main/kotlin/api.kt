@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.domain
 
+import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.core.Data
 import ru.it_arch.clean_ddd.domain.core.IEntity
 import ru.it_arch.clean_ddd.domain.core.KdddType
@@ -45,9 +46,12 @@ public fun String.toKDddTypeOrNull(): KdddType? = ctx.toGeneratable().let { gene
     }
 }
 
-context(options: Options)
-public val String.toImplementationPackage: CompositeClassName.PackageName
-    get() = CompositeClassName.PackageName("$this.${options.subpackage}")
-
 public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
     get() = CompositeClassName.FullClassName("$packageName.$className")
+
+/**
+ * 1. <CommonType>(src).let(::MyTypeImpl)
+ * 2. <CommonType>.<deserialization static method>(src).let(::MyTypeImpl)
+ * */
+public val BoxedWithCommon.parseReturnTemplate: String
+    get() = "return %T${deserializationMethod.boxed.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%T)"

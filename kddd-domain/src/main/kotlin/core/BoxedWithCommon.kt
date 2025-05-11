@@ -33,8 +33,6 @@ public data class BoxedWithCommon private constructor(
         override fun validate() {}
 
         public companion object {
-            public const val FABRIC_PARSE_METHOD: String = "parse"
-
             public operator fun invoke(value: String): CommonClassName =
                 CommonClassName(value)
         }
@@ -63,6 +61,8 @@ public data class BoxedWithCommon private constructor(
     }
 
     public companion object {
+        public const val FABRIC_PARSE_METHOD: String = "parse"
+
         public operator fun invoke(
             generatable: Generatable,
             boxed: CommonClassName,

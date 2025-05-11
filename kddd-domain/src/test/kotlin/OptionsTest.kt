@@ -7,7 +7,8 @@ class OptionsTest : FunSpec({
 
     pos("Default options must generate '<MyType>Impl' class name") {
         with(options { }) {
-            "MyType".`to implementation class name` shouldBe "MyTypeImpl"
+            CompositeClassName.ClassName("MyType").`to implementation class name from options` shouldBe
+                CompositeClassName.ClassName("MyTypeImpl")
         }
     }
 
@@ -16,12 +17,13 @@ class OptionsTest : FunSpec({
             generatedClassNameRe = "I(\\D+)([\\d]+)Test"
             generatedClassNameResult = "$1_$2_Impl"
         }) {
-            "IMyType33Test".`to implementation class name` shouldBe "MyType_33_Impl"
+            CompositeClassName.ClassName("IMyType33Test").`to implementation class name from options` shouldBe
+                CompositeClassName.ClassName("MyType_33_Impl")
         }
     }
 
     pos(""" "<package name>".toImplementationPackage must be added with 'Options.subpackage'""") {
-        val basePackage = "com.example.domain"
+        val basePackage = CompositeClassName.PackageName("com.example.domain")
         val impl = "test"
         with(options { subpackage = impl }) {
             basePackage.toImplementationPackage shouldBe CompositeClassName.PackageName("$basePackage.$impl")
