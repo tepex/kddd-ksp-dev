@@ -26,7 +26,7 @@ internal class Visitor(
 ) : KSDefaultVisitor<KdddType.ModelContainer, Unit>() {
 
     private val _typeCatalog = mutableMapOf<CompositeClassName.FullClassName, TypeName>()
-    val typeCatalog: Map<CompositeClassName.FullClassName, TypeName>
+    val typeCatalog: TypeCatalog
         get() = _typeCatalog.toMap()
 
     override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KdddType.ModelContainer) {
@@ -45,6 +45,9 @@ internal class Visitor(
     }
 
     override fun defaultHandler(node: KSNode, data: KdddType.ModelContainer) {}
+
+    // TODO: add impl package name
+
 
     @OptIn(KspExperimental::class)
     fun visitKDDeclaration(declaration: KSClassDeclaration, container: KdddType.ModelContainer?): KdddType? =
@@ -65,7 +68,7 @@ internal class Visitor(
                             properties = declaration.getAllProperties().map { it.toProperty() }.toList()
                         }.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
                     ) {
-                        declaration.superTypes.firstOrNull()?.toKdddTypeOrNull() ?: run {
+                        declaration.superTypes.firstOrNull()?.toKdddType() ?: run {
                             logger.log("Cant parse parent type: $declaration")
                             null
                         }

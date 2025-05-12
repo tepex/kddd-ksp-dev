@@ -37,12 +37,12 @@ public fun String.toKddClassName(): KdddType.KdddClassName {
 }*/
 
 context(ctx: Context, _: Options)
-public fun String.toKDddTypeOrNull(): KdddType? = ctx.toGeneratable().let { generatable ->
-    when (this) {
+public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable ->
+    when(this) {
         Data::class.java.simpleName           -> Data(generatable, ctx.properties)
         IEntity::class.java.simpleName        -> IEntity(Data(generatable, ctx.properties))
         KdddType.Boxed::class.java.simpleName -> this toBoxedTypeWith generatable
-        else -> null
+        else                                  -> error("Unknown type: $this")
     }
 }
 
@@ -53,5 +53,19 @@ public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
  * 1. <CommonType>(src).let(::MyTypeImpl)
  * 2. <CommonType>.<deserialization static method>(src).let(::MyTypeImpl)
  * */
-public val BoxedWithCommon.parseReturnTemplate: String
+public val BoxedWithCommon.templateParseBody: String
     get() = "return %T${deserializationMethod.boxed.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%T)"
+
+public typealias SimpleStatement = (String) -> Unit
+public typealias IndexedStatement = (String, Int) -> Unit
+
+public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexStatement: IndexedStatement) {
+    simpleStatement("val ret = ${Data.BUILDER_CLASS_NAME}().apply {⇥\n")
+    properties.forEachIndexed { i, _ ->
+        indexStatement("%N = args[$i] as %T", i)
+    }
+    simpleStatement("⇤}.build() as T")
+    simpleStatement("return ret")
+
+
+}

@@ -33,7 +33,6 @@ public fun kDddContext(block: Context.Builder.() -> Unit): Context =
 
 
 
-
 internal fun generatable(block: GeneratableImpl.Builder.() -> Unit): Generatable =
     GeneratableImpl.Builder().apply(block).build()
 
@@ -62,7 +61,6 @@ internal infix fun CompositeClassName.`to implementation class name from options
 context(options: Options)
 internal val CompositeClassName.PackageName.toImplementationPackage: CompositeClassName.PackageName
     get() = this + options.subpackage
-
 
 context(options: Options)
 /**

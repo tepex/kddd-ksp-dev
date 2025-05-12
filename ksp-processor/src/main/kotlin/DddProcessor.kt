@@ -6,11 +6,9 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.TypeSpec
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
-import ru.it_arch.clean_ddd.domain.core.Generatable
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -31,17 +29,22 @@ internal class DddProcessor(
             logger.log("process $file")
             with(options) { file `to OutputFile with` visitor }
         }.forEach { file ->
-            val (model, packageName, dependencies) = file
+            val (model, dependencies) = file
             //buildAndAddNestedTypes(file.first)
 
             //logger.log("creating file: {$packageName, ${model.impl}}")
 
             // add model content and build()
-            val qqqq = TypeSpec.classBuilder("")
-            val fileSpecBuilder = file.fileSpecBuilder.build()
+            with(visitor.typeCatalog) {
+                val modelTypeSpec = model.typeSpecBuilder.build()
 
-            codeGenerator.createNewFile(dependencies, packageName.boxed, model.impl.boxed)
-                .also { StringBufferedWriter(it).use(fileSpecBuilder::writeTo) }
+                val fileSpec = file.fileSpecBuilder.apply {
+                    addType(modelTypeSpec)
+                }.build()
+
+                codeGenerator.createNewFile(dependencies, model.impl.packageName.boxed, model.impl.className.boxed)
+                    .also { StringBufferedWriter(it).use(fileSpec::writeTo) }
+            }
         }
 
 

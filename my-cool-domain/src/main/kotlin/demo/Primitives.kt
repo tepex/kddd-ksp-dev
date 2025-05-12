@@ -11,6 +11,7 @@ import ru.it_arch.kddd.ValueObject
  * Сам примитивный тип содержится в свойстве [ValueObject.Boxed.boxed].
  * Перед созданием объекта обертки вызывается метод валидации [ValueObject.Boxed.validate], который в случае невалидности значения должен выкинуть исключение. Может быть пустым при отсутствии валидации.
  * */
+@KDIgnore
 @KDGeneratable(json = true)
 public interface Primitives : ValueObject.Data {
 
