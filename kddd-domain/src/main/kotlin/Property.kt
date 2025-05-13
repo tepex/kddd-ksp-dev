@@ -35,7 +35,7 @@ public data class Property private constructor(
     override fun validate() {}
 
     override fun toString(): String =
-        asCode
+        "[$asCode]"
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
         TODO("Must not used")
@@ -80,10 +80,11 @@ public data class Property private constructor(
             checkNotNull(name) { "Property 'name' must be initialized!" }
             checkNotNull(className) { "Property 'className' must be initialized!" }
             checkNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
+
             return Property(
                 Name(name!!),
                 SerialName(serialName ?: name!!),
-                CompositeClassName.FullClassName(className!!),
+                CompositeClassName.FullClassName(className!!.replace("?", "")),
                 isNullable!!
             )
         }

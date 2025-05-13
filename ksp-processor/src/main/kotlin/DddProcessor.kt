@@ -26,8 +26,8 @@ internal class DddProcessor(
         //var basePackageName: ClassName.PackageName? = null
 
         resolver.getNewFiles().toList().mapNotNull { file ->
-            logger.log("process $file")
-            with(options) { file `to OutputFile with` visitor }
+            //logger.log("process $file")
+            with(options) { with(logger) { file `to OutputFile with` visitor } }
         }.forEach { file ->
             val (model, dependencies) = file
             //buildAndAddNestedTypes(file.first)
@@ -48,7 +48,7 @@ internal class DddProcessor(
         }
 
 
-        logger.log("type catalog:")
+        //logger.log("type catalog: ${visitor.typeCatalog}")
         visitor.typeCatalog.entries.forEach { pair ->
             logger.log("${pair.key} -> ${pair.value}")
         }

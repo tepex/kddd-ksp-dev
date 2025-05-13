@@ -7,7 +7,7 @@ public interface ACrossRef : ValueObject.Data {
 
     public val myType: MyCustomInnerType
     public val point: Point
-    public val point1: Point1
+    public val point1: Point1?
     public val x: Point1.Coordinate
 
     override fun validate() {
