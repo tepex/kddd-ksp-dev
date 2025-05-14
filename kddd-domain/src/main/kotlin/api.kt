@@ -66,6 +66,7 @@ public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexStatemen
     }
     simpleStatement("⇤}.build() as T")
     simpleStatement("return ret")
-
-
 }
+
+
+

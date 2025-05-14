@@ -71,7 +71,7 @@ public data class Property private constructor(
     }
 
     public class Builder {
-        public var name: String? = null
+        public var name: Name? = null
         public var serialName: String? = null
         public var className: String? = null
         public var isNullable: Boolean? = null
@@ -82,8 +82,8 @@ public data class Property private constructor(
             checkNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
 
             return Property(
-                Name(name!!),
-                SerialName(serialName ?: name!!),
+                name!!,
+                SerialName(serialName ?: name!!.boxed),
                 CompositeClassName.FullClassName(className!!.replace("?", "")),
                 isNullable!!
             )

@@ -6,7 +6,6 @@ import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
@@ -50,13 +49,24 @@ import ru.it_arch.kddd.KDIgnore
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
-internal fun KSPropertyDeclaration.toProperty(): Property = type.toTypeName().let { type ->
-    property {
-        name = simpleName.asString()
-        className = type.toString()
-        isNullable = type.isNullable
-    }
-}
+/**
+ * property name -> property type
+ * */
+internal typealias PropertyHolders = Map<Property.Name, TypeName>
+
+internal typealias TypeCatalog = Map<CompositeClassName.FullClassName, TypeHolder>
+
+internal fun KSClassDeclaration.toPropertyHolders(): PropertyHolders =
+    getAllProperties().associate { Property.Name(it.simpleName.asString()) to it.type.toTypeName() }
+
+internal fun PropertyHolders.toProperties(): Set<Property> =
+    entries.map { entry ->
+        property {
+            name = entry.key
+            className = entry.value.toString()
+            isNullable = entry.value.isNullable
+        }
+    }.toSet()
 
 context(_: Context, _: Options)
 /**
@@ -68,8 +78,6 @@ internal fun KSTypeReference.toKdddType(): KdddType =
 /**
  * */
 internal typealias OutputFile = Pair<KdddType.ModelContainer, Dependencies>
-
-internal typealias TypeCatalog = Map<CompositeClassName.FullClassName, TypeName>
 
 context(options: Options, logger: ILogger)
 @OptIn(KspExperimental::class)
@@ -106,13 +114,19 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 
 private typealias KotlinPoetProperty = Pair<PropertySpec, MemberName>
 
-private fun Property.toKotlinPoetProperty(typeCatalog: TypeCatalog, implClassName: ClassName): KotlinPoetProperty =
-    typeCatalog[className]?.let { typeName ->
-        PropertySpec
-            .builder(name.boxed, typeName.takeUnless { isNullable } ?: typeName.copy(nullable = true), KModifier.OVERRIDE)
+private fun Property.toDataProperty(typeName: TypeName, implClassName: ClassName): KotlinPoetProperty =
+    PropertySpec
+        .builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE)
             .initializer(name.boxed)
             .build() to implClassName.member(name.boxed)
-        } ?: error("Can't find type name for property $this")
+
+private fun Property.toBuilderProperty(typeName: TypeName, implClassName: ClassName): KotlinPoetProperty =
+    PropertySpec
+        .builder(name.boxed, typeName.copy(nullable = true))
+        .mutable()
+        .initializer("null")
+        .build() to implClassName.member(name.boxed)
+
 
 context(typeCatalog: TypeCatalog)
 /**
@@ -120,12 +134,13 @@ context(typeCatalog: TypeCatalog)
  * */
 internal val KdddType.typeSpecBuilder: TypeSpec.Builder
     get() = ClassName.bestGuess(impl.fullClassName.boxed).let { implClassName ->
-        typeCatalog[kddd.fullClassName]?.let { kdddTypeName ->
-            TypeSpec.classBuilder(implClassName).addSuperinterface(kdddTypeName).apply {
+        //val typeCatalog: TypeCatalog = TypeCatalog
+        typeCatalog[kddd.fullClassName]?.let { holder ->
+            TypeSpec.classBuilder(implClassName).addSuperinterface(holder.classType).apply {
                 when (this@typeSpecBuilder) {
                     is KdddType.ModelContainer ->
-                        if (this@typeSpecBuilder is Data) build(typeCatalog, implClassName)
-                    is KdddType.Boxed -> build(kdddTypeName, implClassName)
+                        if (this@typeSpecBuilder is Data) build(holder, implClassName)
+                    is KdddType.Boxed -> build(holder.classType, implClassName)
                 }
             }
         } ?: error("Type ${kddd.fullClassName} not found in type catalog!")
@@ -149,25 +164,31 @@ private fun KdddType.Boxed.build(kdddTypeName: TypeName, implClassName: ClassNam
 }
 
 context(builder: TypeSpec.Builder)
-private fun Data.build(typeCatalog: TypeCatalog, implClassName: ClassName) {
+private fun Data.build(typeHolder: TypeHolder, implClassName: ClassName) {
     //val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.DATA)
         addAnnotation(ConsistentCopyVisibility::class)
 
-        properties.map { it.toKotlinPoetProperty(typeCatalog, implClassName) }.also { kp ->
+        properties.map { it.toDataProperty(
+            typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@build.kddd.fullClassName}"),
+            implClassName
+        ) }.also { kp ->
             kp.map { it.first }.also(::addProperties)
             kp.map { ParameterSpec(it.first.name, it.first.type) }
                 .also { createConstructor(it).also(::primaryConstructor) }
             createFork(kp).also(::addFunction)
-            createBuildClass(implClassName).also(::addType)
+            createBuildClass(typeHolder, implClassName).also(::addType)
         }
     }
 }
 
-private fun Data.createBuildClass(implClassName: ClassName): TypeSpec =
+private fun Data.createBuildClass(typeHolder: TypeHolder, implClassName: ClassName): TypeSpec =
     implClassName.nestedClass(Data.BUILDER_CLASS_NAME).let(TypeSpec::classBuilder).apply {
-
+        properties.map { it.toBuilderProperty(
+            typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@createBuildClass.kddd.fullClassName}"),
+            implClassName
+        ) }.also { kp -> kp.map { it.first }.also(::addProperties) }
     }.build()
 
 private fun KdddType.Boxed.createBoxedParam(): ParameterSpec = when(this) {

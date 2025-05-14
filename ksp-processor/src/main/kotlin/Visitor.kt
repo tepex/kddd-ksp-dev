@@ -25,7 +25,7 @@ internal class Visitor(
     val logger: ILogger
 ) : KSDefaultVisitor<KdddType.ModelContainer, Unit>() {
 
-    private val _typeCatalog = mutableMapOf<CompositeClassName.FullClassName, TypeName>()
+    private val _typeCatalog = mutableMapOf<CompositeClassName.FullClassName, TypeHolder>()
     val typeCatalog: TypeCatalog
         get() = _typeCatalog.toMap()
 
@@ -57,6 +57,7 @@ internal class Visitor(
                     packageName = declaration.packageName.asString()
                     fullClassName = typeName.toString()
                 }
+                val propertyHolders = declaration.toPropertyHolders()
                 with(options) {
                     with(
                         kDddContext {
@@ -64,8 +65,8 @@ internal class Visitor(
                             kddd = className
                             annotations = (declaration.getAnnotationsByType(KDGeneratable::class) +
                                 declaration.getAnnotationsByType(KDParsable::class)
-                            ).toList()
-                            properties = declaration.getAllProperties().map { it.toProperty() }.toList()
+                            ).toSet()
+                            properties = propertyHolders.toProperties()
                         }.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
                     ) {
                         declaration.superTypes.firstOrNull()?.toKdddType() ?: run {
@@ -75,7 +76,7 @@ internal class Visitor(
                     }
                 }?.also { type ->
                     //logger.log("type: $type")
-                    _typeCatalog[className.fullClassName] = typeName
+                    _typeCatalog[className.fullClassName] = TypeHolder(typeName, propertyHolders)
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }
             }

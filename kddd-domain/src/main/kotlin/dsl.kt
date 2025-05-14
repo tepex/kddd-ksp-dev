@@ -52,7 +52,7 @@ context(_: Options)
  * @param annotations список аннотаций, возможно содержащий аннотацию [KDGeneratable], переопределяющую имя имплементации.
  * @return класс имплементации [CompositeClassName].
  * */
-internal infix fun CompositeClassName.`to implementation class name from options or from`(annotations: List<Annotation>): CompositeClassName =
+internal infix fun CompositeClassName.`to implementation class name from options or from`(annotations: Set<Annotation>): CompositeClassName =
     (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotEmpty() }?.let { CompositeClassName.ClassName(it) }
         ?: className.`to implementation class name from options`)

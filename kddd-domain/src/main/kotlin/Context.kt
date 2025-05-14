@@ -8,8 +8,8 @@ import ru.it_arch.kddd.ValueObject
 public data class Context private constructor(
     val kddd: CompositeClassName,
     val enclosing: KdddType.ModelContainer?,
-    val annotations: List<Annotation>,
-    val properties: List<Property>
+    val annotations: Set<Annotation>,
+    val properties: Set<Property>
 ) : ValueObject.Data {
 
     override fun validate() {}
@@ -21,8 +21,8 @@ public data class Context private constructor(
     public class Builder {
         public var kddd: CompositeClassName? = null
         public var enclosing: KdddType.ModelContainer? = null
-        public var annotations: List<Annotation> = emptyList()
-        public var properties: List<Property>? = null
+        public var annotations: Set<Annotation> = emptySet()
+        public var properties: Set<Property>? = null
 
         context(options: Options)
         public fun build(): Context {

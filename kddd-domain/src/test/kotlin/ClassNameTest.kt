@@ -29,7 +29,7 @@ class ClassNameTest : FunSpec({
                 packageName = "not used"
                 fullClassName = "not used"
             }
-            properties = emptyList()
+            properties = emptySet()
         }
     }
 
