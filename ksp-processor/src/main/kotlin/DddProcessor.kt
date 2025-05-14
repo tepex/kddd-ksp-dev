@@ -32,11 +32,12 @@ internal class DddProcessor(
             val (model, dependencies) = file
             //buildAndAddNestedTypes(file.first)
 
-            //logger.log("creating file: {$packageName, ${model.impl}}")
+            logger.log("creating file: {, ${model.impl}}")
 
             // add model content and build()
             with(visitor.typeCatalog) {
-                val modelTypeSpec = model.typeSpecBuilder.build()
+                val modelTypeSpec = with(logger) { model.typeSpecBuilder.build() }
+                    //.also { logger.log("model: $it, ") }
 
                 val fileSpec = file.fileSpecBuilder.apply {
                     addType(modelTypeSpec)

@@ -67,7 +67,7 @@ internal class Visitor(
                                 declaration.getAnnotationsByType(KDParsable::class)
                             ).toSet()
                             properties = propertyHolders.toProperties()
-                        }.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
+                        }//.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
                     ) {
                         declaration.superTypes.firstOrNull()?.toKdddType() ?: run {
                             logger.log("Cant parse parent type: $declaration")

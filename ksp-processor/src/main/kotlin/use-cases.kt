@@ -43,6 +43,7 @@ import ru.it_arch.clean_ddd.domain.core.Data
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.templateParseBody
 import ru.it_arch.clean_ddd.domain.property
+import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
 import ru.it_arch.clean_ddd.domain.templateForkBody
 import ru.it_arch.clean_ddd.domain.toKDddType
 import ru.it_arch.kddd.KDIgnore
@@ -59,14 +60,14 @@ internal typealias TypeCatalog = Map<CompositeClassName.FullClassName, TypeHolde
 internal fun KSClassDeclaration.toPropertyHolders(): PropertyHolders =
     getAllProperties().associate { Property.Name(it.simpleName.asString()) to it.type.toTypeName() }
 
-internal fun PropertyHolders.toProperties(): Set<Property> =
+internal fun PropertyHolders.toProperties(): List<Property> =
     entries.map { entry ->
         property {
             name = entry.key
             className = entry.value.toString()
             isNullable = entry.value.isNullable
         }
-    }.toSet()
+    }
 
 context(_: Context, _: Options)
 /**
@@ -128,7 +129,7 @@ private fun Property.toBuilderProperty(typeName: TypeName, implClassName: ClassN
         .build() to implClassName.member(name.boxed)
 
 
-context(typeCatalog: TypeCatalog)
+context(typeCatalog: TypeCatalog, logger: ILogger)
 /**
  *
  * */
@@ -163,7 +164,7 @@ private fun KdddType.Boxed.build(kdddTypeName: TypeName, implClassName: ClassNam
     }
 }
 
-context(builder: TypeSpec.Builder)
+context(builder: TypeSpec.Builder, logger: ILogger)
 private fun Data.build(typeHolder: TypeHolder, implClassName: ClassName) {
     //val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
@@ -178,17 +179,29 @@ private fun Data.build(typeHolder: TypeHolder, implClassName: ClassName) {
             kp.map { ParameterSpec(it.first.name, it.first.type) }
                 .also { createConstructor(it).also(::primaryConstructor) }
             createFork(kp).also(::addFunction)
+            logger.log("createBuildClass for $implClassName")
             createBuildClass(typeHolder, implClassName).also(::addType)
         }
     }
 }
 
+context(logger: ILogger)
 private fun Data.createBuildClass(typeHolder: TypeHolder, implClassName: ClassName): TypeSpec =
     implClassName.nestedClass(Data.BUILDER_CLASS_NAME).let(TypeSpec::classBuilder).apply {
+        // add properties
         properties.map { it.toBuilderProperty(
             typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@createBuildClass.kddd.fullClassName}"),
             implClassName
         ) }.also { kp -> kp.map { it.first }.also(::addProperties) }
+
+        // fun build(): KdddType
+        FunSpec.builder(Data.BUILDER_BUILD_METHOD_NAME).apply {
+            returns(typeHolder.classType)
+            //add `checkNotNull(<property>)`
+            templateBuilderBodyCheck { format, i ->
+                addStatement(format, properties[i].name.boxed, implClassName, properties[i].name.boxed)
+            }
+        }.build().also(::addFunction)
     }.build()
 
 private fun KdddType.Boxed.createBoxedParam(): ParameterSpec = when(this) {
