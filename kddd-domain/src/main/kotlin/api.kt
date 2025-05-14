@@ -68,5 +68,9 @@ public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexStatemen
     simpleStatement("return ret")
 }
 
-
+public fun Data.templateBuilderBodyCheck(indexStatement: IndexedStatement) {
+    properties.filter { it.isNullable.not() }.forEachIndexed { i, _ ->
+        indexStatement("""checkNotNull(%N) { "Property '%T.%N' must be initialized!" }""", i)
+    }
+}
 

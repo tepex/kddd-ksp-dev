@@ -9,7 +9,7 @@ public data class Context private constructor(
     val kddd: CompositeClassName,
     val enclosing: KdddType.ModelContainer?,
     val annotations: Set<Annotation>,
-    val properties: Set<Property>
+    val properties: List<Property>
 ) : ValueObject.Data {
 
     override fun validate() {}
@@ -22,7 +22,7 @@ public data class Context private constructor(
         public var kddd: CompositeClassName? = null
         public var enclosing: KdddType.ModelContainer? = null
         public var annotations: Set<Annotation> = emptySet()
-        public var properties: Set<Property>? = null
+        public var properties: List<Property>? = null
 
         context(options: Options)
         public fun build(): Context {

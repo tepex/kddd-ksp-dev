@@ -6,7 +6,8 @@ import ru.it_arch.kddd.Kddd
 @ConsistentCopyVisibility
 public data class Data private constructor(
     private val generatable: Generatable,
-    public val properties: Set<Property>
+    // List, not Set!
+    public val properties: List<Property>
 ) : Generatable by generatable, KdddType.ModelContainer {
 
     private val _nestedTypes = mutableSetOf<KdddType>()
@@ -29,7 +30,7 @@ public data class Data private constructor(
         public const val BUILDER_BUILD_METHOD_NAME: String = "build"
         public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-        public operator fun invoke(generatable: Generatable, properties: Set<Property>): Data =
+        public operator fun invoke(generatable: Generatable, properties: List<Property>): Data =
             Data(generatable, properties)
     }
 }
