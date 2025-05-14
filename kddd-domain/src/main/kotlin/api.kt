@@ -74,3 +74,13 @@ public fun Data.templateBuilderBodyCheck(indexStatement: IndexedStatement) {
     }
 }
 
+public fun Data.templateBuilderFunBuildReturn(simpleStatement: SimpleStatement, indexStatement: IndexedStatement) {
+    simpleStatement("return %T(⇥")
+    properties.forEachIndexed { i, property ->
+        StringBuilder("%N = %N").apply {
+            if (property.isNullable.not()) append("!!")
+            if (i < (properties.size - 1)) append(", ")
+        }.also { indexStatement(it.toString(), i) }
+    }
+    simpleStatement("⇤)")
+}

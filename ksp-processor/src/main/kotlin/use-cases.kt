@@ -44,6 +44,7 @@ import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.templateParseBody
 import ru.it_arch.clean_ddd.domain.property
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
+import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
 import ru.it_arch.clean_ddd.domain.templateForkBody
 import ru.it_arch.clean_ddd.domain.toKDddType
 import ru.it_arch.kddd.KDIgnore
@@ -201,6 +202,11 @@ private fun Data.createBuildClass(typeHolder: TypeHolder, implClassName: ClassNa
             templateBuilderBodyCheck { format, i ->
                 addStatement(format, properties[i].name.boxed, implClassName, properties[i].name.boxed)
             }
+            // `return <MyTypeImpl>(p1 = p1, p2 = p2, ...)`
+            templateBuilderFunBuildReturn(
+                { addStatement(it, implClassName) },
+                { format, i -> addStatement(format, properties[i].name.boxed, properties[i].name.boxed) }
+            )
         }.build().also(::addFunction)
     }.build()
 
