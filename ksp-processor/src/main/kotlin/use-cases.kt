@@ -6,7 +6,6 @@ import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
-import com.google.devtools.ksp.symbol.KSTypeReference
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.BYTE
@@ -19,8 +18,6 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LONG
-import com.squareup.kotlinpoet.MemberName
-import com.squareup.kotlinpoet.MemberName.Companion.member
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
@@ -33,7 +30,6 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.core.KdddType
-import ru.it_arch.clean_ddd.domain.Context
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.Property
@@ -46,7 +42,7 @@ import ru.it_arch.clean_ddd.domain.property
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
 import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
 import ru.it_arch.clean_ddd.domain.templateForkBody
-import ru.it_arch.clean_ddd.domain.toKDddType
+import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 import ru.it_arch.kddd.KDIgnore
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
@@ -129,25 +125,25 @@ internal fun KdddType.toTypeSpecBuilder(): TypeSpec.Builder {
             when(this@toTypeSpecBuilder) {
                 is KdddType.ModelContainer ->
                     if (this@toTypeSpecBuilder is Data) build(holder)
-                is KdddType.Boxed -> build(holder.classType)
+                is KdddType.Boxed -> build(holder)
             }
         }
     } ?: error("Type ${kddd.fullClassName} not found in type catalog!")
 }
 
-context(builder: TypeSpec.Builder, logger: ILogger)
-private fun KdddType.Boxed.build(kdddTypeName: TypeName) {
+context(typeCatalog: TypeCatalog, builder: TypeSpec.Builder, logger: ILogger)
+private fun KdddType.Boxed.build(typeHolder: TypeHolder) {
     //val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.VALUE)
         addAnnotation(JvmInline::class)
 
-        createBoxedParam().also { param ->
+        ParameterSpec.builder(KdddType.Boxed.PARAM_NAME, typeHolder.properties.values.first()).build().also { param ->
             addProperty(param.propertySpec)
             createConstructor(listOf(param)).also(builder::primaryConstructor)
             createToString(param).also(::addFunction)
             createFork(param).also(::addFunction)
-            createCompanion(kdddTypeName, param).also(::addType)
+            createCompanion(typeHolder.classType, param).also(::addType)
         }
     }
 }
@@ -199,21 +195,6 @@ private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
             )
         }.build().also(::addFunction)
     }.build()
-
-private fun KdddType.Boxed.createBoxedParam(): ParameterSpec = when(this) {
-    is BoxedWithCommon -> ClassName.bestGuess(boxed.boxed)
-    is BoxedWithPrimitive -> when (boxed) {
-        BoxedWithPrimitive.PrimitiveClassName.STRING -> STRING
-        BoxedWithPrimitive.PrimitiveClassName.BOOLEAN -> BOOLEAN
-        BoxedWithPrimitive.PrimitiveClassName.BYTE -> BYTE
-        BoxedWithPrimitive.PrimitiveClassName.CHAR -> CHAR
-        BoxedWithPrimitive.PrimitiveClassName.FLOAT -> FLOAT
-        BoxedWithPrimitive.PrimitiveClassName.DOUBLE -> DOUBLE
-        BoxedWithPrimitive.PrimitiveClassName.INT -> INT
-        BoxedWithPrimitive.PrimitiveClassName.LONG -> LONG
-        BoxedWithPrimitive.PrimitiveClassName.SHORT -> SHORT
-    }
-}.let { ParameterSpec.builder(KdddType.Boxed.PARAM_NAME, it) }.build()
 
 private val ParameterSpec.propertySpec: PropertySpec
     get() = PropertySpec.builder(name, type, KModifier.OVERRIDE).initializer(name).build()

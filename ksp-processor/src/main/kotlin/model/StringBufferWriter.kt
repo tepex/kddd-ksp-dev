@@ -1,13 +1,13 @@
-package ru.it_arch.clean_ddd.ksp
+package ru.it_arch.clean_ddd.ksp.model
 
 import java.io.Closeable
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 
-internal class StringBufferedWriter(os: OutputStream) : Appendable, Closeable, AutoCloseable {
+internal class StringBufferWriter(os: OutputStream) : Appendable, Closeable, AutoCloseable {
 
-    private val buffer =  StringBuilder()
+    private val buffer = StringBuilder()
     private val out = OutputStreamWriter(os, StandardCharsets.UTF_8)
 
     override fun append(value: CharSequence?): Appendable {

@@ -96,7 +96,7 @@ internal infix fun String.toBoxedTypeWith(generatable: Generatable): KdddType.Bo
             ?.let { BoxedWithPrimitive(generatable, it) }
             ?: BoxedWithCommon(
                 generatable,
-                BoxedWithCommon.CommonClassName(this),
+                BoxedWithCommon.CommonClassName(boxedType ?: error("Can't find boxed type for: `$this`")),
                 ctx.getAnnotation<KDParsable>() ?: KDParsable()
             )
     }

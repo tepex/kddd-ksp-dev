@@ -9,6 +9,7 @@ import com.squareup.kotlinpoet.FileSpec
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
+import ru.it_arch.clean_ddd.ksp.model.StringBufferWriter
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -43,7 +44,7 @@ internal class DddProcessor(
                 }.build()
 
                 codeGenerator.createNewFile(dependencies, model.implPackageName.boxed, model.implClassName.boxed)
-                    .also { StringBufferedWriter(it).use(fileSpec::writeTo) }
+                    .also { StringBufferWriter(it).use(fileSpec::writeTo) }
             }
         }
 
@@ -75,7 +76,7 @@ internal class DddProcessor(
 
     /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
     private fun FileSpec.replaceAndWrite(codeGenerator: CodeGenerator, dependencies: Dependencies) {
-        codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferedWriter(it).use(::writeTo) }
+        codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferWriter(it).use(::writeTo) }
     }
 
     tailrec fun buildAndAddNestedTypes(model: KdddType.ModelContainer, isFinish: Boolean = false) {

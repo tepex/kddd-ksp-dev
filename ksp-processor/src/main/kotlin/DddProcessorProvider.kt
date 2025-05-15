@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import ru.it_arch.clean_ddd.domain.toOptions
+import ru.it_arch.clean_ddd.ksp.model.LoggerImpl
 
 public class DddProcessorProvider(private val isTesting: Boolean = false) : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor = DddProcessor(

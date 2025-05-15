@@ -1,6 +1,8 @@
 package ru.it_arch.clean_ddd.domain.demo
 
+import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.ValueObject
+import java.util.UUID
 import ru.it_arch.clean_ddd.domain.demo.sub.Point as Point1
 
 public interface ACrossRef : ValueObject.Data {
@@ -9,13 +11,17 @@ public interface ACrossRef : ValueObject.Data {
     public val point: Point
     public val point1: Point1?
     public val x: Point1.Coordinate
+    public val myUUID: MyUUID
+    public val myOptionalUUID: MyUUID?
 
-    override fun validate() {
-    }
+    override fun validate() {}
 
     public interface MyCustomInnerType : ValueObject.Boxed<Int> {
-        override fun validate() {
+        override fun validate() {}
+    }
 
-        }
+    @KDParsable(deserialization = "fromString")
+    public interface MyUUID : ValueObject.Boxed<UUID> {
+        override fun validate() {}
     }
 }
