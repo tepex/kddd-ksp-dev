@@ -54,7 +54,7 @@ public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
  * 2. <CommonType>.<deserialization static method>(src).let(::MyTypeImpl)
  * */
 public val BoxedWithCommon.templateParseBody: String
-    get() = "return %T${deserializationMethod.boxed.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%T)"
+    get() = "return %T${deserializationMethod.boxed.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%N)"
 
 public typealias SimpleStatement = (String) -> Unit
 public typealias IndexedStatement = (String, Int) -> Unit
@@ -70,12 +70,12 @@ public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexStatemen
 
 public fun Data.templateBuilderBodyCheck(indexStatement: IndexedStatement) {
     properties.filter { it.isNullable.not() }.forEachIndexed { i, _ ->
-        indexStatement("""checkNotNull(%N) { "Property '%T.%N' must be initialized!" }""", i)
+        indexStatement("""checkNotNull(%N) { "Property '%N.%N' must be initialized!" }""", i)
     }
 }
 
 public fun Data.templateBuilderFunBuildReturn(simpleStatement: SimpleStatement, indexStatement: IndexedStatement) {
-    simpleStatement("return %T(⇥")
+    simpleStatement("return %N(⇥")
     properties.forEachIndexed { i, property ->
         StringBuilder("%N = %N").apply {
             if (property.isNullable.not()) append("!!")

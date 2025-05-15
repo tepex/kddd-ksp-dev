@@ -12,7 +12,7 @@ class OptionsTest : FunSpec({
         }
     }
 
-    pos("""Options with RE 'I(\D+)([\d]+)Test' and result template: '$1_$2_Impl'  must generate 'MyType_33_Impl' class name from 'IMyType33Test' source class name""") {
+    pos("""Options with RE 'I(\D+)([\d]+)Test' and result template: '$1_$2_Impl' must generate 'MyType_33_Impl' class name from 'IMyType33Test' source class name""") {
         with(options {
             generatedClassNameRe = "I(\\D+)([\\d]+)Test"
             generatedClassNameResult = "$1_$2_Impl"

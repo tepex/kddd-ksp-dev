@@ -40,7 +40,8 @@ context(_: Options)
 internal fun Context.toGeneratable(): Generatable =
     generatable {
         kddd = this@toGeneratable.kddd
-        impl = this@toGeneratable.kddd `to implementation class name from options or from` annotations
+        implClassName = this@toGeneratable.kddd.className `to implementation class name from options or from` annotations
+        implPackageName = this@toGeneratable.kddd.packageName.toImplementationPackage
         enclosing = this@toGeneratable.enclosing
     }
 
@@ -52,15 +53,12 @@ context(_: Options)
  * @param annotations список аннотаций, возможно содержащий аннотацию [KDGeneratable], переопределяющую имя имплементации.
  * @return класс имплементации [CompositeClassName].
  * */
-internal infix fun CompositeClassName.`to implementation class name from options or from`(annotations: Set<Annotation>): CompositeClassName =
-    (annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
+internal infix fun CompositeClassName.ClassName.`to implementation class name from options or from`(
+    annotations: Set<Annotation>
+): CompositeClassName.ClassName =
+    annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotEmpty() }?.let { CompositeClassName.ClassName(it) }
-        ?: className.`to implementation class name from options`)
-        .let { CompositeClassName(packageName.toImplementationPackage, it) }
-
-context(options: Options)
-internal val CompositeClassName.PackageName.toImplementationPackage: CompositeClassName.PackageName
-    get() = this + options.subpackage
+        ?: `to implementation class name from options`
 
 context(options: Options)
 /**
@@ -76,6 +74,10 @@ internal val CompositeClassName.ClassName.`to implementation class name from opt
     }
     return CompositeClassName.ClassName(result)
 }
+
+context(options: Options)
+internal val CompositeClassName.PackageName.toImplementationPackage: CompositeClassName.PackageName
+    get() = this + options.subpackage
 
 context(ctx: Context)
 /**

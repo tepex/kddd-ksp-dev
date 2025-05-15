@@ -6,20 +6,14 @@ import ru.it_arch.kddd.KDGeneratable
 
 class GeneratableImplTest : FunSpec({
 
-    val srcClassName = compositeClassName {
-        packageName = "a.b.c"
-        fullClassName = "a.b.c.MyType"
-    }
+    val srcClassName = CompositeClassName.ClassName("MyType")
 
     pos("ClassNameImpl must be as '@KDGeneratable.implementationName'") {
         val resultClassName = "MyTestImpl"
         val annotations = setOf(KDGeneratable(implementationName = resultClassName))
         with(options {}) {
             srcClassName `to implementation class name from options or from` annotations shouldBe
-                compositeClassName {
-                    packageName = "a.b.c"
-                    fullClassName = "a.b.c.$resultClassName"
-                }
+                CompositeClassName.ClassName(resultClassName)
         }
     }
 
@@ -27,10 +21,7 @@ class GeneratableImplTest : FunSpec({
         val resultClassName = "MyTypeImpl"
         with(options {}) {
             srcClassName `to implementation class name from options or from` emptySet() shouldBe
-                compositeClassName {
-                    packageName = "a.b.c"
-                    fullClassName = "a.b.c.$resultClassName"
-                }
+                CompositeClassName.ClassName(resultClassName)
         }
     }
 })

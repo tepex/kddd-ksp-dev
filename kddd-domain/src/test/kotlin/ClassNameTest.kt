@@ -15,10 +15,8 @@ class ClassNameTest : FunSpec({
             packageName = "not used"
             fullClassName = "not used"
         }
-        impl = compositeClassName {
-            packageName = "not used"
-            fullClassName = "not used"
-        }
+        implClassName = CompositeClassName.ClassName("not used")
+        implPackageName = CompositeClassName.PackageName("not used")
     }
 
     val options = options {  }
