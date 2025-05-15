@@ -19,8 +19,8 @@ public sealed interface KdddType : Generatable {
             /** `override fun toString(): String { <body> }` */
             public const val TEMPLATE_TO_STRING_BODY: String = "return %N.toString()"
             /** `override fun <T : Boxed<BOXED>> fork(boxed: BOXED): T { <body> }` */
-            //public const val TEMPLATE_FORK_BODY: String = "return %N(%N) as %N"
-            public const val TEMPLATE_FORK_BODY: String = "return %N"
+            public const val TEMPLATE_FORK_BODY: String = "return %N(%N) as %T"
+            //public const val TEMPLATE_FORK_BODY: String = "return %N"
             /** `public operator fun invoke(boxed: <BOXED>): T { <body> }` */
             public const val TEMPLATE_COMPANION_INVOKE_BODY: String = "return %N(%N)"
         }

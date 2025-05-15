@@ -69,7 +69,8 @@ context(options: Options)
  * */
 internal val CompositeClassName.ClassName.`to implementation class name from options`: CompositeClassName.ClassName get() {
     var result = options.generatedClassNameResult.boxed
-    options.generatedClassNameRe.find(boxed)?.groupValues?.forEachIndexed { i, group ->
+    val shortClassName = boxed.substringAfterLast('.')
+    options.generatedClassNameRe.find(shortClassName)?.groupValues?.forEachIndexed { i, group ->
         group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
     }
     return CompositeClassName.ClassName(result)
@@ -79,7 +80,7 @@ context(options: Options)
 internal val CompositeClassName.PackageName.toImplementationPackage: CompositeClassName.PackageName
     get() = this + options.subpackage
 
-context(ctx: Context)
+context(ctx: Context, logger: ILogger)
 /**
  * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.Boxed] с соотвествующим
  * типом `boxed`: [BoxedWithPrimitive.PrimitiveClassName] или [BoxedWithCommon.CommonClassName].
@@ -90,13 +91,17 @@ context(ctx: Context)
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
 internal infix fun String.toBoxedTypeWith(generatable: Generatable): KdddType.Boxed =
-    BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == uppercase() }
-        ?.let { BoxedWithPrimitive(generatable, it) }
-        ?: BoxedWithCommon(
-            generatable,
-            BoxedWithCommon.CommonClassName(this),
-            ctx.getAnnotation<KDParsable>() ?: KDParsable()
-        )
+    BOXED_INVARIANT_RE.find(this)?.groupValues?.getOrNull(1)?.uppercase().let { boxedType ->
+        BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == boxedType }
+            ?.let { BoxedWithPrimitive(generatable, it) }
+            ?: BoxedWithCommon(
+                generatable,
+                BoxedWithCommon.CommonClassName(this),
+                ctx.getAnnotation<KDParsable>() ?: KDParsable()
+            )
+    }
+
+private val BOXED_INVARIANT_RE = "<INVARIANT (\\w+)>".toRegex()
 
 private inline fun <reified T : Annotation> Context.getAnnotation(): T? =
     annotations.filterIsInstance<T>().firstOrNull()

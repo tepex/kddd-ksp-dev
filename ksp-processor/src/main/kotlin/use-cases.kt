@@ -70,13 +70,6 @@ internal fun PropertyHolders.toProperties(): List<Property> =
         }
     }
 
-context(_: Context, _: Options)
-/**
- * ValueObject.* -> KdddType.*
- */
-internal fun KSTypeReference.toKdddType(): KdddType =
-    toString().substringBefore('<').toKDddType()
-
 /**
  * */
 internal typealias OutputFile = Pair<KdddType.ModelContainer, Dependencies>
@@ -89,7 +82,6 @@ internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
         .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
         .firstOrNull()
         ?.let { declaration ->
-            logger.log("process $declaration")
             //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
             visitor.visitKDDeclaration(declaration, null).let { kdddType ->
                 if (kdddType is KdddType.ModelContainer) OutputFile(kdddType, Dependencies(false, this))
@@ -99,11 +91,11 @@ internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
 
 internal fun List<OutputFile>.findShortestPackageName(): CompositeClassName.PackageName =
     reduce { acc, outputFile ->
-        outputFile.takeIf { it.first.impl.packageName.boxed.length < acc.first.impl.packageName.boxed.length } ?: acc
-    }.first.impl.packageName
+        outputFile.takeIf { it.first.implPackageName.boxed.length < acc.first.implPackageName.boxed.length } ?: acc
+    }.first.implPackageName
 
 internal val OutputFile.fileSpecBuilder: FileSpec.Builder
-    get() = FileSpec.builder(first.impl.packageName.boxed, first.impl.className.boxed).also { it.addFileComment(FILE_HEADER_STUB) }
+    get() = FileSpec.builder(first.implPackageName.boxed, first.implClassName.boxed).also { it.addFileComment(FILE_HEADER_STUB) }
 
 
 // Private util extensions
@@ -114,42 +106,37 @@ This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
 
-private typealias KotlinPoetProperty = Pair<PropertySpec, MemberName>
+private infix fun Property.toDataPropertySpec(typeName: TypeName): PropertySpec =
+    PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE)
+        .initializer(name.boxed)
+        .build()
 
-private fun Property.toDataProperty(typeName: TypeName, implClassName: ClassName): KotlinPoetProperty =
-    PropertySpec
-        .builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE)
-            .initializer(name.boxed)
-            .build() to implClassName.member(name.boxed)
-
-private fun Property.toBuilderProperty(typeName: TypeName, implClassName: ClassName): KotlinPoetProperty =
-    PropertySpec
-        .builder(name.boxed, typeName.copy(nullable = true))
+private infix fun Property.toBuilderPropertySpec(typeName: TypeName): PropertySpec =
+    PropertySpec.builder(name.boxed, typeName.copy(nullable = true))
         .mutable()
         .initializer("null")
-        .build() to implClassName.member(name.boxed)
+        .build()
 
 
 context(typeCatalog: TypeCatalog, logger: ILogger)
 /**
  *
  * */
-internal val KdddType.typeSpecBuilder: TypeSpec.Builder
-    get() = ClassName.bestGuess(impl.fullClassName.boxed).let { implClassName ->
-        //val typeCatalog: TypeCatalog = TypeCatalog
-        typeCatalog[kddd.fullClassName]?.let { holder ->
-            TypeSpec.classBuilder(implClassName).addSuperinterface(holder.classType).apply {
-                when (this@typeSpecBuilder) {
-                    is KdddType.ModelContainer ->
-                        if (this@typeSpecBuilder is Data) build(holder, implClassName)
-                    is KdddType.Boxed -> build(holder.classType, implClassName)
-                }
+internal fun KdddType.toTypeSpecBuilder(): TypeSpec.Builder {
+    //val typeCatalog: TypeCatalog = TypeCatalog
+    return typeCatalog[kddd.fullClassName]?.let { holder ->
+        TypeSpec.classBuilder(implClassName.boxed).addSuperinterface(holder.classType).apply {
+            when(this@toTypeSpecBuilder) {
+                is KdddType.ModelContainer ->
+                    if (this@toTypeSpecBuilder is Data) build(holder)
+                is KdddType.Boxed -> build(holder.classType)
             }
-        } ?: error("Type ${kddd.fullClassName} not found in type catalog!")
-    }
+        }
+    } ?: error("Type ${kddd.fullClassName} not found in type catalog!")
+}
 
-context(builder: TypeSpec.Builder)
-private fun KdddType.Boxed.build(kdddTypeName: TypeName, implClassName: ClassName) {
+context(builder: TypeSpec.Builder, logger: ILogger)
+private fun KdddType.Boxed.build(kdddTypeName: TypeName) {
     //val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.VALUE)
@@ -157,54 +144,57 @@ private fun KdddType.Boxed.build(kdddTypeName: TypeName, implClassName: ClassNam
 
         createBoxedParam().also { param ->
             addProperty(param.propertySpec)
-            createConstructor(listOf(param))
+            createConstructor(listOf(param)).also(builder::primaryConstructor)
             createToString(param).also(::addFunction)
-            createFork(implClassName, param).also(::addFunction)
-            createCompanion(kdddTypeName, implClassName, param).also(::addType)
+            createFork(param).also(::addFunction)
+            createCompanion(kdddTypeName, param).also(::addType)
         }
     }
 }
 
-context(builder: TypeSpec.Builder, logger: ILogger)
-private fun Data.build(typeHolder: TypeHolder, implClassName: ClassName) {
+context(typeCatalog: TypeCatalog, builder: TypeSpec.Builder, logger: ILogger)
+private fun Data.build(typeHolder: TypeHolder) {
     //val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.DATA)
         addAnnotation(ConsistentCopyVisibility::class)
 
-        properties.map { it.toDataProperty(
-            typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@build.kddd.fullClassName}"),
-            implClassName
-        ) }.also { kp ->
-            kp.map { it.first }.also(::addProperties)
-            kp.map { ParameterSpec(it.first.name, it.first.type) }
+        properties.map {
+            it toDataPropertySpec
+                (typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@build.kddd.fullClassName}"))
+        }.also { kp ->
+            addProperties(kp)
+            kp.map { ParameterSpec(it.name, it.type) }
                 .also { createConstructor(it).also(::primaryConstructor) }
             createFork(kp).also(::addFunction)
-            logger.log("createBuildClass for $implClassName")
-            createBuildClass(typeHolder, implClassName).also(::addType)
+            createBuildClass(typeHolder).also(::addType)
+        }
+
+        nestedTypes.forEach { kdddType ->
+            kdddType.toTypeSpecBuilder().build().also(builder::addType)
         }
     }
 }
 
 context(logger: ILogger)
-private fun Data.createBuildClass(typeHolder: TypeHolder, implClassName: ClassName): TypeSpec =
-    implClassName.nestedClass(Data.BUILDER_CLASS_NAME).let(TypeSpec::classBuilder).apply {
+private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
+    ClassName.bestGuess("$implClassName.${Data.BUILDER_CLASS_NAME}").let(TypeSpec::classBuilder).apply {
         // add properties
-        properties.map { it.toBuilderProperty(
-            typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@createBuildClass.kddd.fullClassName}"),
-            implClassName
-        ) }.also { kp -> kp.map { it.first }.also(::addProperties) }
+        properties.map {
+            it toBuilderPropertySpec
+                (typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@createBuildClass.kddd.fullClassName}"))
+        }.also(::addProperties)
 
         // fun build(): KdddType
         FunSpec.builder(Data.BUILDER_BUILD_METHOD_NAME).apply {
             returns(typeHolder.classType)
             //add `checkNotNull(<property>)`
             templateBuilderBodyCheck { format, i ->
-                addStatement(format, properties[i].name.boxed, implClassName, properties[i].name.boxed)
+                addStatement(format, properties[i].name.boxed, Data.BUILDER_CLASS_NAME, properties[i].name.boxed)
             }
             // `return <MyTypeImpl>(p1 = p1, p2 = p2, ...)`
             templateBuilderFunBuildReturn(
-                { addStatement(it, implClassName) },
+                { addStatement(it, implClassName.boxed) },
                 { format, i -> addStatement(format, properties[i].name.boxed, properties[i].name.boxed) }
             )
         }.build().also(::addFunction)
@@ -229,7 +219,7 @@ private val ParameterSpec.propertySpec: PropertySpec
     get() = PropertySpec.builder(name, type, KModifier.OVERRIDE).initializer(name).build()
 
 /**
- *
+ * For All
  * */
 private fun createConstructor(parameters: List<ParameterSpec>): FunSpec =
     FunSpec.constructorBuilder()
@@ -256,7 +246,7 @@ private fun createToString(boxedParam: ParameterSpec): FunSpec =
  * override fun <T : ValueObject.Boxed<BOXED>> fork(<boxedParam>): T { <body> }
  * ```
  * */
-private fun createFork(implClassName: ClassName, boxedParam: ParameterSpec): FunSpec =
+private fun KdddType.Boxed.createFork(boxedParam: ParameterSpec): FunSpec =
     TypeVariableName(
         "T",
         ValueObject.Boxed::class.asTypeName().parameterizedBy(boxedParam.type)
@@ -267,7 +257,8 @@ private fun createFork(implClassName: ClassName, boxedParam: ParameterSpec): Fun
             addModifiers(KModifier.OVERRIDE)
             addUncheckedCast()
             returns(tvn)
-            addStatement(KdddType.Boxed.TEMPLATE_FORK_BODY, implClassName, boxedParam, tvn)
+            addStatement(KdddType.Boxed.TEMPLATE_FORK_BODY, implClassName.boxed, boxedParam, tvn)
+            //addStatement("boxedParam: $boxedParam")
         }.build()
     }
 
@@ -278,13 +269,14 @@ private fun createFork(implClassName: ClassName, boxedParam: ParameterSpec): Fun
  * }
  * ```
  * */
-private fun KdddType.Boxed.createCompanion(kdddTypeName: TypeName, implClassName: ClassName, boxedParam: ParameterSpec): TypeSpec =
+private fun KdddType.Boxed.createCompanion(kdddTypeName: TypeName, boxedParam: ParameterSpec): TypeSpec =
     TypeSpec.companionObjectBuilder().apply {
         FunSpec.builder("invoke").apply {
             addModifiers(KModifier.OPERATOR)
             addParameter(boxedParam)
             returns(kdddTypeName)
-            addStatement(KdddType.Boxed.TEMPLATE_COMPANION_INVOKE_BODY, implClassName, boxedParam)
+            addStatement(KdddType.Boxed.TEMPLATE_COMPANION_INVOKE_BODY, implClassName.boxed, boxedParam)
+            //addStatement("boxedParam: $boxedParam")
         }.build().let(::addFunction)
 
         // `public fun parse(src: String): <implClassName> { <body> }`
@@ -292,8 +284,9 @@ private fun KdddType.Boxed.createCompanion(kdddTypeName: TypeName, implClassName
             FunSpec.builder(BoxedWithCommon.FABRIC_PARSE_METHOD).apply {
                 val srcParam = ParameterSpec.builder("src", String::class).build()
                 addParameter(srcParam)
-                returns(implClassName)
-                addStatement(templateParseBody, boxedParam.type, srcParam, implClassName)
+                returns(ClassName.bestGuess(implClassName.boxed))
+                addStatement(templateParseBody, boxedParam.type, srcParam, implClassName.boxed)
+                //addStatement("boxedParam: $boxedParam")
             }.build()
         }
     }.build()
@@ -304,7 +297,7 @@ private fun KdddType.Boxed.createCompanion(kdddTypeName: TypeName, implClassName
  * override fun <T : Kddd, A : Kddd> fork(vararg args: A): T { <body> }
  * ```
  * */
-private fun Data.createFork(kpProperties: List<KotlinPoetProperty>): FunSpec =
+private fun Data.createFork(kpProperties: List<PropertySpec>): FunSpec =
     FunSpec.builder(KdddType.Boxed.FORK_METHOD).apply {
         val typeT = TypeVariableName("T", Kddd::class)
         val typeA = TypeVariableName("A", Kddd::class)
@@ -317,7 +310,7 @@ private fun Data.createFork(kpProperties: List<KotlinPoetProperty>): FunSpec =
         returns(typeT)
         templateForkBody(
             { addStatement(it) },
-            { format, i -> addStatement(format, kpProperties[i].second, kpProperties[i].first.type) }
+            { format, i -> addStatement(format, kpProperties[i].name, kpProperties[i].type) }
         )
     }.build()
 

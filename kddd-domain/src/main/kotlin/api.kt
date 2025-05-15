@@ -36,9 +36,9 @@ public fun String.toKddClassName(): KdddType.KdddClassName {
     return parent!!
 }*/
 
-context(ctx: Context, _: Options)
+context(ctx: Context, _: Options, _: ILogger)
 public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable ->
-    when(this) {
+    when(substringBefore('<')) {
         Data::class.java.simpleName           -> Data(generatable, ctx.properties)
         IEntity::class.java.simpleName        -> IEntity(Data(generatable, ctx.properties))
         KdddType.Boxed::class.java.simpleName -> this toBoxedTypeWith generatable

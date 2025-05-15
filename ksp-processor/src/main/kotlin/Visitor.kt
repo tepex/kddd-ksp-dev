@@ -7,7 +7,6 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
-import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.ILogger
@@ -16,6 +15,7 @@ import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.compositeClassName
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.kDddContext
+import ru.it_arch.clean_ddd.domain.toKDddType
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 
@@ -63,19 +63,22 @@ internal class Visitor(
                         kDddContext {
                             enclosing = container
                             kddd = className
-                            annotations = (declaration.getAnnotationsByType(KDGeneratable::class) +
+                            annotations = (
+                                declaration.getAnnotationsByType(KDGeneratable::class) +
                                 declaration.getAnnotationsByType(KDParsable::class)
                             ).toSet()
                             properties = propertyHolders.toProperties()
                         }//.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
                     ) {
-                        declaration.superTypes.firstOrNull()?.toKdddType() ?: run {
-                            logger.log("Cant parse parent type: $declaration")
-                            null
+                        with(logger) {
+                            declaration.superTypes.firstOrNull()?.toString()?.toKDddType() ?: run {
+                                logger.log("Cant parse parent type: $declaration")
+                                null
+                            }
                         }
                     }
                 }?.also { type ->
-                    //logger.log("type: $type")
+                    //logger.log("type class name: ${type.implClassName}")
                     _typeCatalog[className.fullClassName] = TypeHolder(typeName, propertyHolders)
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }

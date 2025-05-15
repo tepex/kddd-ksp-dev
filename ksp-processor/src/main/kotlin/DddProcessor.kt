@@ -32,18 +32,17 @@ internal class DddProcessor(
             val (model, dependencies) = file
             //buildAndAddNestedTypes(file.first)
 
-            logger.log("creating file: {, ${model.impl}}")
+            logger.log("creating file: {${model.implClassName}, }")
 
             // add model content and build()
             with(visitor.typeCatalog) {
-                val modelTypeSpec = with(logger) { model.typeSpecBuilder.build() }
-                    //.also { logger.log("model: $it, ") }
+                val modelTypeSpecBuilder = with(logger) { model.toTypeSpecBuilder() }
 
                 val fileSpec = file.fileSpecBuilder.apply {
-                    addType(modelTypeSpec)
+                    addType(modelTypeSpecBuilder.build())
                 }.build()
 
-                codeGenerator.createNewFile(dependencies, model.impl.packageName.boxed, model.impl.className.boxed)
+                codeGenerator.createNewFile(dependencies, model.implPackageName.boxed, model.implClassName.boxed)
                     .also { StringBufferedWriter(it).use(fileSpec::writeTo) }
             }
         }
