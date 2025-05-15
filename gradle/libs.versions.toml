@@ -2,7 +2,7 @@
 # plugins
 kotlin = "2.1.21"
 #kotlin = "1.9.0"
-ksp = "2.1.21-RC2-2.0.1"
+ksp = "2.1.21-2.0.1"
 #ksp = "1.9.0-1.0.13"
 kotlinpoet = "2.1.0"
 
