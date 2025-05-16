@@ -1,6 +1,7 @@
 package ru.it_arch.clean_ddd.domain.core
 
 import ru.it_arch.clean_ddd.domain.Options
+import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
@@ -48,6 +49,9 @@ public data class CompositeClassName private constructor(
 
         override fun toString(): String =
             boxed
+
+        public operator fun plus(other: ClassName): ClassName =
+            ClassName("$boxed.${other.shortName}")
 
         public companion object {
             public operator fun invoke(value: String): ClassName =

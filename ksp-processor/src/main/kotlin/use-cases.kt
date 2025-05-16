@@ -29,6 +29,7 @@ import ru.it_arch.clean_ddd.domain.core.Data
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.templateParseBody
 import ru.it_arch.clean_ddd.domain.property
+import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
 import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
 import ru.it_arch.clean_ddd.domain.templateForkBody
@@ -69,7 +70,6 @@ internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
         .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
         .firstOrNull()
         ?.let { declaration ->
-            //basePackageName ?: run { basePackageName = declaration toImplementationPackage options.subpackage }
             visitor.visitKDDeclaration(declaration, null).let { kdddType ->
                 if (kdddType is KdddType.ModelContainer) OutputFile(kdddType, Dependencies(false, this))
                 else null
@@ -77,7 +77,7 @@ internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
         }
 
 internal val OutputFile.fileSpecBuilder: FileSpec.Builder
-    get() = FileSpec.builder(first.implPackageName.boxed, first.implClassName.boxed).also { it.addFileComment(FILE_HEADER_STUB) }
+    get() = FileSpec.builder(first.impl.packageName.boxed, first.impl.className.boxed).also { it.addFileComment(FILE_HEADER_STUB) }
 
 context(typeCatalog: TypeCatalog, logger: ILogger)
 /**
@@ -86,7 +86,7 @@ context(typeCatalog: TypeCatalog, logger: ILogger)
 internal fun KdddType.toTypeSpecBuilder(dslFile: ExtensionFile): TypeSpec.Builder {
     //val typeCatalog: TypeCatalog = TypeCatalog
     return typeCatalog[kddd.fullClassName]?.let { holder ->
-        TypeSpec.classBuilder(implClassName.boxed).addSuperinterface(holder.classType).apply {
+        TypeSpec.classBuilder(impl.className.shortName).addSuperinterface(holder.classType).apply {
             when(this@toTypeSpecBuilder) {
                 is KdddType.ModelContainer ->
                     if (this@toTypeSpecBuilder is Data) build(holder, dslFile)
@@ -120,8 +120,8 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 
 private fun List<OutputFile>.findShortestPackageName(): CompositeClassName.PackageName =
     reduce { shortest, outputFile ->
-        outputFile.takeIf { it.first.implPackageName.boxed.length < shortest.first.implPackageName.boxed.length } ?: shortest
-    }.first.implPackageName
+        outputFile.takeIf { it.first.impl.packageName.boxed.length < shortest.first.impl.packageName.boxed.length } ?: shortest
+    }.first.impl.packageName
 
 private fun extensionFile(block: ExtensionFile.Builder.() -> Unit): ExtensionFile =
     ExtensionFile.Builder().apply(block).build()
@@ -181,7 +181,7 @@ private fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
 
 context(logger: ILogger)
 private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
-    ClassName.bestGuess("$implClassName.${Data.BUILDER_CLASS_NAME}").let(TypeSpec::classBuilder).apply {
+    ClassName.bestGuess("${impl.className.shortName}.${Data.BUILDER_CLASS_NAME}").let(TypeSpec::classBuilder).apply {
         // add properties
         properties.map {
             it toBuilderPropertySpec
@@ -197,7 +197,7 @@ private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
             }
             // `return <MyTypeImpl>(p1 = p1, p2 = p2, ...)`
             templateBuilderFunBuildReturn(
-                { addStatement(it, implClassName.boxed) },
+                { addStatement(it, impl.className.shortName) },
                 { format, i -> addStatement(format, properties[i].name.boxed, properties[i].name.boxed) }
             )
         }.build().also(::addFunction)
@@ -245,8 +245,7 @@ private fun KdddType.Boxed.createFork(boxedParam: ParameterSpec): FunSpec =
             addModifiers(KModifier.OVERRIDE)
             addUncheckedCast()
             returns(tvn)
-            addStatement(KdddType.Boxed.TEMPLATE_FORK_BODY, implClassName.boxed, boxedParam, tvn)
-            //addStatement("boxedParam: $boxedParam")
+            addStatement(KdddType.Boxed.TEMPLATE_FORK_BODY, impl.className.shortName, boxedParam, tvn)
         }.build()
     }
 
@@ -263,8 +262,7 @@ private fun KdddType.Boxed.createCompanion(kdddTypeName: TypeName, boxedParam: P
             addModifiers(KModifier.OPERATOR)
             addParameter(boxedParam)
             returns(kdddTypeName)
-            addStatement(KdddType.Boxed.TEMPLATE_COMPANION_INVOKE_BODY, implClassName.boxed, boxedParam)
-            //addStatement("boxedParam: $boxedParam")
+            addStatement(KdddType.Boxed.TEMPLATE_COMPANION_INVOKE_BODY, impl.className.shortName, boxedParam)
         }.build().let(::addFunction)
 
         // `public fun parse(src: String): <implClassName> { <body> }`
@@ -272,8 +270,8 @@ private fun KdddType.Boxed.createCompanion(kdddTypeName: TypeName, boxedParam: P
             FunSpec.builder(BoxedWithCommon.FABRIC_PARSE_METHOD).apply {
                 val srcParam = ParameterSpec.builder("src", String::class).build()
                 addParameter(srcParam)
-                returns(ClassName.bestGuess(implClassName.boxed))
-                addStatement(templateParseBody, boxedParam.type, srcParam, implClassName.boxed)
+                returns(ClassName.bestGuess(impl.className.shortName))
+                addStatement(templateParseBody, boxedParam.type, srcParam, impl.className.shortName)
             }.build().let(::addFunction)
         }
     }.build()

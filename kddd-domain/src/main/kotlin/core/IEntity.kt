@@ -8,7 +8,7 @@ public data class IEntity private constructor(
 ) : KdddType.ModelContainer by data {
 
     private val id = data.properties.find { it.name.boxed == ID_NAME }
-        ?: error("ID parameter not found for Entity $implClassName")
+        ?: error("ID parameter not found for Entity ${kddd.className}")
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
         TODO("Not yet implemented")

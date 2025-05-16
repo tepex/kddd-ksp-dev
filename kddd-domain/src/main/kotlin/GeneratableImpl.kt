@@ -8,8 +8,7 @@ import ru.it_arch.kddd.Kddd
 @ConsistentCopyVisibility
 internal data class GeneratableImpl private constructor(
     override val kddd: CompositeClassName,
-    override val implClassName: CompositeClassName.ClassName,
-    override val implPackageName: CompositeClassName.PackageName,
+    override val impl: CompositeClassName,
     override val enclosing: KdddType.ModelContainer?
 ) : Generatable {
 
@@ -21,16 +20,13 @@ internal data class GeneratableImpl private constructor(
 
     class Builder {
         var kddd: CompositeClassName? = null
-        var implClassName: CompositeClassName.ClassName? = null
-        var implPackageName: CompositeClassName.PackageName? = null
+        var impl: CompositeClassName? = null
         var enclosing: KdddType.ModelContainer? = null
 
         fun build(): Generatable {
             checkNotNull(kddd) { "Property 'kddd' must be initialized!" }
-            checkNotNull(implClassName) { "Property 'implClassName' must be initialized!" }
-            checkNotNull(implPackageName) { "Property 'implPackageName' must be initialized!" }
-
-            return GeneratableImpl(kddd!!, implClassName!!, implPackageName!!, enclosing)
+            checkNotNull(impl) { "Property 'impl' must be initialized!" }
+            return GeneratableImpl(kddd!!, impl!!, enclosing)
         }
     }
 }

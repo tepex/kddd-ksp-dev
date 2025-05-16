@@ -79,7 +79,7 @@ internal class Visitor(
                         }
                     }
                 }?.also { type ->
-                    logger.log("${type.kddd.fullClassName}: impl class name package: ${type.implPackageName}")
+                    logger.log("${type.kddd.fullClassName}: impl class name: ${type.impl}")
                     _typeCatalog[className.fullClassName] = TypeHolder(typeName, propertyHolders)
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }

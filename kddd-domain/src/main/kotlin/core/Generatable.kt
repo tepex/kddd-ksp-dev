@@ -5,7 +5,6 @@ import ru.it_arch.kddd.ValueObject
 
 public interface Generatable : ValueObject.Data {
     public val kddd: CompositeClassName
-    public val implClassName: CompositeClassName.ClassName
-    public val implPackageName: CompositeClassName.PackageName
+    public val impl: CompositeClassName
     public val enclosing: ModelContainer?
 }

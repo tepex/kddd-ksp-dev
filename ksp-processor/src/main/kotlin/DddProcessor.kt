@@ -8,6 +8,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.squareup.kotlinpoet.FileSpec
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
+import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.ksp.model.StringBufferWriter
 
 internal class DddProcessor(
@@ -28,7 +29,7 @@ internal class DddProcessor(
             val dslFile = files.createDslFile()
             files.forEach { file ->
                 val (model, dependencies) = file
-                logger.log("creating file: {${model.implClassName}, }")
+                logger.log("creating file: {${model.impl.className.shortName}, }")
 
                 with(visitor.typeCatalog) {
                     // Генерация класса имплементации
@@ -39,8 +40,8 @@ internal class DddProcessor(
                             .also { fileSpec ->
                                 codeGenerator.createNewFile(
                                     dependencies,
-                                    model.implPackageName.boxed,
-                                    model.implClassName.boxed
+                                    model.impl.packageName.boxed,
+                                    model.impl.className.shortName
                                 ).also { StringBufferWriter(it).use(fileSpec::writeTo) }
                             }
                     }

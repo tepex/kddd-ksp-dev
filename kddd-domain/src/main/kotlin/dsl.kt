@@ -41,9 +41,15 @@ context(_: Options)
 internal fun Context.toGeneratable(): Generatable =
     generatable {
         kddd = this@toGeneratable.kddd
-        implClassName = this@toGeneratable.kddd.className `to implementation class name from options or from` annotations
-        implPackageName =
-            this@toGeneratable.enclosing?.implPackageName ?: this@toGeneratable.kddd.packageName.toImplementationPackage
+        impl = (this@toGeneratable.kddd.className `to implementation class name from options or from` annotations)
+            .let { className -> this@toGeneratable.enclosing?.impl?.className?.let { it + className } ?: className }
+            .let { className ->
+                CompositeClassName(
+                    this@toGeneratable.enclosing?.impl?.packageName
+                        ?: this@toGeneratable.kddd.packageName.toImplementationPackage,
+                    className
+                )
+            }
         enclosing = this@toGeneratable.enclosing
     }
 
@@ -71,8 +77,7 @@ context(options: Options)
  * */
 internal val CompositeClassName.ClassName.`to implementation class name from options`: CompositeClassName.ClassName get() {
     var result = options.generatedClassNameResult.boxed
-    val shortClassName = boxed.substringAfterLast('.')
-    options.generatedClassNameRe.find(shortClassName)?.groupValues?.forEachIndexed { i, group ->
+    options.generatedClassNameRe.find(shortName)?.groupValues?.forEachIndexed { i, group ->
         group.takeIf { i > 0 }?.also { result = result.replace("\$$i", it) }
     }
     return CompositeClassName.ClassName(result)

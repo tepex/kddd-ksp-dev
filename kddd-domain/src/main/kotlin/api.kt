@@ -50,6 +50,9 @@ public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable
 public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
     get() = CompositeClassName.FullClassName("$packageName.$className")
 
+public val CompositeClassName.ClassName.shortName: String
+    get() = boxed.substringAfterLast('.')
+
 /**
  * 1. <CommonType>(src).let(::MyTypeImpl)
  * 2. <CommonType>.<deserialization static method>(src).let(::MyTypeImpl)
