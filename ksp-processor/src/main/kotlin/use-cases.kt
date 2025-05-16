@@ -267,8 +267,7 @@ private fun KdddType.Boxed.createCompanion(kdddTypeName: TypeName, boxedParam: P
                 addParameter(srcParam)
                 returns(ClassName.bestGuess(implClassName.boxed))
                 addStatement(templateParseBody, boxedParam.type, srcParam, implClassName.boxed)
-                //addStatement("boxedParam: $boxedParam")
-            }.build()
+            }.build().let(::addFunction)
         }
     }.build()
 

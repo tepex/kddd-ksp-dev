@@ -13,6 +13,8 @@ public interface ACrossRef : ValueObject.Data {
     public val x: Point1.Coordinate
     public val myUUID: MyUUID
     public val myOptionalUUID: MyUUID?
+    public val nested: Nested
+    public val nestedNested: Nested.NestedNested
 
     override fun validate() {}
 
@@ -23,5 +25,22 @@ public interface ACrossRef : ValueObject.Data {
     @KDParsable(deserialization = "fromString")
     public interface MyUUID : ValueObject.Boxed<UUID> {
         override fun validate() {}
+    }
+
+    public interface Nested : ValueObject.Data {
+        public val someType: SomeType
+        public val nestedNested: NestedNested
+
+        override fun validate() {}
+
+        public interface SomeType : ValueObject.Boxed<String> {
+            override fun validate() {}
+        }
+
+        public interface NestedNested : ValueObject.Data {
+            public val someType: SomeType
+
+            override fun validate() {}
+        }
     }
 }

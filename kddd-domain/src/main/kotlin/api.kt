@@ -60,7 +60,7 @@ public typealias SimpleStatement = (String) -> Unit
 public typealias IndexedStatement = (String, Int) -> Unit
 
 public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexStatement: IndexedStatement) {
-    simpleStatement("val ret = ${Data.BUILDER_CLASS_NAME}().apply {⇥\n")
+    simpleStatement("val ret = ${Data.BUILDER_CLASS_NAME}().apply {⇥")
     properties.forEachIndexed { i, _ ->
         indexStatement("%N = args[$i] as %T", i)
     }
