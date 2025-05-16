@@ -1,7 +1,5 @@
-package ru.it_arch.clean_ddd.domain.core
+package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.Options
-import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 

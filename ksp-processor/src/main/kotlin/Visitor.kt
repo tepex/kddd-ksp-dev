@@ -8,7 +8,7 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.domain.core.CompositeClassName
+import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
