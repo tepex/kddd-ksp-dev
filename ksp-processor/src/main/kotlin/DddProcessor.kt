@@ -7,7 +7,6 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.squareup.kotlinpoet.FileSpec
 import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.ksp.model.StringBufferWriter
 
@@ -22,47 +21,42 @@ internal class DddProcessor(
         logger.log("options: $options, isTesting: $isTesting")
         val visitor = Visitor(resolver, options, logger)
 
-        // TODO: dirty!!! refactor this 💩
-        // Пакет общих файлов-расширений. Пока нет определенности, как лучше его выбрать. Пока-что берется первый попавшийся.
-        //var basePackageName: ClassName.PackageName? = null
-
         resolver.getNewFiles().toList().mapNotNull { file ->
             //logger.log("process $file")
             with(options) { with(logger) { file `to OutputFile with` visitor } }
-        }.forEach { file ->
-            val (model, dependencies) = file
-            //buildAndAddNestedTypes(file.first)
+        }.takeIf { it.isNotEmpty() }?.also { files ->
+            val dslFile = files.createDslFile()
+            files.forEach { file ->
+                val (model, dependencies) = file
+                logger.log("creating file: {${model.implClassName}, }")
 
-            logger.log("creating file: {${model.implClassName}, }")
-
-            // add model content and build()
-            with(visitor.typeCatalog) {
-                val modelTypeSpecBuilder = with(logger) { model.toTypeSpecBuilder() }
-
-                val fileSpec = file.fileSpecBuilder.apply {
-                    addType(modelTypeSpecBuilder.build())
-                }.build()
-
-                codeGenerator.createNewFile(dependencies, model.implPackageName.boxed, model.implClassName.boxed)
-                    .also { StringBufferWriter(it).use(fileSpec::writeTo) }
+                with(visitor.typeCatalog) {
+                    // Генерация класса имплементации
+                    with(logger) { model.toTypeSpecBuilder(dslFile) }.build().also { typeSpec ->
+                        // Генерация файла
+                        file.fileSpecBuilder.addType(typeSpec).build()
+                            // Запись файла
+                            .also { fileSpec ->
+                                codeGenerator.createNewFile(
+                                    dependencies,
+                                    model.implPackageName.boxed,
+                                    model.implClassName.boxed
+                                ).also { StringBufferWriter(it).use(fileSpec::writeTo) }
+                            }
+                    }
+                }
             }
+            codeGenerator.createNewFile(
+                Dependencies.ALL_FILES,
+                dslFile.packageName.boxed,
+                dslFile.name.boxed
+            ).also { StringBufferWriter(it).use(dslFile.builder.build()::writeTo) }
         }
-
 
         //logger.log("type catalog: ${visitor.typeCatalog}")
         visitor.typeCatalog.entries.forEach { pair ->
             logger.log("${pair.key} -> ${pair.value}")
         }
-
-        /*
-        outputFiles.keys.forEach { file ->
-            visitor.buildAndAddNestedTypes(file.first)
-
-            //createBuilders(file.model)
-
-            // TODO if (file.generatable.hasDsl) createDslBuilderExtensionFunction(file)
-            //if (file.model.hasJson) createJsonExtensionFunctions(file)
-        }*/
 
         /*
         outputFiles.entries
@@ -73,25 +67,8 @@ internal class DddProcessor(
         return emptyList()
     }
 
-
     /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
     private fun FileSpec.replaceAndWrite(codeGenerator: CodeGenerator, dependencies: Dependencies) {
         codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferWriter(it).use(::writeTo) }
-    }
-
-    tailrec fun buildAndAddNestedTypes(model: KdddType.ModelContainer, isFinish: Boolean = false) {
-        val nestedModels = model.nestedTypes.filterIsInstance<KdddType.ModelContainer>()
-        return if (nestedModels.isEmpty() || isFinish) {
-            // append
-            model.nestedTypes.forEach { type ->
-                //if (type is KDType.Model) createBuilders(type)
-
-                // TODO:
-                // model.builder.addType(type.builder.build())
-            }
-        } else {
-            nestedModels.forEach(::buildAndAddNestedTypes)
-            buildAndAddNestedTypes(model, true)
-        }
     }
 }

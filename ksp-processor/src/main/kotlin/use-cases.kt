@@ -7,22 +7,13 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.BYTE
-import com.squareup.kotlinpoet.CHAR
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.DOUBLE
-import com.squareup.kotlinpoet.FLOAT
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.INT
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.SHORT
-import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
@@ -34,7 +25,6 @@ import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.core.BoxedWithPrimitive
 import ru.it_arch.clean_ddd.domain.core.Data
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.templateParseBody
@@ -42,6 +32,7 @@ import ru.it_arch.clean_ddd.domain.property
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
 import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
 import ru.it_arch.clean_ddd.domain.templateForkBody
+import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 import ru.it_arch.kddd.KDIgnore
 import ru.it_arch.kddd.Kddd
@@ -85,13 +76,38 @@ internal infix fun KSFile.`to OutputFile with`(visitor: Visitor): OutputFile? =
             }
         }
 
-internal fun List<OutputFile>.findShortestPackageName(): CompositeClassName.PackageName =
-    reduce { acc, outputFile ->
-        outputFile.takeIf { it.first.implPackageName.boxed.length < acc.first.implPackageName.boxed.length } ?: acc
-    }.first.implPackageName
-
 internal val OutputFile.fileSpecBuilder: FileSpec.Builder
     get() = FileSpec.builder(first.implPackageName.boxed, first.implClassName.boxed).also { it.addFileComment(FILE_HEADER_STUB) }
+
+context(typeCatalog: TypeCatalog, logger: ILogger)
+/**
+ *
+ * */
+internal fun KdddType.toTypeSpecBuilder(dslFile: ExtensionFile): TypeSpec.Builder {
+    //val typeCatalog: TypeCatalog = TypeCatalog
+    return typeCatalog[kddd.fullClassName]?.let { holder ->
+        TypeSpec.classBuilder(implClassName.boxed).addSuperinterface(holder.classType).apply {
+            when(this@toTypeSpecBuilder) {
+                is KdddType.ModelContainer ->
+                    if (this@toTypeSpecBuilder is Data) build(holder, dslFile)
+                is KdddType.Boxed -> build(holder)
+            }
+        }
+    } ?: error("Type ${kddd.fullClassName} not found in type catalog!")
+}
+
+internal fun List<OutputFile>.createDslFile(): ExtensionFile =
+    findShortestPackageName().let { shortestPackageName ->
+        FileSpec.builder(shortestPackageName.boxed, "dsl")
+            .addFileComment(FILE_HEADER_STUB)
+            .let { dslFileBuilder ->
+                extensionFile {
+                    builder = dslFileBuilder
+                    packageName = shortestPackageName
+                    name = "dsl"
+                }
+            }
+    }
 
 
 // Private util extensions
@@ -101,6 +117,14 @@ AUTO-GENERATED FILE. DO NOT MODIFY.
 This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
+
+private fun List<OutputFile>.findShortestPackageName(): CompositeClassName.PackageName =
+    reduce { shortest, outputFile ->
+        outputFile.takeIf { it.first.implPackageName.boxed.length < shortest.first.implPackageName.boxed.length } ?: shortest
+    }.first.implPackageName
+
+private fun extensionFile(block: ExtensionFile.Builder.() -> Unit): ExtensionFile =
+    ExtensionFile.Builder().apply(block).build()
 
 private infix fun Property.toDataPropertySpec(typeName: TypeName): PropertySpec =
     PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE)
@@ -112,24 +136,6 @@ private infix fun Property.toBuilderPropertySpec(typeName: TypeName): PropertySp
         .mutable()
         .initializer("null")
         .build()
-
-
-context(typeCatalog: TypeCatalog, logger: ILogger)
-/**
- *
- * */
-internal fun KdddType.toTypeSpecBuilder(): TypeSpec.Builder {
-    //val typeCatalog: TypeCatalog = TypeCatalog
-    return typeCatalog[kddd.fullClassName]?.let { holder ->
-        TypeSpec.classBuilder(implClassName.boxed).addSuperinterface(holder.classType).apply {
-            when(this@toTypeSpecBuilder) {
-                is KdddType.ModelContainer ->
-                    if (this@toTypeSpecBuilder is Data) build(holder)
-                is KdddType.Boxed -> build(holder)
-            }
-        }
-    } ?: error("Type ${kddd.fullClassName} not found in type catalog!")
-}
 
 context(typeCatalog: TypeCatalog, builder: TypeSpec.Builder, logger: ILogger)
 private fun KdddType.Boxed.build(typeHolder: TypeHolder) {
@@ -149,7 +155,7 @@ private fun KdddType.Boxed.build(typeHolder: TypeHolder) {
 }
 
 context(typeCatalog: TypeCatalog, builder: TypeSpec.Builder, logger: ILogger)
-private fun Data.build(typeHolder: TypeHolder) {
+private fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
     //val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.DATA)
@@ -158,16 +164,17 @@ private fun Data.build(typeHolder: TypeHolder) {
         properties.map {
             it toDataPropertySpec
                 (typeHolder.properties[it.name] ?: error("Can't find type name for property ${it.name} in ${this@build.kddd.fullClassName}"))
-        }.also { kp ->
-            addProperties(kp)
-            kp.map { ParameterSpec(it.name, it.type) }
+        }.also { propertySpecList ->
+            addProperties(propertySpecList)
+            propertySpecList.map { ParameterSpec(it.name, it.type) }
                 .also { createConstructor(it).also(::primaryConstructor) }
-            createFork(kp).also(::addFunction)
+            createFork(propertySpecList).also(::addFunction)
             createBuildClass(typeHolder).also(::addType)
+            //create
         }
 
         nestedTypes.forEach { kdddType ->
-            kdddType.toTypeSpecBuilder().build().also(builder::addType)
+            kdddType.toTypeSpecBuilder(dslFile).build().also(builder::addType)
         }
     }
 }
