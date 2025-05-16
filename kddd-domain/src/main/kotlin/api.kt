@@ -88,3 +88,19 @@ public fun Data.templateBuilderFunBuildReturn(simpleStatement: SimpleStatement, 
     }
     simpleStatement("⇤)")
 }
+
+public fun Data.templateToBuilderBody(statement: SimpleStatement) {
+    StringBuilder("return %T().apply {\n⇥").apply {
+        properties.forEach { property ->
+            append("this.${property.name} = ${property.name}\n")
+        }
+        append("⇤}")
+    }.toString().also { statement(it) }
+    /*
+    StringBuilder("val ret = %T()\n").apply {
+        properties.forEach { property ->
+            append("ret.${property.name} = ${property.name}\n")
+        }
+        append("return ret")
+    }.toString().also { statement(it) }*/
+}

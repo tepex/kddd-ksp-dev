@@ -33,6 +33,7 @@ import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
 import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
 import ru.it_arch.clean_ddd.domain.templateForkBody
+import ru.it_arch.clean_ddd.domain.templateToBuilderBody
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 import ru.it_arch.kddd.KDIgnore
@@ -300,12 +301,13 @@ private fun Data.createFork(kpProperties: List<PropertySpec>): FunSpec =
     }.build()
 
 private fun Data.createToBuilderFun(typeHolder: TypeHolder): FunSpec =
-    FunSpec.builder("toBuilder").apply {
-        receiver(typeHolder.classType)
-            //.returns(builderTypeName)
-            //.addStatement("val $RET = %T()", builderTypeName)
-        addStatement("val a = 1")
+    ClassName.bestGuess("${impl.fullClassName.boxed}.${Data.BUILDER_CLASS_NAME}").let { builderClass ->
+        FunSpec.builder("toBuilder").apply {
+            receiver(typeHolder.classType)
+            returns(builderClass)
+            templateToBuilderBody { addStatement(it, builderClass) }
         }.build()
+    }
 
 /**
  * ```
