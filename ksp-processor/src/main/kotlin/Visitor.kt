@@ -7,9 +7,8 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.domain.CompositeClassName
+import ru.it_arch.clean_ddd.domain.core.CompositeClassName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.Options
@@ -80,7 +79,7 @@ internal class Visitor(
                         }
                     }
                 }?.also { type ->
-                    //logger.log("type class name: ${type.implClassName}")
+                    logger.log("${type.kddd.fullClassName}: impl class name package: ${type.implPackageName}")
                     _typeCatalog[className.fullClassName] = TypeHolder(typeName, propertyHolders)
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }

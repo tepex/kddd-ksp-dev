@@ -5,6 +5,7 @@ import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.core.BoxedWithPrimitive
+import ru.it_arch.clean_ddd.domain.core.CompositeClassName
 import ru.it_arch.kddd.KDParsable
 import java.util.UUID
 

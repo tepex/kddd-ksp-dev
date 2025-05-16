@@ -1,6 +1,7 @@
 package ru.it_arch.clean_ddd.domain
 
 import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.core.CompositeClassName
 import ru.it_arch.clean_ddd.domain.core.Data
 import ru.it_arch.clean_ddd.domain.core.IEntity
 import ru.it_arch.clean_ddd.domain.core.KdddType
@@ -36,7 +37,7 @@ public fun String.toKddClassName(): KdddType.KdddClassName {
     return parent!!
 }*/
 
-context(ctx: Context, _: Options, _: ILogger)
+context(ctx: Context, _: Options, logger: ILogger)
 public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable ->
     when(substringBefore('<')) {
         Data::class.java.simpleName           -> Data(generatable, ctx.properties)

@@ -2,6 +2,7 @@ package ru.it_arch.clean_ddd.domain
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import ru.it_arch.clean_ddd.domain.core.CompositeClassName
 import ru.it_arch.kddd.KDGeneratable
 
 class GeneratableImplTest : FunSpec({

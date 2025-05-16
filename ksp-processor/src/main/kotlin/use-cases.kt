@@ -19,7 +19,7 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.domain.CompositeClassName
+import ru.it_arch.clean_ddd.domain.core.CompositeClassName
 import ru.it_arch.clean_ddd.domain.core.KdddType
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
@@ -170,7 +170,7 @@ private fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
                 .also { createConstructor(it).also(::primaryConstructor) }
             createFork(propertySpecList).also(::addFunction)
             createBuildClass(typeHolder).also(::addType)
-            //create
+            createToBuilderFun(typeHolder).also(dslFile.builder::addFunction)
         }
 
         nestedTypes.forEach { kdddType ->
@@ -300,6 +300,14 @@ private fun Data.createFork(kpProperties: List<PropertySpec>): FunSpec =
             { format, i -> addStatement(format, kpProperties[i].name, kpProperties[i].type) }
         )
     }.build()
+
+private fun Data.createToBuilderFun(typeHolder: TypeHolder): FunSpec =
+    FunSpec.builder("toBuilder").apply {
+        receiver(typeHolder.classType)
+            //.returns(builderTypeName)
+            //.addStatement("val $RET = %T()", builderTypeName)
+        addStatement("val a = 1")
+        }.build()
 
 /**
  * ```
