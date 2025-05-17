@@ -46,8 +46,8 @@ public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable
     }
 }
 
-public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
-    get() = CompositeClassName.FullClassName("$packageName.$className")
+public val CompositeClassName.fullClassName: String
+    get() = "$packageName.$className"
 
 public val CompositeClassName.ClassName.shortName: String
     get() = boxed.substringAfterLast('.')

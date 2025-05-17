@@ -26,7 +26,7 @@ internal class Visitor(
     val logger: ILogger
 ) : KSDefaultVisitor<KdddType.ModelContainer, Unit>() {
 
-    private val _typeCatalog = mutableMapOf<CompositeClassName.FullClassName, TypeHolder>()
+    private val _typeCatalog = mutableMapOf<CompositeClassName, TypeHolder>()
     val typeCatalog: TypeCatalog
         get() = _typeCatalog.toMap()
 
@@ -55,7 +55,7 @@ internal class Visitor(
         declaration.typeParameters.map { resolver.getTypeArgument(it.bounds.first(), Variance.INVARIANT) }
             .let(declaration::asType).toTypeName().let { typeName ->
                 val className = compositeClassName {
-                    packageName = declaration.packageName.asString()
+                    packageName = CompositeClassName.PackageName(declaration.packageName.asString())
                     fullClassName = typeName.toString()
                 }
                 val propertyHolders = declaration.toPropertyHolders()
@@ -68,7 +68,7 @@ internal class Visitor(
                                 declaration.getAnnotationsByType(KDGeneratable::class) +
                                 declaration.getAnnotationsByType(KDParsable::class)
                             ).toSet()
-                            properties = propertyHolders.toProperties()
+                            properties = propertyHolders.map { it.toProperty() }
                         }//.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
                     ) {
                         with(logger) {
@@ -79,8 +79,7 @@ internal class Visitor(
                         }
                     }
                 }?.also { type ->
-                    logger.log("${type.kddd.fullClassName}: impl class name: ${type.impl}")
-                    _typeCatalog[className.fullClassName] = TypeHolder(typeName, propertyHolders)
+                    _typeCatalog[className] = TypeHolder(typeName, propertyHolders)
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }
             }

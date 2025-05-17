@@ -16,7 +16,7 @@ import ru.it_arch.kddd.ValueObject
 public data class Property private constructor(
     val name: Name,
     val serialName: SerialName,
-    val className: CompositeClassName.FullClassName,
+    val className: CompositeClassName,
     val isNullable: Boolean
 ) : ValueObject.Data {
 
@@ -73,18 +73,23 @@ public data class Property private constructor(
     public class Builder {
         public var name: Name? = null
         public var serialName: String? = null
+        public var packageName: CompositeClassName.PackageName? = null
         public var className: String? = null
         public var isNullable: Boolean? = null
 
         public fun build(): Property {
             checkNotNull(name) { "Property 'name' must be initialized!" }
+            checkNotNull(packageName) { "Property 'pkgName' must be initialized!" }
             checkNotNull(className) { "Property 'className' must be initialized!" }
             checkNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
 
             return Property(
                 name!!,
                 SerialName(serialName ?: name!!.boxed),
-                CompositeClassName.FullClassName(className!!.replace("?", "")),
+                compositeClassName {
+                    packageName = this@Builder.packageName
+                    fullClassName = className!!.replace("?", "")
+                },
                 isNullable!!
             )
         }

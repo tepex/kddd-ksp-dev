@@ -8,6 +8,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.squareup.kotlinpoet.FileSpec
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
+import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.ksp.model.StringBufferWriter
 
@@ -56,7 +57,7 @@ internal class DddProcessor(
 
         //logger.log("type catalog: ${visitor.typeCatalog}")
         visitor.typeCatalog.entries.forEach { pair ->
-            logger.log("${pair.key} -> ${pair.value}")
+            logger.log("${pair.key.fullClassName} -> ${pair.value}")
         }
 
         /*

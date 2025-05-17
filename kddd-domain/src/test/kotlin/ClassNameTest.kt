@@ -12,11 +12,13 @@ class ClassNameTest : FunSpec({
 
     val generatable = generatable {
         kddd = compositeClassName {
-            packageName = "not used"
+            packageName = CompositeClassName.PackageName("not used")
             fullClassName = "not used"
         }
-        implClassName = CompositeClassName.ClassName("not used")
-        implPackageName = CompositeClassName.PackageName("not used")
+        impl = compositeClassName {
+            packageName = CompositeClassName.PackageName("not used")
+            fullClassName = "not used"
+        }
     }
 
     val options = options {  }
@@ -24,19 +26,19 @@ class ClassNameTest : FunSpec({
     val defaultContext = with(options) {
         kDddContext {
             kddd = compositeClassName {
-                packageName = "not used"
+                packageName = CompositeClassName.PackageName("not used")
                 fullClassName = "not used"
             }
             properties = emptyList()
         }
     }
 
-    context("""'"<Primitive>".toBoxedTypeWith()' must return appropriate """) {
+    context("""'"<INVARIANT Primitive>".toBoxedTypeWith()' must return appropriate """) {
         withData(
             nameFn = { (src, _) -> "'BoxedWithPrimitive(...${src.uppercase()})'" },
             ts = BoxedWithPrimitive.PrimitiveClassName.entries
                 .map { primitive ->
-                    primitive.name.lowercase().replaceFirstChar { it.uppercaseChar() } to BoxedWithPrimitive(generatable, primitive)
+                    "<INVARIANT ${primitive.name.lowercase().replaceFirstChar { it.uppercaseChar() }}>" to BoxedWithPrimitive(generatable, primitive)
                 }
         ) { (primitive, boxed) ->
             with(options) {
@@ -47,10 +49,10 @@ class ClassNameTest : FunSpec({
         }
     }
 
-    pos("""'"UUID".toBoxedTypeWith()' must return 'BoxedWithCommon(boxed = CommonClassName("UUID"))'""") {
+    pos("""'"INVARIANT <UUID>".toBoxedTypeWith()' must return 'BoxedWithCommon(boxed = CommonClassName("UUID"))'""") {
         with(options) {
             with(defaultContext) {
-                "UUID" toBoxedTypeWith generatable shouldBe BoxedWithCommon(
+                "<INVARIANT UUID>" toBoxedTypeWith generatable shouldBe BoxedWithCommon(
                     generatable,
                     BoxedWithCommon.CommonClassName(UUID::class.java.simpleName),
                     KDParsable()

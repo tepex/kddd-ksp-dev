@@ -86,7 +86,7 @@ context(options: Options)
 internal val CompositeClassName.PackageName.toImplementationPackage: CompositeClassName.PackageName
     get() = this + options.subpackage
 
-context(ctx: Context, logger: ILogger)
+context(ctx: Context)
 /**
  * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.Boxed] с соотвествующим
  * типом `boxed`: [BoxedWithPrimitive.PrimitiveClassName] или [BoxedWithCommon.CommonClassName].

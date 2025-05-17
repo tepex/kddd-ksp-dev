@@ -57,31 +57,15 @@ public data class CompositeClassName private constructor(
         }
     }
 
-    @JvmInline
-    public value class FullClassName private constructor(override val boxed: String) : ValueObject.Boxed<String> {
-        override fun validate() {}
-
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
-            TODO("Not yet implemented")
-        }
-
-        override fun toString(): String = boxed
-
-        public companion object {
-            public operator fun invoke(value: String): FullClassName =
-                FullClassName(value)
-        }
-    }
-
     public class Builder {
-        public var packageName: String? = null
+        public var packageName: PackageName? = null
         public var fullClassName: String? = null
 
         public fun build(): CompositeClassName {
             checkNotNull(packageName) { "Property 'packageName' must be initialized!" }
             checkNotNull(fullClassName) { "Property 'fullClassName' must be initialized!" }
             return CompositeClassName(
-                PackageName(packageName!!),
+                packageName!!,
                 ClassName(fullClassName!!.substringAfterLast("$packageName."))
             )
         }
