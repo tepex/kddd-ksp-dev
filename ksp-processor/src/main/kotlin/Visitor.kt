@@ -58,7 +58,7 @@ internal class Visitor(
                     packageName = CompositeClassName.PackageName(declaration.packageName.asString())
                     fullClassName = typeName.toString()
                 }
-                val propertyHolders = declaration.toPropertyHolders()
+                val propertyHolders = with(logger) { declaration.toPropertyHolders() }
                 with(options) {
                     with(
                         kDddContext {
