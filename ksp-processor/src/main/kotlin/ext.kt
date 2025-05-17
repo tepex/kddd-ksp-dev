@@ -16,6 +16,7 @@ import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.CompositeClassName
+import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.core.Data
@@ -60,20 +61,19 @@ internal val OutputFile.fileSpecBuilder: FileSpec.Builder
 
 internal fun KSClassDeclaration.toPropertyHolders(): List<PropertyHolder> =
     getAllProperties().map { decl ->
-        propertyHolder {
-            name = Property.Name(decl.simpleName.asString())
-            packageName = CompositeClassName.PackageName(decl.packageName.asString())
-            type = decl.type.toTypeName()
+        decl.type.toTypeName().let { propertyTypeName ->
+            propertyHolder {
+                property = property {
+                    name = Property.Name(decl.simpleName.asString())
+                    packageName = CompositeClassName.PackageName(decl.packageName.asString())
+                    className = propertyTypeName.toString()
+                    isNullable = propertyTypeName.isNullable
+                }
+                type = propertyTypeName
+            }
         }
     }.toList()
 
-
-internal fun PropertyHolder.toProperty() = property {
-    name = this@toProperty.name
-    packageName = this@toProperty.packageName
-    className = type.toString()
-    isNullable = type.isNullable
-}
 
 // === Kotlin Poet builders ===
 
@@ -101,10 +101,7 @@ internal fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
         addModifiers(KModifier.DATA)
         addAnnotation(ConsistentCopyVisibility::class)
 
-        properties.map { property ->
-            property `to Data PropertySpec with type`
-                (typeHolder[property.name]?.type ?: error("Can't find type name for property ${property.name} in ${kddd.fullClassName}"))
-        }.also { propertySpecList ->
+        typeHolder.propertyHolders.map { it.property `to Data PropertySpec with type` it.type }.also { propertySpecList ->
             addProperties(propertySpecList)
             propertySpecList.map { ParameterSpec(it.name, it.type) }
                 .also { createConstructor(it).also(::primaryConstructor) }
@@ -125,10 +122,8 @@ context(logger: ILogger)
 private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
     ClassName.bestGuess("${impl.className.shortName}.${Data.BUILDER_CLASS_NAME}").let(TypeSpec::classBuilder).apply {
         // add properties
-        properties.map { property ->
-            property `to Builder PropertySpec with type` (typeHolder[property.name]?.type
-                ?: error("Can't find type name for property ${property.name} in ${this@createBuildClass.kddd.fullClassName}"))
-        }.also(::addProperties)
+        typeHolder.propertyHolders.map { it.property `to Builder PropertySpec with type` it.type }
+            .also(::addProperties)
 
         // fun build(): KdddType
         FunSpec.builder(Data.BUILDER_BUILD_METHOD_NAME).apply {
@@ -146,9 +141,6 @@ private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
     }.build()
 
 
-private operator fun TypeHolder.get(name: Property.Name): PropertyHolder? =
-    propertyHolders.find { it.name == name }
-
 private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName): PropertySpec =
     PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE)
         .initializer(name.boxed)
@@ -157,7 +149,7 @@ private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName):
 private infix fun Property.`to Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
     PropertySpec.builder(name.boxed, typeName.copy(nullable = true))
         .mutable()
-        .initializer("null")
+        .initializer("null") // TODO: exception for Collection
         .build()
 
 private val ParameterSpec.propertySpec: PropertySpec

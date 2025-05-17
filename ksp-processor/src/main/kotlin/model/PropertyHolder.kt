@@ -1,15 +1,13 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.TypeName
-import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
 internal data class PropertyHolder private constructor(
-    val name: Property.Name,
-    val packageName: CompositeClassName.PackageName,
+    val property: Property,
     val type: TypeName
 ) : ValueObject.Data {
 
@@ -24,15 +22,13 @@ internal data class PropertyHolder private constructor(
     }
 
     class Builder {
-        var name: Property.Name? = null
-        var packageName: CompositeClassName.PackageName? = null
+        var property: Property? = null
         var type: TypeName? = null
 
         fun build(): PropertyHolder {
-            checkNotNull(name) { "Property 'name' must be initialized!" }
-            checkNotNull(packageName) { "Property 'packageName' must be initialized!" }
+            checkNotNull(property) { "Property 'property' must be initialized!" }
             checkNotNull(type) { "Property 'type' must be initialized!" }
-            return PropertyHolder(name!!, packageName!!, type!!)
+            return PropertyHolder(property!!, type!!)
         }
     }
 }

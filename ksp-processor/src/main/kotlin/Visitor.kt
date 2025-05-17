@@ -68,7 +68,7 @@ internal class Visitor(
                                 declaration.getAnnotationsByType(KDGeneratable::class) +
                                 declaration.getAnnotationsByType(KDParsable::class)
                             ).toSet()
-                            properties = propertyHolders.map { it.toProperty() }
+                            properties = propertyHolders.map { it.property }
                         }//.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
                     ) {
                         with(logger) {
