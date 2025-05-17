@@ -17,7 +17,8 @@ public data class Property private constructor(
     val name: Name,
     val serialName: SerialName,
     val className: CompositeClassName,
-    val isNullable: Boolean
+    val isNullable: Boolean,
+    val collectionType: CollectionType?
 ) : ValueObject.Data {
 
     private val asCode: String by lazy {
@@ -32,10 +33,13 @@ public data class Property private constructor(
         validate()
     }
 
-    override fun validate() {}
+    override fun validate() {
+        require((collectionType != null && isNullable).not()) { "Property '$name' is a Collection and can't be nullable!" }
+    }
 
+    /*
     override fun toString(): String =
-        "[$asCode]"
+        "[$asCode]"*/
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
         TODO("Must not used")
@@ -70,12 +74,17 @@ public data class Property private constructor(
             TODO("Must not used")
     }
 
+    public enum class CollectionType {
+        SET, LIST, MAP
+    }
+
     public class Builder {
         public var name: Name? = null
         public var serialName: String? = null
         public var packageName: CompositeClassName.PackageName? = null
         public var className: String? = null
         public var isNullable: Boolean? = null
+        public var collectionType: CollectionType? = null
 
         public fun build(): Property {
             checkNotNull(name) { "Property 'name' must be initialized!" }
@@ -90,7 +99,8 @@ public data class Property private constructor(
                     packageName = this@Builder.packageName
                     fullClassName = className!!.replace("?", "")
                 },
-                isNullable!!
+                isNullable!!,
+                collectionType
             )
         }
     }
