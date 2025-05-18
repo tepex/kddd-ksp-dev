@@ -1,11 +1,10 @@
-package ru.it_arch.clean_ddd.domain.core
+package ru.it_arch.clean_ddd.domain.model
 
 public sealed interface KdddType : Generatable {
 
     public interface ModelContainer : KdddType {
-        /*
         public val hasDsl: Boolean
-        public val hasJson: Boolean*/
+        /*public val hasJson: Boolean*/
         public val nestedTypes: Set<KdddType>
         public fun addNestedType(kdddType: KdddType)
     }

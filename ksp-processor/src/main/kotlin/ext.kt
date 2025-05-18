@@ -2,13 +2,11 @@ package ru.it_arch.clean_ddd.ksp
 
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.squareup.kotlinpoet.LIST
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Property
-import ru.it_arch.clean_ddd.domain.core.KdddType
+import ru.it_arch.clean_ddd.domain.model.KdddType
 import ru.it_arch.clean_ddd.domain.property
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.clean_ddd.ksp.model.PropertyHolder

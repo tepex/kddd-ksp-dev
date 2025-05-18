@@ -11,8 +11,8 @@ import com.squareup.kotlinpoet.TypeSpec
 import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Options
-import ru.it_arch.clean_ddd.domain.core.KdddType
-import ru.it_arch.clean_ddd.domain.core.Data
+import ru.it_arch.clean_ddd.domain.model.KdddType
+import ru.it_arch.clean_ddd.domain.model.Data
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile

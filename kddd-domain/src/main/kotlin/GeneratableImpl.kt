@@ -1,7 +1,7 @@
 package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.core.Generatable
-import ru.it_arch.clean_ddd.domain.core.KdddType
+import ru.it_arch.clean_ddd.domain.model.Generatable
+import ru.it_arch.clean_ddd.domain.model.KdddType
 import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility

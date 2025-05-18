@@ -1,9 +1,9 @@
 package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.core.BoxedWithPrimitive
-import ru.it_arch.clean_ddd.domain.core.Generatable
-import ru.it_arch.clean_ddd.domain.core.KdddType
+import ru.it_arch.clean_ddd.domain.model.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.model.BoxedWithPrimitive
+import ru.it_arch.clean_ddd.domain.model.Generatable
+import ru.it_arch.clean_ddd.domain.model.KdddType
 import ru.it_arch.kddd.KDGeneratable
 import ru.it_arch.kddd.KDParsable
 import ru.it_arch.kddd.Kddd
@@ -107,7 +107,12 @@ internal infix fun String.toBoxedTypeWith(generatable: Generatable): KdddType.Bo
             )
     }
 
+internal val Context.hasDsl: Boolean
+    get() = getAnnotation<KDGeneratable>()?.dsl ?: true
+
 private val BOXED_INVARIANT_RE = "<INVARIANT (\\w+)>".toRegex()
 
 private inline fun <reified T : Annotation> Context.getAnnotation(): T? =
     annotations.filterIsInstance<T>().firstOrNull()
+
+

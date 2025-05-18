@@ -19,9 +19,9 @@ import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.clean_ddd.domain.builderInitializer
-import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.core.Data
-import ru.it_arch.clean_ddd.domain.core.KdddType
+import ru.it_arch.clean_ddd.domain.model.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.model.Data
+import ru.it_arch.clean_ddd.domain.model.KdddType
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck

@@ -10,10 +10,9 @@ import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.CompositeClassName
 import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.core.KdddType
+import ru.it_arch.clean_ddd.domain.model.KdddType
 import ru.it_arch.clean_ddd.domain.Options
 import ru.it_arch.clean_ddd.domain.compositeClassName
-import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.kDddContext
 import ru.it_arch.clean_ddd.domain.toKDddType
 import ru.it_arch.clean_ddd.ksp.model.TypeHolder
@@ -73,7 +72,7 @@ internal class Visitor(
                     ) {
                         with(logger) {
                             declaration.superTypes.firstOrNull()?.toString()?.toKDddType() ?: run {
-                                logger.log("Cant parse parent type: $declaration")
+                                logger.err("Cant parse parent type: $declaration")
                                 null
                             }
                         }

@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.domain.core
+package ru.it_arch.clean_ddd.domain.model
 
 import ru.it_arch.clean_ddd.domain.Property
 import ru.it_arch.kddd.Kddd
@@ -7,7 +7,8 @@ import ru.it_arch.kddd.Kddd
 public data class Data private constructor(
     private val generatable: Generatable,
     // List, not Set!
-    public val properties: List<Property>
+    public val properties: List<Property>,
+    override val hasDsl: Boolean
 ) : Generatable by generatable, KdddType.ModelContainer {
 
     private val _nestedTypes = mutableSetOf<KdddType>()
@@ -30,7 +31,7 @@ public data class Data private constructor(
         public const val BUILDER_BUILD_METHOD_NAME: String = "build"
         public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-        public operator fun invoke(generatable: Generatable, properties: List<Property>): Data =
-            Data(generatable, properties)
+        public operator fun invoke(generatable: Generatable, properties: List<Property>, hasDsl: Boolean): Data =
+            Data(generatable, properties, hasDsl)
     }
 }

@@ -1,9 +1,9 @@
 package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.core.Data
-import ru.it_arch.clean_ddd.domain.core.IEntity
-import ru.it_arch.clean_ddd.domain.core.KdddType
+import ru.it_arch.clean_ddd.domain.model.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.model.Data
+import ru.it_arch.clean_ddd.domain.model.IEntity
+import ru.it_arch.clean_ddd.domain.model.KdddType
 
 public fun Map<String, String>.toOptions(): Options = options {
     subpackage = get(Options.OPTION_IMPLEMENTATION_SUBPACKAGE)
@@ -13,34 +13,11 @@ public fun Map<String, String>.toOptions(): Options = options {
     jsonNamingStrategy = get(Options.OPTION_JSON_NAMING_STRATEGY)
 }
 
-/**
- * Преобразование строкового имени класса (вложенного) в цепочку [ClassName].
- *
- * Пример:
- * ```
- * "A.B.C": ClassName(name = "C").enclosing -> ClassName(name = "B").enclosing -> ClassName(name = "A").enclosing = null
- * ```
- * @see "src/test/kotlin/ClassNameTest.kt"
- * */
-//context(_: PackageName)
-/*
-public fun String.toKddClassName(): KdddType.KdddClassName {
-    val classNames = split('.')
-    var parent: KdddType.KdddClassName? = null
-    classNames.forEach { className ->
-        parent = className {
-            name = ClassName.Name.KdddType(className)
-            enclosing = parent
-        }
-    }
-    return parent!!
-}*/
-
 context(ctx: Context, _: Options, logger: ILogger)
 public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable ->
     when(substringBefore('<')) {
-        Data::class.java.simpleName           -> Data(generatable, ctx.properties)
-        IEntity::class.java.simpleName        -> IEntity(Data(generatable, ctx.properties))
+        Data::class.java.simpleName           -> Data(generatable, ctx.properties, ctx.hasDsl)
+        IEntity::class.java.simpleName        -> IEntity(Data(generatable, ctx.properties, ctx.hasDsl))
         KdddType.Boxed::class.java.simpleName -> this toBoxedTypeWith generatable
         else                                  -> error("Unknown type: $this")
     }
