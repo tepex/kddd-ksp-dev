@@ -95,11 +95,11 @@ public fun Data.templateToBuilderBody(statement: SimpleStatement) {
         }
         append("⇤}")
     }.toString().also { statement(it) }
-    /*
-    StringBuilder("val ret = %T()\n").apply {
-        properties.forEach { property ->
-            append("ret.${property.name} = ${property.name}\n")
-        }
-        append("return ret")
-    }.toString().also { statement(it) }*/
 }
+
+public val Property.builderInitializer: String
+    get() = collectionType?.let { when(it) {
+        Property.CollectionType.SET  -> "emptySet()"
+        Property.CollectionType.LIST -> "emptyList()"
+        Property.CollectionType.MAP  -> "emptyMap()"
+    } } ?: "null"

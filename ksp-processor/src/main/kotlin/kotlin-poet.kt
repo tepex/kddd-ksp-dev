@@ -18,6 +18,7 @@ import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Property
+import ru.it_arch.clean_ddd.domain.builderInitializer
 import ru.it_arch.clean_ddd.domain.core.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.core.Data
 import ru.it_arch.clean_ddd.domain.core.KdddType
@@ -116,10 +117,10 @@ private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName):
         .build()
 
 private infix fun Property.`to Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
-    PropertySpec.builder(name.boxed, typeName.copy(nullable = true))
-        .mutable()
-        .initializer("null") // TODO: exception for Collection
-        .build()
+    PropertySpec.builder(name.boxed, typeName.copy(nullable = true)).apply {
+        mutable()
+        initializer(builderInitializer)
+    }.build()
 
 private val ParameterSpec.propertySpec: PropertySpec
     get() = PropertySpec.builder(name, type, KModifier.OVERRIDE).initializer(name).build()

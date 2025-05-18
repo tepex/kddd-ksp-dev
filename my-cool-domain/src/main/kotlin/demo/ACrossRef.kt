@@ -15,7 +15,7 @@ public interface ACrossRef : ValueObject.Data {
     public val myOptionalUUID: MyUUID?
     public val nested: Nested
     public val nestedNested: Nested.NestedNested
-    public val myList: List<MyCustomInnerType>?
+    public val myList: List<MyCustomInnerType>
 
     override fun validate() {}
 
