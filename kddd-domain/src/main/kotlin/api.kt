@@ -58,8 +58,8 @@ public fun Data.templateBuilderFunBuildReturn(simpleStatement: SimpleStatement, 
     simpleStatement("return %N(⇥")
     properties.forEachIndexed { i, property ->
         StringBuilder("%N = %N").apply {
-            if (property.isNullable.not()) append("!!")
-            if (i < (properties.size - 1)) append(", ")
+            "!!".takeUnless { property.isNullable || property.isCollectionType }?.let(::append)
+            ", ".takeIf { i < (properties.size - 1) }?.let(::append)
         }.also { indexStatement(it.toString(), i) }
     }
     simpleStatement("⇤)")
@@ -74,9 +74,12 @@ public fun Data.templateToBuilderBody(statement: SimpleStatement) {
     }.toString().also { statement(it) }
 }
 
-public val Property.builderInitializer: String
-    get() = collectionType?.let { when(it) {
-        Property.CollectionType.SET  -> "emptySet()"
-        Property.CollectionType.LIST -> "emptyList()"
-        Property.CollectionType.MAP  -> "emptyMap()"
+public val Property.isCollectionType: Boolean
+    get() = collectionType != null
+
+public infix fun Property.`get initializer for DSL Builder or canonical Builder`(isDsl: Boolean): String =
+    collectionType?.let { when(it) {
+        Property.CollectionType.SET  -> "mutableSetOf()".takeIf { isDsl } ?: "emptySet()"
+        Property.CollectionType.LIST -> "mutableListOf()".takeIf { isDsl } ?: "emptyList()"
+        Property.CollectionType.MAP  -> "mutableMapOf()".takeIf { isDsl } ?: "emptyMap()"
     } } ?: "null"
