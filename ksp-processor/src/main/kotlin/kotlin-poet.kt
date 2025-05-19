@@ -18,11 +18,12 @@ import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import ru.it_arch.clean_ddd.domain.ILogger
 import ru.it_arch.clean_ddd.domain.Property
-import ru.it_arch.clean_ddd.domain.builderInitializer
 import ru.it_arch.clean_ddd.domain.model.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.model.Data
 import ru.it_arch.clean_ddd.domain.model.KdddType
 import ru.it_arch.clean_ddd.domain.fullClassName
+import ru.it_arch.clean_ddd.domain.`get initializer for DSL Builder or canonical Builder`
+import ru.it_arch.clean_ddd.domain.isCollectionType
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
 import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
@@ -70,6 +71,10 @@ internal fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
             createFork(propertySpecList).also(::addFunction)
             createBuildClass(typeHolder).also(::addType)
             createToBuilderFun(typeHolder).also(dslFile.builder::addFunction)
+            if (hasDsl) {
+                createDslBuildClass(typeHolder).also(::addType)
+                //createToDslBuilderFun(typeHolder).also(dslFile.builder::addFunction)
+            }
         }
 
         nestedTypes.forEach { kdddType ->
@@ -110,6 +115,11 @@ private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
         }.build().also(::addFunction)
     }.build()
 
+private fun Data.createDslBuildClass(typeHolder: TypeHolder): TypeSpec =
+    ClassName.bestGuess("${impl.className.shortName}.${Data.DSL_BUILDER_CLASS_NAME}").let(TypeSpec::classBuilder).apply {
+        typeHolder.propertyHolders.map { it.property `to DSL Builder PropertySpec with type` it.type }
+            .also(::addProperties)
+    }.build()
 
 private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName): PropertySpec =
     PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE)
@@ -117,10 +127,16 @@ private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName):
         .build()
 
 private infix fun Property.`to Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
-    PropertySpec.builder(name.boxed, typeName.copy(nullable = true)).apply {
-        mutable()
-        initializer(builderInitializer)
-    }.build()
+    PropertySpec.builder(name.boxed, typeName.copy(nullable = isCollectionType.not()))
+        .mutable()
+        .initializer(this `get initializer for DSL Builder or canonical Builder` false)
+        .build()
+
+private infix fun Property.`to DSL Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
+    PropertySpec.builder(name.boxed, typeName.copy(nullable = isCollectionType.not()))
+        .mutable()
+        .initializer(this `get initializer for DSL Builder or canonical Builder` true)
+        .build()
 
 private val ParameterSpec.propertySpec: PropertySpec
     get() = PropertySpec.builder(name, type, KModifier.OVERRIDE).initializer(name).build()
