@@ -8,10 +8,10 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.domain.CompositeClassName
-import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.model.KdddType
-import ru.it_arch.clean_ddd.domain.Options
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
+import ru.it_arch.clean_ddd.domain.model.ILogger
+import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
+import ru.it_arch.clean_ddd.domain.model.Options
 import ru.it_arch.clean_ddd.domain.compositeClassName
 import ru.it_arch.clean_ddd.domain.kDddContext
 import ru.it_arch.clean_ddd.domain.toKDddType
@@ -57,7 +57,7 @@ internal class Visitor(
                     packageName = CompositeClassName.PackageName(declaration.packageName.asString())
                     fullClassName = typeName.toString()
                 }
-                val propertyHolders = with(logger) { declaration.toPropertyHolders() }
+                val propertyHolders = with(logger) { declaration.toPropertyHolders(typeCatalog) }
                 with(options) {
                     with(
                         kDddContext {
@@ -78,7 +78,11 @@ internal class Visitor(
                         }
                     }
                 }?.also { type ->
-                    _typeCatalog[className] = TypeHolder(typeName, propertyHolders)
+                    _typeCatalog[className] = typeHolder {
+                        kdddType = type
+                        classType = typeName
+                        this.propertyHolders = propertyHolders
+                    }
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }
             }

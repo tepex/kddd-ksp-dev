@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.domain.model
+package ru.it_arch.clean_ddd.domain.model.kddd
 
 public sealed interface KdddType : Generatable {
 

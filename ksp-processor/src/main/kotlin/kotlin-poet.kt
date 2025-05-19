@@ -7,6 +7,9 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.MAP
+import com.squareup.kotlinpoet.MUTABLE_LIST
+import com.squareup.kotlinpoet.MUTABLE_MAP
+import com.squareup.kotlinpoet.MUTABLE_SET
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -16,14 +19,15 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.Property
-import ru.it_arch.clean_ddd.domain.model.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.model.Data
-import ru.it_arch.clean_ddd.domain.model.KdddType
+import ru.it_arch.clean_ddd.domain.model.Property
+import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.model.kddd.Data
+import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.`get initializer for DSL Builder or canonical Builder`
 import ru.it_arch.clean_ddd.domain.isCollectionType
+import ru.it_arch.clean_ddd.domain.model.Context
+import ru.it_arch.clean_ddd.domain.model.ILogger
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
 import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
@@ -122,21 +126,28 @@ private fun Data.createDslBuildClass(typeHolder: TypeHolder): TypeSpec =
     }.build()
 
 private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName): PropertySpec =
-    PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE)
-        .initializer(name.boxed)
-        .build()
+    PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE).initializer(name.boxed).build()
 
 private infix fun Property.`to Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
     PropertySpec.builder(name.boxed, typeName.copy(nullable = isCollectionType.not()))
-        .mutable()
-        .initializer(this `get initializer for DSL Builder or canonical Builder` false)
-        .build()
+        .initializer(this `get initializer for DSL Builder or canonical Builder` false).mutable().build()
 
 private infix fun Property.`to DSL Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
-    PropertySpec.builder(name.boxed, typeName.copy(nullable = isCollectionType.not()))
-        .mutable()
-        .initializer(this `get initializer for DSL Builder or canonical Builder` true)
-        .build()
+    PropertySpec.builder(
+        name.boxed,
+        typeName.takeIf { isCollectionType }?.mutableCollectionType ?: typeName.copy(nullable = true)
+    ).initializer(this `get initializer for DSL Builder or canonical Builder` true).mutable().build()
+
+private val TypeName.mutableCollectionType: TypeName
+    get() {
+        check(this is ParameterizedTypeName) { "$this is not collection type!" }
+        return when(rawType) {
+            SET -> MUTABLE_SET
+            LIST -> MUTABLE_LIST
+            MAP -> MUTABLE_MAP
+            else -> error("Usupported collection type: $this")
+        }.parameterizedBy(typeArguments)
+    }
 
 private val ParameterSpec.propertySpec: PropertySpec
     get() = PropertySpec.builder(name, type, KModifier.OVERRIDE).initializer(name).build()
@@ -258,3 +269,6 @@ AUTO-GENERATED FILE. DO NOT MODIFY.
 This file generated automatically by «KDDD» framework.
 Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 """
+
+
+private fun `preserve imports for Android Studio, not used`(context: Context, logger: ILogger) {}

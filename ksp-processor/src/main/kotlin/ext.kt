@@ -3,10 +3,10 @@ package ru.it_arch.clean_ddd.ksp
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ksp.toTypeName
-import ru.it_arch.clean_ddd.domain.CompositeClassName
-import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.Property
-import ru.it_arch.clean_ddd.domain.model.KdddType
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
+import ru.it_arch.clean_ddd.domain.model.Property
+import ru.it_arch.clean_ddd.domain.compositeClassName
+import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.property
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.clean_ddd.ksp.model.PropertyHolder
@@ -31,21 +31,33 @@ internal fun propertyHolder(block: PropertyHolder.Builder.() -> Unit): PropertyH
 internal fun extensionFile(block: ExtensionFile.Builder.() -> Unit): ExtensionFile =
     ExtensionFile.Builder().apply(block).build()
 
+internal fun typeHolder(block: TypeHolder.Builder.() -> Unit): TypeHolder =
+    TypeHolder.Builder().apply(block).build()
+
 // === Mappers ===
 
-context(logger: ILogger)
-internal fun KSClassDeclaration.toPropertyHolders(): List<PropertyHolder> =
+//context(logger: ILogger)
+internal fun KSClassDeclaration.toPropertyHolders(typeCatalog: TypeCatalog): List<PropertyHolder> =
     getAllProperties().map { decl ->
         decl.type.toTypeName().let { propertyTypeName ->
-            propertyHolder {
-                property = property {
-                    name = Property.Name(decl.simpleName.asString())
+            propertyTypeName.toString().let { str ->
+                compositeClassName {
                     packageName = CompositeClassName.PackageName(decl.packageName.asString())
-                    className = propertyTypeName.toString()
-                    isNullable = propertyTypeName.isNullable
-                    collectionType = propertyTypeName.collectionType
+                    fullClassName = str.replace("?", "")
+                }.let { propertyClassName ->
+                    propertyHolder {
+                        property = property {
+                            name = Property.Name(decl.simpleName.asString())
+                            packageName = propertyClassName.packageName
+                            kdddType = typeCatalog[propertyClassName]?.kdddType
+                                ?: error("Type '$propertyClassName' not found for property '${decl.simpleName.asString()}'!")
+                            className = propertyClassName
+                            isNullable = propertyTypeName.isNullable
+                            collectionType = propertyTypeName.collectionType
+                        }
+                        type = propertyTypeName
+                    }
                 }
-                type = propertyTypeName
             }
         }
     }.toList()

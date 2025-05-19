@@ -1,6 +1,6 @@
-package ru.it_arch.clean_ddd.domain.model
+package ru.it_arch.clean_ddd.domain.model.kddd
 
-import ru.it_arch.clean_ddd.domain.Property
+import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility

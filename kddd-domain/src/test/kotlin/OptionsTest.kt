@@ -2,13 +2,16 @@ package ru.it_arch.clean_ddd.domain
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import ru.it_arch.clean_ddd.domain.internal.`to implementation class name from options`
+import ru.it_arch.clean_ddd.domain.internal.toImplementationPackage
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
 
 class OptionsTest : FunSpec({
 
     pos("Default options must generate '<MyType>Impl' class name") {
         with(options { }) {
-            CompositeClassName.ClassName("MyType").`to implementation class name from options` shouldBe
-                CompositeClassName.ClassName("MyTypeImpl")
+            ru.it_arch.clean_ddd.domain.model.CompositeClassName.ClassName("MyType").`to implementation class name from options` shouldBe
+                ru.it_arch.clean_ddd.domain.model.CompositeClassName.ClassName("MyTypeImpl")
         }
     }
 
@@ -17,8 +20,8 @@ class OptionsTest : FunSpec({
             generatedClassNameRe = "I(\\D+)([\\d]+)Test"
             generatedClassNameResult = "$1_$2_Impl"
         }) {
-            CompositeClassName.ClassName("IMyType33Test").`to implementation class name from options` shouldBe
-                CompositeClassName.ClassName("MyType_33_Impl")
+            ru.it_arch.clean_ddd.domain.model.CompositeClassName.ClassName("IMyType33Test").`to implementation class name from options` shouldBe
+                ru.it_arch.clean_ddd.domain.model.CompositeClassName.ClassName("MyType_33_Impl")
         }
     }
 
@@ -26,7 +29,7 @@ class OptionsTest : FunSpec({
         val basePackage = CompositeClassName.PackageName("com.example.domain")
         val impl = "test"
         with(options { subpackage = impl }) {
-            basePackage.toImplementationPackage shouldBe CompositeClassName.PackageName("$basePackage.$impl")
+            basePackage.toImplementationPackage shouldBe ru.it_arch.clean_ddd.domain.model.CompositeClassName.PackageName("$basePackage.$impl")
         }
     }
 })

@@ -16,6 +16,7 @@ public interface ACrossRef : ValueObject.Data {
     public val nested: Nested
     public val nestedNested: Nested.NestedNested
     public val myList: List<MyCustomInnerType>
+    public val myMap: Map<MyCustomInnerType, Point?>
 
     override fun validate() {}
 

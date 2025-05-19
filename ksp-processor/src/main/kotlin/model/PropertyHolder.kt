@@ -1,7 +1,7 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.TypeName
-import ru.it_arch.clean_ddd.domain.Property
+import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 

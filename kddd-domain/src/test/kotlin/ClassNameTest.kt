@@ -3,8 +3,9 @@ package ru.it_arch.clean_ddd.domain
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
-import ru.it_arch.clean_ddd.domain.model.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.model.BoxedWithPrimitive
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
+import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithPrimitive
 import ru.it_arch.kddd.KDParsable
 import java.util.UUID
 
@@ -26,7 +27,7 @@ class ClassNameTest : FunSpec({
     val defaultContext = with(options) {
         kDddContext {
             kddd = compositeClassName {
-                packageName = CompositeClassName.PackageName("not used")
+                packageName = ru.it_arch.clean_ddd.domain.model.CompositeClassName.PackageName("not used")
                 fullClassName = "not used"
             }
             properties = emptyList()

@@ -8,12 +8,13 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.TypeSpec
-import ru.it_arch.clean_ddd.domain.CompositeClassName
-import ru.it_arch.clean_ddd.domain.ILogger
-import ru.it_arch.clean_ddd.domain.Options
-import ru.it_arch.clean_ddd.domain.model.KdddType
-import ru.it_arch.clean_ddd.domain.model.Data
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
+import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
+import ru.it_arch.clean_ddd.domain.model.kddd.Data
 import ru.it_arch.clean_ddd.domain.fullClassName
+import ru.it_arch.clean_ddd.domain.model.Context
+import ru.it_arch.clean_ddd.domain.model.ILogger
+import ru.it_arch.clean_ddd.domain.model.Options
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.kddd.KDIgnore
@@ -67,3 +68,4 @@ internal fun List<OutputFile>.findShortestPackageName(): CompositeClassName.Pack
         outputFile.takeIf { it.first.impl.packageName.boxed.length < shortest.first.impl.packageName.boxed.length } ?: shortest
     }.first.impl.packageName
 
+private fun `preserve imports for Android Studio, not used`(context: Context, options: Options, logger: ILogger) {}

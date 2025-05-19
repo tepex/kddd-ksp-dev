@@ -2,6 +2,8 @@ package ru.it_arch.clean_ddd.domain
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import ru.it_arch.clean_ddd.domain.internal.`to implementation class name from options or from`
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
 import ru.it_arch.kddd.KDGeneratable
 
 class GeneratableImplTest : FunSpec({
@@ -13,7 +15,7 @@ class GeneratableImplTest : FunSpec({
         val annotations = setOf(KDGeneratable(implementationName = resultClassName))
         with(options {}) {
             srcClassName `to implementation class name from options or from` annotations shouldBe
-                CompositeClassName.ClassName(resultClassName)
+                ru.it_arch.clean_ddd.domain.model.CompositeClassName.ClassName(resultClassName)
         }
     }
 
@@ -21,7 +23,7 @@ class GeneratableImplTest : FunSpec({
         val resultClassName = "MyTypeImpl"
         with(options {}) {
             srcClassName `to implementation class name from options or from` emptySet() shouldBe
-                CompositeClassName.ClassName(resultClassName)
+                ru.it_arch.clean_ddd.domain.model.CompositeClassName.ClassName(resultClassName)
         }
     }
 })

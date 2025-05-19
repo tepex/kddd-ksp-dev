@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.clean_ddd.domain.model
 
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject

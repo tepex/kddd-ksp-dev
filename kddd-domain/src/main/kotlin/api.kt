@@ -1,9 +1,17 @@
 package ru.it_arch.clean_ddd.domain
 
-import ru.it_arch.clean_ddd.domain.model.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.model.Data
-import ru.it_arch.clean_ddd.domain.model.IEntity
-import ru.it_arch.clean_ddd.domain.model.KdddType
+import ru.it_arch.clean_ddd.domain.internal.hasDsl
+import ru.it_arch.clean_ddd.domain.internal.toGeneratable
+import ru.it_arch.clean_ddd.domain.internal.toBoxedTypeWith
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
+import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithCommon
+import ru.it_arch.clean_ddd.domain.model.kddd.Data
+import ru.it_arch.clean_ddd.domain.model.kddd.IEntity
+import ru.it_arch.clean_ddd.domain.model.Context
+import ru.it_arch.clean_ddd.domain.model.ILogger
+import ru.it_arch.clean_ddd.domain.model.Options
+import ru.it_arch.clean_ddd.domain.model.Property
+import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 
 public fun Map<String, String>.toOptions(): Options = options {
     subpackage = get(Options.OPTION_IMPLEMENTATION_SUBPACKAGE)
@@ -15,6 +23,7 @@ public fun Map<String, String>.toOptions(): Options = options {
 
 context(ctx: Context, _: Options, logger: ILogger)
 public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable ->
+    //val ctx: Context = Context
     when(substringBefore('<')) {
         Data::class.java.simpleName           -> Data(generatable, ctx.properties, ctx.hasDsl)
         IEntity::class.java.simpleName        -> IEntity(Data(generatable, ctx.properties, ctx.hasDsl))
@@ -83,3 +92,6 @@ public infix fun Property.`get initializer for DSL Builder or canonical Builder`
         Property.CollectionType.LIST -> "mutableListOf()".takeIf { isDsl } ?: "emptyList()"
         Property.CollectionType.MAP  -> "mutableMapOf()".takeIf { isDsl } ?: "emptyMap()"
     } } ?: "null"
+
+
+private fun `preserve imports for Android Studio, not used`(context: Context, logger: ILogger) {}

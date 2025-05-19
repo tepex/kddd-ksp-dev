@@ -1,7 +1,7 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.FileSpec
-import ru.it_arch.clean_ddd.domain.CompositeClassName
+import ru.it_arch.clean_ddd.domain.model.CompositeClassName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
