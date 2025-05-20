@@ -12,6 +12,7 @@ public interface Collections : ValueObject.Data {
 
     public val list: List<Size>
     public val size: Size
+    public val nested: List<Map<Size, List<Size>>>
     //public val uuid: CommonTypes.MyUUID
 
     override fun validate() {
