@@ -95,59 +95,11 @@ internal val TypeName.collectionType: Property.CollectionType?
         else -> null
     } else null
 
+
 // === Private util extensions ===
-
-context(logger: ILogger)
-private fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
-    ClassName.bestGuess("${impl.className.shortName}.${Data.BUILDER_CLASS_NAME}").let(TypeSpec::classBuilder).apply {
-        // add properties
-        typeHolder.propertyHolders.map { it.property `to Builder PropertySpec with type` it.type }
-            .also(::addProperties)
-
-        // fun build(): KdddType
-        FunSpec.builder(Data.BUILDER_BUILD_METHOD_NAME).apply {
-            returns(typeHolder.classType)
-            //add `checkNotNull(<property>)`
-            templateBuilderBodyCheck { format, i ->
-                addStatement(format, properties[i].name.boxed, Data.BUILDER_CLASS_NAME, properties[i].name.boxed)
-            }
-            // `return <MyTypeImpl>(p1 = p1, p2 = p2, ...)`
-            templateBuilderFunBuildReturn(
-                { addStatement(it, impl.className.shortName) },
-                { format, i -> addStatement(format, properties[i].name.boxed, properties[i].name.boxed) }
-            )
-        }.build().also(::addFunction)
-    }.build()
-
-private fun Data.createDslBuildClass(typeHolder: TypeHolder): TypeSpec =
-    ClassName.bestGuess("${impl.className.shortName}.${Data.DSL_BUILDER_CLASS_NAME}").let(TypeSpec::classBuilder).apply {
-        typeHolder.propertyHolders.map { it.property `to DSL Builder PropertySpec with type` it.type }
-            .also(::addProperties)
-    }.build()
 
 private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName): PropertySpec =
     PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE).initializer(name.boxed).build()
-
-private infix fun Property.`to Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
-    PropertySpec.builder(name.boxed, typeName.copy(nullable = isCollectionType.not()))
-        .initializer(this `get initializer for DSL Builder or canonical Builder` false).mutable().build()
-
-private infix fun Property.`to DSL Builder PropertySpec with type`(typeName: TypeName): PropertySpec =
-    PropertySpec.builder(
-        name.boxed,
-        typeName.takeIf { isCollectionType }?.mutableCollectionType ?: typeName.copy(nullable = true)
-    ).initializer(this `get initializer for DSL Builder or canonical Builder` true).mutable().build()
-
-private val TypeName.mutableCollectionType: TypeName
-    get() {
-        check(this is ParameterizedTypeName) { "$this is not collection type!" }
-        return when(rawType) {
-            SET -> MUTABLE_SET
-            LIST -> MUTABLE_LIST
-            MAP -> MUTABLE_MAP
-            else -> error("Usupported collection type: $this")
-        }.parameterizedBy(typeArguments)
-    }
 
 private val ParameterSpec.propertySpec: PropertySpec
     get() = PropertySpec.builder(name, type, KModifier.OVERRIDE).initializer(name).build()
@@ -245,15 +197,6 @@ private fun Data.createFork(kpProperties: List<PropertySpec>): FunSpec =
         )
     }.build()
 
-private fun Data.createToBuilderFun(typeHolder: TypeHolder): FunSpec =
-    ClassName.bestGuess("${impl.fullClassName}.${Data.BUILDER_CLASS_NAME}").let { builderClass ->
-        FunSpec.builder("toBuilder").apply {
-            receiver(typeHolder.classType)
-            returns(builderClass)
-            templateToBuilderBody { addStatement(it, builderClass) }
-        }.build()
-    }
-
 /**
  * ```
  * @Suppress("UNCHECKED_CAST")
@@ -272,3 +215,34 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 
 
 private fun `preserve imports for Android Studio, not used`(context: Context, logger: ILogger) {}
+
+
+/*
+ru.it_arch.clean_ddd.domain.demo.ACrossRef.MyUUID ->
+TypeHolder(
+    kdddType=BoxedWithCommon(
+        generatable=GeneratableImpl(
+            kddd=CompositeClassName(packageName=ru.it_arch.clean_ddd.domain.demo, className=ACrossRef.MyUUID),
+            impl=CompositeClassName(packageName=ru.it_arch.clean_ddd.domain.demo.impl, className=ACrossRefImpl.MyUUIDImpl),
+            enclosing=Data(...)
+        ),
+        boxed=UUID,
+        serializationMethod=toString(),
+        deserializationMethod=fromString,
+        isStringInDsl=false
+    ),
+    classType=ru.it_arch.clean_ddd.domain.demo.ACrossRef.MyUUID,
+    propertyHolders=[
+        PropertyHolder(
+            property=Property(
+                name=boxed,
+                serialName=boxed,
+                className=CompositeClassName(packageName=ru.it_arch.clean_ddd.domain.demo, className=java.util.UUID),
+                isNullable=false,
+                collectionType=null
+            ),
+            type=java.util.UUID
+        )
+    ]
+)
+*/

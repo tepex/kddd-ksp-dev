@@ -6,6 +6,7 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.model.CompositeClassName
 import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.clean_ddd.domain.compositeClassName
+import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.property
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
@@ -49,8 +50,9 @@ internal fun KSClassDeclaration.toPropertyHolders(typeCatalog: TypeCatalog): Lis
                         property = property {
                             name = Property.Name(decl.simpleName.asString())
                             packageName = propertyClassName.packageName
+                            /*
                             kdddType = typeCatalog[propertyClassName]?.kdddType
-                                ?: error("Type '$propertyClassName' not found for property '${decl.simpleName.asString()}'!")
+                                ?: error("Type '${propertyClassName.fullClassName}' not found for property '${decl.simpleName.asString()}'!")*/
                             className = propertyClassName
                             isNullable = propertyTypeName.isNullable
                             collectionType = propertyTypeName.collectionType

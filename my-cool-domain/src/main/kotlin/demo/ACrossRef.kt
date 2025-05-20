@@ -6,17 +6,18 @@ import java.util.UUID
 import ru.it_arch.clean_ddd.domain.demo.sub.Point as Point1
 
 public interface ACrossRef : ValueObject.Data {
-
+/*
     public val myType: MyCustomInnerType
     public val point: Point
     public val point1: Point1?
-    public val x: Point1.Coordinate
+    public val x: Point1.Coordinate*/
     public val myUUID: MyUUID
     public val myOptionalUUID: MyUUID?
+    /*
     public val nested: Nested
     public val nestedNested: Nested.NestedNested
     public val myList: List<MyCustomInnerType>
-    public val myMap: Map<MyCustomInnerType, Point?>
+    public val myMap: Map<MyCustomInnerType, Point?>*/
 
     override fun validate() {}
 
