@@ -1,6 +1,5 @@
 package ru.it_arch.clean_ddd.domain.model
 
-import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.kddd.KDSerialName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
@@ -17,8 +16,7 @@ import ru.it_arch.kddd.ValueObject
 public data class Property private constructor(
     val name: Name,
     val serialName: SerialName,
-    //val kdddType: KdddType,
-    val className: CompositeClassName,
+    val className: CompositeClassName.FullClassName,
     val isNullable: Boolean,
     val collectionType: CollectionType?
 ) : ValueObject.Data {
@@ -83,29 +81,19 @@ public data class Property private constructor(
     public class Builder {
         public var name: Name? = null
         public var serialName: String? = null
-        public var packageName: CompositeClassName.PackageName? = null
-        //public var kdddType: KdddType? = null
-        public var className: CompositeClassName? = null
+        public var className: CompositeClassName.FullClassName? = null
         public var isNullable: Boolean? = null
         public var collectionType: CollectionType? = null
 
         public fun build(): Property {
             checkNotNull(name) { "Property 'name' must be initialized!" }
-            checkNotNull(packageName) { "Property 'pkgName' must be initialized!" }
-            //checkNotNull(kdddType) { "Property 'kdddType' must be initialized!" }
             checkNotNull(className) { "Property 'className' must be initialized!" }
             checkNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
 
             return Property(
                 name!!,
                 SerialName(serialName ?: name!!.boxed),
-                //kdddType!!,
                 className!!,
-                /*
-                compositeClassName {
-                    packageName = this@Builder.packageName
-                    fullClassName = className!!.replace("?", "")
-                }*/
                 isNullable!!,
                 collectionType
             )

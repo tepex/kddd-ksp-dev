@@ -32,8 +32,8 @@ public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable
     }
 }
 
-public val CompositeClassName.fullClassName: String
-    get() = "$packageName.$className"
+public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
+    get() = CompositeClassName.FullClassName("$packageName.$className")
 
 public val CompositeClassName.ClassName.shortName: String
     get() = boxed.substringAfterLast('.')
@@ -80,7 +80,15 @@ public fun Data.templateToBuilderBody(statement: SimpleStatement) {
             append("this.${property.name} = ${property.name}\n")
         }
         append("⇤}")
-    }.toString().also { statement(it) }
+    }.also { statement(it.toString()) }
+}
+
+public fun Data.templateToDslBuilderBody(startStatement: SimpleStatement, endStatement: SimpleStatement, indexStatement: IndexedStatement) {
+    startStatement("val ret = %T()")
+    properties.forEachIndexed { i, property ->
+        indexStatement("ret.${property.name} = ${property.name}\n", i)
+    }
+    endStatement("return ret")
 }
 
 public val Property.isCollectionType: Boolean
@@ -92,6 +100,9 @@ public infix fun Property.`get initializer for DSL Builder or canonical Builder`
         Property.CollectionType.LIST -> "mutableListOf()".takeIf { isDsl } ?: "emptyList()"
         Property.CollectionType.MAP  -> "mutableMapOf()".takeIf { isDsl } ?: "emptyMap()"
     } } ?: "null"
+
+
+//public fun
 
 
 private fun `preserve imports for Android Studio, not used`(context: Context, logger: ILogger) {}

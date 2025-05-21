@@ -62,21 +62,38 @@ internal fun KdddType.Boxed.build(typeHolder: TypeHolder) {
 }
 
 context(typeCatalog: TypeCatalog, builder: TypeSpec.Builder, logger: ILogger)
+/**
+ * Формирование класса `MyTypeImpl : MyType`.
+ *
+ * Создается:
+ * 1. Конструктор класса с параметрами и `init { validate() }`.
+ * 2. Функция `fork`.
+ * 3. Внутренний класс `Builder` и его парная функция `MyType.toBuilder(): MyTypeImpl.Builder`.
+ * 4. Внутренний класс `DslBuilder` и его парная функция `MyType.toDslBuilder(): MyTypeImpl.DslBuilder` если есть опция `hasDsl`.
+ * 5. Внутренние классы.
+ *
+ * @param typeHolder [TypeHolder] [Kddd]-интерфейса.
+ * @param dslFile файл для функций-расширений `toBuilder()` и `toDslBuilder`.
+ * @receiver [Data] класс, для которого формируется имплементация.
+ *
+ * */
 internal fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
     //val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.DATA)
         addAnnotation(ConsistentCopyVisibility::class)
 
+        createBuildClass(typeHolder).also(::addType)
+        createToBuilderFun(typeHolder).also(dslFile.builder::addFunction)
+
         typeHolder.propertyHolders.map { it.property `to Data PropertySpec with type` it.type }.also { propertySpecList ->
             addProperties(propertySpecList)
             propertySpecList.map { ParameterSpec(it.name, it.type) }
                 .also { createConstructor(it).also(::primaryConstructor) }
             createFork(propertySpecList).also(::addFunction)
-            createBuildClass(typeHolder).also(::addType)
-            createToBuilderFun(typeHolder).also(dslFile.builder::addFunction)
             if (hasDsl) {
-                createDslBuildClass(typeHolder).also(::addType)
+                createDslBuildClass(typeHolder, builder, dslFile)
+                //createDslBuildClass(typeHolder).also(::addType)
                 //createToDslBuilderFun(typeHolder).also(dslFile.builder::addFunction)
             }
         }

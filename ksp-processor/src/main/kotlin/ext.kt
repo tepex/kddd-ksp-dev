@@ -4,9 +4,9 @@ import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.ksp.toTypeName
 import ru.it_arch.clean_ddd.domain.model.CompositeClassName
+import ru.it_arch.clean_ddd.domain.model.ILogger
 import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.clean_ddd.domain.compositeClassName
-import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.property
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
@@ -17,7 +17,7 @@ import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 
 /**
  * */
-internal typealias TypeCatalog = Map<CompositeClassName, TypeHolder>
+internal typealias TypeCatalog = Map<CompositeClassName.FullClassName, TypeHolder>
 
 /**
  * */
@@ -37,30 +37,27 @@ internal fun typeHolder(block: TypeHolder.Builder.() -> Unit): TypeHolder =
 
 // === Mappers ===
 
-//context(logger: ILogger)
-internal fun KSClassDeclaration.toPropertyHolders(typeCatalog: TypeCatalog): List<PropertyHolder> =
+context(logger: ILogger)
+internal fun KSClassDeclaration.toPropertyHolders(): List<PropertyHolder> =
     getAllProperties().map { decl ->
         decl.type.toTypeName().let { propertyTypeName ->
             propertyTypeName.toString().let { str ->
-                compositeClassName {
-                    packageName = CompositeClassName.PackageName(decl.packageName.asString())
-                    fullClassName = str.replace("?", "")
-                }.let { propertyClassName ->
+
+                // создать напрямую!!! Без разделения на packageName
+                // + CompositeClassName.FullClassName as key for TypeCatalog + Property
+                val fullClassName = CompositeClassName.FullClassName(str.replace("?", ""))
+
+                    logger.log("decl: $decl -> fullClassName: $fullClassName")
                     propertyHolder {
                         property = property {
                             name = Property.Name(decl.simpleName.asString())
-                            packageName = propertyClassName.packageName
-                            /*
-                            kdddType = typeCatalog[propertyClassName]?.kdddType
-                                ?: error("Type '${propertyClassName.fullClassName}' not found for property '${decl.simpleName.asString()}'!")*/
-                            className = propertyClassName
+                            //packageName = propertyClassName.packageName
+                            className = fullClassName
                             isNullable = propertyTypeName.isNullable
                             collectionType = propertyTypeName.collectionType
                         }
                         type = propertyTypeName
-                    }
                 }
             }
         }
     }.toList()
-

@@ -29,6 +29,8 @@ public data class Data private constructor(
         public const val BUILDER_CLASS_NAME: String = "Builder"
         public const val DSL_BUILDER_CLASS_NAME: String = "DslBuilder"
         public const val BUILDER_BUILD_METHOD_NAME: String = "build"
+        public const val TO_BUILDER_FUN: String = "toBuilder"
+        public const val TO_DSL_BUILDER_FUN: String = "toDslBuilder"
         public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
         public operator fun invoke(generatable: Generatable, properties: List<Property>, hasDsl: Boolean): Data =

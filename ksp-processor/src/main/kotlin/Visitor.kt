@@ -13,6 +13,7 @@ import ru.it_arch.clean_ddd.domain.model.ILogger
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.model.Options
 import ru.it_arch.clean_ddd.domain.compositeClassName
+import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.kDddContext
 import ru.it_arch.clean_ddd.domain.toKDddType
 import ru.it_arch.clean_ddd.ksp.model.TypeHolder
@@ -25,7 +26,7 @@ internal class Visitor(
     val logger: ILogger
 ) : KSDefaultVisitor<KdddType.ModelContainer, Unit>() {
 
-    private val _typeCatalog = mutableMapOf<CompositeClassName, TypeHolder>()
+    private val _typeCatalog = mutableMapOf<CompositeClassName.FullClassName, TypeHolder>()
     val typeCatalog: TypeCatalog
         get() = _typeCatalog.toMap()
 
@@ -57,7 +58,7 @@ internal class Visitor(
                     packageName = CompositeClassName.PackageName(declaration.packageName.asString())
                     fullClassName = typeName.toString()
                 }
-                val propertyHolders = with(logger) { declaration.toPropertyHolders(typeCatalog) }
+                val propertyHolders = with(logger) { declaration.toPropertyHolders() }
                 with(options) {
                     with(
                         kDddContext {
@@ -78,10 +79,16 @@ internal class Visitor(
                         }
                     }
                 }?.also { type ->
-                    _typeCatalog[className] = typeHolder {
+                    _typeCatalog[className.fullClassName] = typeHolder {
                         kdddType = type
                         classType = typeName
                         this.propertyHolders = propertyHolders
+                    }.also {
+                        logger.log("adding typeHolder for ${className.className}")
+                        logger.log("   properties: ${it.propertyHolders.size}")
+                        it.propertyHolders.forEach { propertyHolder ->
+                            logger.log("   ${propertyHolder.property.name}> className:${propertyHolder.property.className} type: ${propertyHolder.type}")
+                        }
                     }
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }

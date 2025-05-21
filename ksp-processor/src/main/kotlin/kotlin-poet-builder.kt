@@ -39,7 +39,7 @@ internal fun Data.createBuildClass(typeHolder: TypeHolder): TypeSpec =
 
 internal fun Data.createToBuilderFun(typeHolder: TypeHolder): FunSpec =
     ClassName.bestGuess("${impl.fullClassName}.${Data.BUILDER_CLASS_NAME}").let { builderClass ->
-        FunSpec.builder("toBuilder").apply {
+        FunSpec.builder(Data.TO_BUILDER_FUN).apply {
             receiver(typeHolder.classType)
             returns(builderClass)
             templateToBuilderBody { addStatement(it, builderClass) }

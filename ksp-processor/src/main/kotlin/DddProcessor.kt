@@ -57,7 +57,7 @@ internal class DddProcessor(
 
         //logger.log("type catalog: ${visitor.typeCatalog}")
         visitor.typeCatalog.entries.forEach { pair ->
-            logger.log("${pair.key.fullClassName} -> ${pair.value}")
+            logger.log("${pair.key} -> ${pair.value}")
         }
 
         /*

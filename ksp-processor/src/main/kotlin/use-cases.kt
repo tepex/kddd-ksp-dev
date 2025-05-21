@@ -39,7 +39,7 @@ context(typeCatalog: TypeCatalog, logger: ILogger)
  * */
 internal fun KdddType.toTypeSpecBuilder(dslFile: ExtensionFile): TypeSpec.Builder {
     //val typeCatalog: TypeCatalog = TypeCatalog
-    return typeCatalog[kddd]?.let { holder ->
+    return typeCatalog[kddd.fullClassName]?.let { holder ->
         TypeSpec.classBuilder(impl.className.shortName).addSuperinterface(holder.classType).apply {
             when(this@toTypeSpecBuilder) {
                 is KdddType.ModelContainer ->

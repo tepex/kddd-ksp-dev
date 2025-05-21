@@ -3,6 +3,8 @@ package ru.it_arch.clean_ddd.domain
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
+import ru.it_arch.clean_ddd.domain.internal.generatable
+import ru.it_arch.clean_ddd.domain.internal.toBoxedTypeWith
 import ru.it_arch.clean_ddd.domain.model.CompositeClassName
 import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithPrimitive
