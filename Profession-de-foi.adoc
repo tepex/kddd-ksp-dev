@@ -23,9 +23,13 @@ Tepex <tepex@mail.ru>
 == Кодовая база
 - Борьба с «Primitive Obsession».
 - Широкое применение подходов функционального программирования.
+- Кодогенерация рутинного кода.
 - Принципы SOLID.
-- High Cohesion & Low Coupling.
+- Принцип High Cohesion & Low Coupling.
 - Покрытие тестами бизнес-логики.
+- Читаемость и поддерживаемость кода как правило важнее оптимизации.
+[quote,Robert C. Martin]
+“Indeed, the ratio of time spent reading versus writing is well over 10 to 1. We are constantly reading old code as part of the effort to write new code. …[Therefore,] making it easy to read makes it easier to write.”
 
 == Процесс разработки
 - Автоматизация жизненного цикла производства ПО, прежде всего за счет CI/CD и создания и конфигурации инфраструктуры (Git, репозиторий артефактов,  сервера сборки).
