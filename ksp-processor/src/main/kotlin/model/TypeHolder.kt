@@ -1,6 +1,8 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.TypeName
+import ru.it_arch.clean_ddd.domain.fullClassName
+import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
@@ -9,7 +11,7 @@ import ru.it_arch.kddd.ValueObject
 internal data class TypeHolder private constructor(
     val kdddType: KdddType,
     val classType: TypeName,
-    val propertyHolders: List<PropertyHolder>
+    val propertyTypes: Map<Property.Name, TypeName>
 ) : ValueObject.Data {
 
     init {
@@ -17,7 +19,12 @@ internal data class TypeHolder private constructor(
     }
 
     override fun validate() {
-        check(propertyHolders.isNotEmpty()) { "propertyHolders must not be empty!" }
+        when(kdddType) {
+            is KdddType.Boxed ->
+                check(propertyTypes.size == 1) { "Property types must for ${kdddType.kddd.fullClassName} must contain only one element!" }
+            is KdddType.ModelContainer ->
+                check(propertyTypes.isNotEmpty()) { "Property types for ${kdddType.kddd.fullClassName} must not be empty!" }
+        }
     }
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
@@ -27,20 +34,21 @@ internal data class TypeHolder private constructor(
     class Builder {
         var kdddType: KdddType? = null
         var classType: TypeName? = null
-        var propertyHolders = emptyList<PropertyHolder>()
+        var propertyTypes = emptyMap<Property.Name, TypeName>()
 
         fun build(): TypeHolder {
             checkNotNull(kdddType) { "Property 'kdddType' must be initialized!" }
             checkNotNull(classType) { "Property 'classType' must be initialized!" }
-            return TypeHolder(kdddType!!, classType!!, propertyHolders)
+            return TypeHolder(kdddType!!, classType!!, propertyTypes)
         }
     }
 
+    /*
     companion object {
         operator fun invoke(
             kdddType: KdddType,
             classType: TypeName,
-            propertyHolders: List<PropertyHolder>
-        ): TypeHolder = TypeHolder(kdddType, classType, propertyHolders)
-    }
+            propertyTypes: Map<Property.Name, TypeName>
+        ): TypeHolder = TypeHolder(kdddType, classType, propertyTypes)
+    }*/
 }

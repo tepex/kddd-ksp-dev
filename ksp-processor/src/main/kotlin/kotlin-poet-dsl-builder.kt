@@ -42,6 +42,10 @@ internal fun Data.createDslBuildClass(typeHolder: TypeHolder, implBuilder: TypeS
         .receiver(typeHolder.classType)
         .returns(dslBuilderClassName)
 
+
+
+    /*
+
     typeHolder.propertyHolders.forEach { propertyHolder ->
         val typeCatalog: TypeCatalog = TypeCatalog
         when (propertyHolder.property.isCollectionType) {
@@ -78,7 +82,7 @@ internal fun Data.createDslBuildClass(typeHolder: TypeHolder, implBuilder: TypeS
                 toDslBuilderFun.addStatement(format)
             }
         )
-    }
+    }*/
 
     builderForDslBuilderClass.build().also(implBuilder::addType)
     toDslBuilderFun.build().also(dslFile.builder::addFunction)

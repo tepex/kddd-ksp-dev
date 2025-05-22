@@ -51,8 +51,9 @@ internal fun KdddType.Boxed.build(typeHolder: TypeHolder) {
         addModifiers(KModifier.VALUE)
         addAnnotation(JvmInline::class)
 
-        ParameterSpec.builder(KdddType.Boxed.PARAM_NAME, typeHolder.propertyHolders.first().type).build().also { param ->
-            addProperty(param.propertySpec)
+        ParameterSpec.builder(KdddType.Boxed.PARAM_NAME, typeHolder.propertyTypes.values.first()).build().also { param ->
+            PropertySpec.builder(param.name, param.type, KModifier.OVERRIDE).initializer(param.name).build()
+                .also(::addProperty)
             createConstructor(listOf(param)).also(builder::primaryConstructor)
             createToString(param).also(::addFunction)
             createFork(param).also(::addFunction)
@@ -86,13 +87,22 @@ internal fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
         createBuildClass(typeHolder).also(::addType)
         createToBuilderFun(typeHolder).also(dslFile.builder::addFunction)
 
-        typeHolder.propertyHolders.map { it.property `to Data PropertySpec with type` it.type }.also { propertySpecList ->
+        typeHolder.propertyTypes.entries.map { entry ->
+            PropertySpec.builder(entry.key.boxed, entry.value, KModifier.OVERRIDE)
+                .initializer(entry.key.boxed)
+                .build()
+        }.also { propertySpecList ->
             addProperties(propertySpecList)
             propertySpecList.map { ParameterSpec(it.name, it.type) }
                 .also { createConstructor(it).also(::primaryConstructor) }
             createFork(propertySpecList).also(::addFunction)
             if (hasDsl) {
+
+
                 createDslBuildClass(typeHolder, builder, dslFile)
+
+
+
                 //createDslBuildClass(typeHolder).also(::addType)
                 //createToDslBuilderFun(typeHolder).also(dslFile.builder::addFunction)
             }
@@ -114,12 +124,6 @@ internal val TypeName.collectionType: Property.CollectionType?
 
 
 // === Private util extensions ===
-
-private infix fun Property.`to Data PropertySpec with type`(typeName: TypeName): PropertySpec =
-    PropertySpec.builder(name.boxed, typeName.copy(nullable = isNullable), KModifier.OVERRIDE).initializer(name.boxed).build()
-
-private val ParameterSpec.propertySpec: PropertySpec
-    get() = PropertySpec.builder(name, type, KModifier.OVERRIDE).initializer(name).build()
 
 /**
  * For All
@@ -232,34 +236,3 @@ Author: Tepex <tepex@mail.ru>, Telegram: @Tepex
 
 
 private fun `preserve imports for Android Studio, not used`(context: Context, logger: ILogger) {}
-
-
-/*
-ru.it_arch.clean_ddd.domain.demo.ACrossRef.MyUUID ->
-TypeHolder(
-    kdddType=BoxedWithCommon(
-        generatable=GeneratableImpl(
-            kddd=CompositeClassName(packageName=ru.it_arch.clean_ddd.domain.demo, className=ACrossRef.MyUUID),
-            impl=CompositeClassName(packageName=ru.it_arch.clean_ddd.domain.demo.impl, className=ACrossRefImpl.MyUUIDImpl),
-            enclosing=Data(...)
-        ),
-        boxed=UUID,
-        serializationMethod=toString(),
-        deserializationMethod=fromString,
-        isStringInDsl=false
-    ),
-    classType=ru.it_arch.clean_ddd.domain.demo.ACrossRef.MyUUID,
-    propertyHolders=[
-        PropertyHolder(
-            property=Property(
-                name=boxed,
-                serialName=boxed,
-                className=CompositeClassName(packageName=ru.it_arch.clean_ddd.domain.demo, className=java.util.UUID),
-                isNullable=false,
-                collectionType=null
-            ),
-            type=java.util.UUID
-        )
-    ]
-)
-*/

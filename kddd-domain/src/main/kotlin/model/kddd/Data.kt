@@ -6,7 +6,7 @@ import ru.it_arch.kddd.Kddd
 @ConsistentCopyVisibility
 public data class Data private constructor(
     private val generatable: Generatable,
-    // List, not Set!
+    // List, not Set! Fork method has indexed args
     public val properties: List<Property>,
     override val hasDsl: Boolean
 ) : Generatable by generatable, KdddType.ModelContainer {

@@ -38,6 +38,11 @@ public val CompositeClassName.fullClassName: CompositeClassName.FullClassName
 public val CompositeClassName.ClassName.shortName: String
     get() = boxed.substringAfterLast('.')
 
+public fun Data.getProperty(name: Property.Name): Property =
+    properties.find { it.name == name } ?: error("Property $name not found in ${kddd.fullClassName}!")
+
+/* === Templates for KotlinPoet addStatement === */
+
 /**
  * 1. <CommonType>(src).let(::MyTypeImpl)
  * 2. <CommonType>.<deserialization static method>(src).let(::MyTypeImpl)
@@ -45,31 +50,35 @@ public val CompositeClassName.ClassName.shortName: String
 public val BoxedWithCommon.templateParseBody: String
     get() = "return %T${deserializationMethod.boxed.takeIf { it.isNotBlank() }?.let { ".$it" } ?: ""}(%N).let(::%N)"
 
+/** KotlinPoet format */
 public typealias SimpleStatement = (String) -> Unit
+/** KotlinPoet format, Property */
+public typealias PropertyStatement = (String, Property) -> Unit
+/** KotlinPoet format, property index */
 public typealias IndexedStatement = (String, Int) -> Unit
 
-public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexStatement: IndexedStatement) {
+public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexedStatement: IndexedStatement) {
     simpleStatement("val ret = ${Data.BUILDER_CLASS_NAME}().apply {⇥")
     properties.forEachIndexed { i, _ ->
-        indexStatement("%N = args[$i] as %T", i)
+        indexedStatement("%N = args[$i] as %T", i)
     }
     simpleStatement("⇤}.build() as T")
     simpleStatement("return ret")
 }
 
-public fun Data.templateBuilderBodyCheck(indexStatement: IndexedStatement) {
-    properties.filter { it.isNullable.not() }.forEachIndexed { i, _ ->
-        indexStatement("""checkNotNull(%N) { "Property '%N.%N' must be initialized!" }""", i)
+public fun Data.templateBuilderBodyCheck(statement: PropertyStatement) {
+    properties.filter { it.isNullable.not() && it.isCollectionType.not() }.forEach { property ->
+        statement("""checkNotNull(%N) { "Property '%N.%N' must be initialized!" }""", property)
     }
 }
 
-public fun Data.templateBuilderFunBuildReturn(simpleStatement: SimpleStatement, indexStatement: IndexedStatement) {
+public fun Data.templateBuilderFunBuildReturn(simpleStatement: SimpleStatement, propertyStatement: PropertyStatement) {
     simpleStatement("return %N(⇥")
     properties.forEachIndexed { i, property ->
         StringBuilder("%N = %N").apply {
             "!!".takeUnless { property.isNullable || property.isCollectionType }?.let(::append)
             ", ".takeIf { i < (properties.size - 1) }?.let(::append)
-        }.also { indexStatement(it.toString(), i) }
+        }.also { propertyStatement(it.toString(), property) }
     }
     simpleStatement("⇤)")
 }
@@ -83,10 +92,10 @@ public fun Data.templateToBuilderBody(statement: SimpleStatement) {
     }.also { statement(it.toString()) }
 }
 
-public fun Data.templateToDslBuilderBody(startStatement: SimpleStatement, endStatement: SimpleStatement, indexStatement: IndexedStatement) {
+public fun Data.templateToDslBuilderBody(startStatement: SimpleStatement, endStatement: SimpleStatement, propertyStatement: PropertyStatement) {
     startStatement("val ret = %T()")
-    properties.forEachIndexed { i, property ->
-        indexStatement("ret.${property.name} = ${property.name}\n", i)
+    properties.forEach { property ->
+        propertyStatement("ret.${property.name} = ${property.name}\n", property)
     }
     endStatement("return ret")
 }

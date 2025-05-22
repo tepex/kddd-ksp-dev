@@ -15,6 +15,7 @@ import ru.it_arch.clean_ddd.domain.model.Options
 import ru.it_arch.clean_ddd.domain.compositeClassName
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.kDddContext
+import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.clean_ddd.domain.toKDddType
 import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 import ru.it_arch.kddd.KDGeneratable
@@ -58,7 +59,7 @@ internal class Visitor(
                     packageName = CompositeClassName.PackageName(declaration.packageName.asString())
                     fullClassName = typeName.toString()
                 }
-                val propertyHolders = with(logger) { declaration.toPropertyHolders() }
+                //val propertyHolders = with(logger) { declaration.toPropertyHolders() }
                 with(options) {
                     with(
                         kDddContext {
@@ -68,7 +69,7 @@ internal class Visitor(
                                 declaration.getAnnotationsByType(KDGeneratable::class) +
                                 declaration.getAnnotationsByType(KDParsable::class)
                             ).toSet()
-                            properties = propertyHolders.map { it.property }
+                            properties = declaration.toProperties()
                         }//.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
                     ) {
                         with(logger) {
@@ -82,13 +83,15 @@ internal class Visitor(
                     _typeCatalog[className.fullClassName] = typeHolder {
                         kdddType = type
                         classType = typeName
-                        this.propertyHolders = propertyHolders
+                        propertyTypes = declaration.getAllProperties()
+                            .associate { Property.Name(it.simpleName.asString()) to it.type.toTypeName() }
                     }.also {
                         logger.log("adding typeHolder for ${className.className}")
-                        logger.log("   properties: ${it.propertyHolders.size}")
+                        logger.log("   properties: ${it.propertyTypes.size}")
+                        /*
                         it.propertyHolders.forEach { propertyHolder ->
                             logger.log("   ${propertyHolder.property.name}> className:${propertyHolder.property.className} type: ${propertyHolder.type}")
-                        }
+                        }*/
                     }
                     if (type is KdddType.ModelContainer) declaration.accept(this, type)
                 }
