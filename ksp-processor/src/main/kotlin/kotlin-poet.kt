@@ -7,9 +7,6 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.MAP
-import com.squareup.kotlinpoet.MUTABLE_LIST
-import com.squareup.kotlinpoet.MUTABLE_MAP
-import com.squareup.kotlinpoet.MUTABLE_SET
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -23,17 +20,11 @@ import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.model.kddd.Data
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
-import ru.it_arch.clean_ddd.domain.fullClassName
-import ru.it_arch.clean_ddd.domain.`get initializer for DSL Builder or canonical Builder`
-import ru.it_arch.clean_ddd.domain.isCollectionType
 import ru.it_arch.clean_ddd.domain.model.Context
 import ru.it_arch.clean_ddd.domain.model.ILogger
 import ru.it_arch.clean_ddd.domain.shortName
-import ru.it_arch.clean_ddd.domain.templateBuilderBodyCheck
-import ru.it_arch.clean_ddd.domain.templateBuilderFunBuildReturn
 import ru.it_arch.clean_ddd.domain.templateForkBody
 import ru.it_arch.clean_ddd.domain.templateParseBody
-import ru.it_arch.clean_ddd.domain.templateToBuilderBody
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 import ru.it_arch.kddd.Kddd
@@ -46,7 +37,7 @@ internal val OutputFile.fileSpecBuilder: FileSpec.Builder
 
 context(typeCatalog: TypeCatalog, builder: TypeSpec.Builder, logger: ILogger)
 internal fun KdddType.Boxed.build(typeHolder: TypeHolder) {
-    //val builder: TypeSpec.Builder = TypeSpec.Builder
+    val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.VALUE)
         addAnnotation(JvmInline::class)
@@ -79,7 +70,7 @@ context(typeCatalog: TypeCatalog, builder: TypeSpec.Builder, logger: ILogger)
  *
  * */
 internal fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
-    //val builder: TypeSpec.Builder = TypeSpec.Builder
+    val builder: TypeSpec.Builder = TypeSpec.Builder
     with(builder) {
         addModifiers(KModifier.DATA)
         addAnnotation(ConsistentCopyVisibility::class)
@@ -113,15 +104,6 @@ internal fun Data.build(typeHolder: TypeHolder, dslFile: ExtensionFile) {
         }
     }
 }
-
-internal val TypeName.collectionType: Property.CollectionType?
-    get() = if (this is ParameterizedTypeName) when(rawType) {
-        SET -> Property.CollectionType.SET
-        LIST -> Property.CollectionType.LIST
-        MAP -> Property.CollectionType.MAP
-        else -> null
-    } else null
-
 
 // === Private util extensions ===
 

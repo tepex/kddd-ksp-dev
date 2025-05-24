@@ -16,25 +16,26 @@ import ru.it_arch.kddd.ValueObject
 public data class Property private constructor(
     val name: Name,
     val serialName: SerialName,
-    val className: CompositeClassName.FullClassName,
-    val isNullable: Boolean,
-    val collectionType: CollectionType?
+    val type: PropertyType,
+    //val className: CompositeClassName.FullClassName,
+    val isNullable: Boolean
 ) : ValueObject.Data {
 
+    /*
     private val asCode: String by lazy {
         StringBuilder(name.boxed).apply {
             if (serialName.boxed != name.boxed) append("""[serialName="${serialName}"]""")
             append(": $className")
             if (isNullable) append('?')
         }.toString()
-    }
+    }*/
 
     init {
         validate()
     }
 
     override fun validate() {
-        require((collectionType != null && isNullable).not()) { "Property '$name' is a Collection and can't be nullable!" }
+        require((type is PropertyType.PropertyCollection && isNullable).not()) { "Property '$name' is a Collection and can't be nullable!" }
     }
 
     /*
@@ -74,28 +75,67 @@ public data class Property private constructor(
             TODO("Must not used")
     }
 
-    public enum class CollectionType {
-        SET, LIST, MAP
+    public sealed interface PropertyType {
+        @JvmInline
+        public value class PropertyElement(
+            override val boxed: CompositeClassName.FullClassName
+        ): ValueObject.Boxed<CompositeClassName.FullClassName>, PropertyType {
+            override fun <T : ValueObject.Boxed<CompositeClassName.FullClassName>> fork(boxed: CompositeClassName.FullClassName): T {
+                TODO("Not yet implemented")
+            }
+
+            override fun validate() {}
+        }
+
+        public sealed interface PropertyCollection : PropertyType {
+            @JvmInline
+            public value class PropertySet(override val boxed: PropertyType) : ValueObject.Boxed<PropertyType>, PropertyCollection {
+
+                override fun validate() {}
+                override fun <T : ValueObject.Boxed<PropertyType>> fork(boxed: PropertyType): T {
+                    TODO("Not yet implemented")
+                }
+            }
+
+            @JvmInline
+            public value class PropertyList(override val boxed: PropertyType) : ValueObject.Boxed<PropertyType>, PropertyCollection {
+                override fun validate() {}
+
+                override fun <T : ValueObject.Boxed<PropertyType>> fork(boxed: PropertyType): T {
+                    TODO("Not yet implemented")
+                }
+            }
+
+            public data class PropertyMap(
+                val first: PropertyType,
+                val second: PropertyType
+            ) : ValueObject.Data, PropertyCollection {
+                override fun validate() {}
+
+                override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
+                    TODO("Not yet implemented")
+                }
+            }
+        }
     }
 
     public class Builder {
         public var name: Name? = null
         public var serialName: String? = null
-        public var className: CompositeClassName.FullClassName? = null
+        public var type: PropertyType? = null
+        //public var className: CompositeClassName.FullClassName? = null
         public var isNullable: Boolean? = null
-        public var collectionType: CollectionType? = null
 
         public fun build(): Property {
             checkNotNull(name) { "Property 'name' must be initialized!" }
-            checkNotNull(className) { "Property 'className' must be initialized!" }
+            checkNotNull(type) { "Property 'type' must be initialized!" }
             checkNotNull(isNullable) { "Property 'isNullable' must be initialized!" }
 
             return Property(
                 name!!,
                 SerialName(serialName ?: name!!.boxed),
-                className!!,
+                type!!,
                 isNullable!!,
-                collectionType
             )
         }
     }

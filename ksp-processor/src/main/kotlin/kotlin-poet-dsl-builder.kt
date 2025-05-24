@@ -13,13 +13,16 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import ru.it_arch.clean_ddd.domain.PropertyHolder
 import ru.it_arch.clean_ddd.domain.fullClassName
 import ru.it_arch.clean_ddd.domain.`get initializer for DSL Builder or canonical Builder`
+import ru.it_arch.clean_ddd.domain.getProperty
 import ru.it_arch.clean_ddd.domain.isCollectionType
 import ru.it_arch.clean_ddd.domain.model.Property
 import ru.it_arch.clean_ddd.domain.model.kddd.Data
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.shortName
+import ru.it_arch.clean_ddd.domain.templateDslBuilder
 import ru.it_arch.clean_ddd.domain.templateToDslBuilderBody
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.clean_ddd.ksp.model.TypeHolder
@@ -42,34 +45,35 @@ internal fun Data.createDslBuildClass(typeHolder: TypeHolder, implBuilder: TypeS
         .receiver(typeHolder.classType)
         .returns(dslBuilderClassName)
 
-
-
-    /*
-
-    typeHolder.propertyHolders.forEach { propertyHolder ->
-        val typeCatalog: TypeCatalog = TypeCatalog
-        when (propertyHolder.property.isCollectionType) {
-            true ->
-                // TODO: recursion
+    //val typeCatalog: TypeCatalog = TypeCatalog
+    typeHolder.getPropertyHolders().let { propertyTypeHolders ->
+        templateDslBuilder(
+            propertyTypeHolders.map { it.propertyHolder },
+            collectionType = { propertyName ->
                 PropertySpec.builder(
-                    propertyHolder.property.name.boxed,
-                    propertyHolder.type.mutableCollectionType
+                    propertyName.boxed,
+                    propertyTypeHolders.getTypeName(propertyName)?.mutableCollectionType
+                        ?: error("Type for property '${this.kddd.fullClassName}.$propertyName' not found!")
                 )
-            false -> {
-                when(typeCatalog[propertyHolder.property.className]?.kdddType!!) {
-                    is KdddType.ModelContainer -> PropertySpec.builder(
-                        propertyHolder.property.name.boxed,
-                        propertyHolder.type.copy(nullable = true)
-                    )
-                    // TODO: unbox!
-                    is KdddType.Boxed -> PropertySpec.builder(
-                        propertyHolder.property.name.boxed,
-                        propertyHolder.type.copy(nullable = true)
-                    )
-                    //else -> error("Type '${propertyHolder.property.className}' not found for property '$propertyHolder.property.name'!")
-                }
+            },
+            boxedType = { propertyName ->
+                PropertySpec.builder(
+                    propertyName.boxed,
+                    propertyTypeHolders.getTypeName(propertyName)?.copy(nullable = true)
+                        ?: error("Type for property '${this.kddd.fullClassName}.$propertyName' not found!")
+                )
+            },
+            dataType = { propertyName ->
+                PropertySpec.builder(
+                    propertyName.boxed,
+                    propertyTypeHolders.getTypeName(propertyName)?.copy(nullable = true)
+                        ?: error("Type for property '${this.kddd.fullClassName}.$propertyName' not found!")
+                )
             }
-        }.initializer(propertyHolder.property `get initializer for DSL Builder or canonical Builder` true)
+        )
+    }
+    /*
+        .initializer(propertyHolder.property `get initializer for DSL Builder or canonical Builder` true)
             .mutable()
             .build()
             .also(builderForDslBuilderClass::addProperty)
@@ -82,13 +86,11 @@ internal fun Data.createDslBuildClass(typeHolder: TypeHolder, implBuilder: TypeS
                 toDslBuilderFun.addStatement(format)
             }
         )
-    }*/
 
     builderForDslBuilderClass.build().also(implBuilder::addType)
-    toDslBuilderFun.build().also(dslFile.builder::addFunction)
+    toDslBuilderFun.build().also(dslFile.builder::addFunction)*/
+
 }
-
-
 
 
 internal fun Data.createDslBuildClassOld(typeHolder: TypeHolder): TypeSpec =

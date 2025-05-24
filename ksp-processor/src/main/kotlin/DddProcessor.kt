@@ -26,7 +26,11 @@ internal class DddProcessor(
         resolver.getNewFiles().toList().mapNotNull { file ->
             //logger.log("process $file")
             with(options) { with(logger) { file `to OutputFile with` visitor } }
-        }.takeIf { it.isNotEmpty() }?.also { files ->
+        }
+
+            // application logic. Separate DSL, JSON
+
+            .takeIf { it.isNotEmpty() }?.also { files ->
             val dslFile = files.createDslFile()
             files.forEach { file ->
                 val (model, dependencies) = file
@@ -34,7 +38,16 @@ internal class DddProcessor(
 
                 with(visitor.typeCatalog) {
                     // Генерация класса имплементации
-                    with(logger) { model.toTypeSpecBuilder(dslFile) }.build().also { typeSpec ->
+                    with(logger) { model.toTypeSpecBuilder(dslFile) }
+
+                        .also {
+                            it.typeSpecs.forEach { it.toBuilder() }
+                        }
+
+                        .build().also { typeSpec ->
+
+
+
                         // Генерация файла
                         file.fileSpecBuilder.addType(typeSpec).build()
                             // Запись файла

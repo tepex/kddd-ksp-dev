@@ -12,9 +12,13 @@ import ru.it_arch.clean_ddd.domain.model.CompositeClassName
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.model.kddd.Data
 import ru.it_arch.clean_ddd.domain.fullClassName
+import ru.it_arch.clean_ddd.domain.generateBoxed
+import ru.it_arch.clean_ddd.domain.generateData
+import ru.it_arch.clean_ddd.domain.generateEntity
 import ru.it_arch.clean_ddd.domain.model.Context
 import ru.it_arch.clean_ddd.domain.model.ILogger
 import ru.it_arch.clean_ddd.domain.model.Options
+import ru.it_arch.clean_ddd.domain.model.kddd.IEntity
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.ksp.model.ExtensionFile
 import ru.it_arch.kddd.KDIgnore
@@ -37,18 +41,18 @@ context(typeCatalog: TypeCatalog, logger: ILogger)
 /**
  *
  * */
-internal fun KdddType.toTypeSpecBuilder(dslFile: ExtensionFile): TypeSpec.Builder {
-    //val typeCatalog: TypeCatalog = TypeCatalog
-    return typeCatalog[kddd.fullClassName]?.let { holder ->
+internal fun KdddType.toTypeSpecBuilder(/*typeCatalog: TypeCatalog,*/ dslFile: ExtensionFile): TypeSpec.Builder =
+    typeCatalog.getTypeHolderOrError(kddd.fullClassName).let { holder ->
         TypeSpec.classBuilder(impl.className.shortName).addSuperinterface(holder.classType).apply {
             when(this@toTypeSpecBuilder) {
-                is KdddType.ModelContainer ->
-                    if (this@toTypeSpecBuilder is Data) build(holder, dslFile)
-                is KdddType.Boxed -> build(holder)
+                is KdddType.ModelContainer -> when (val model = (this@toTypeSpecBuilder as KdddType.ModelContainer)) {
+                    is Data -> KotlinPoetDataBuilder(this, holder, model).generateData()
+                    is IEntity -> KotlinPoetEntityBuilder(this, holder, model).generateEntity()
+                }
+                is KdddType.Boxed -> KotlinPoetBoxedBuilder(this, holder, this@toTypeSpecBuilder).generateBoxed()
             }
         }
-    } ?: error("Type ${kddd.fullClassName} not found in type catalog!")
-}
+    }
 
 internal fun List<OutputFile>.createDslFile(): ExtensionFile =
     findShortestPackageName().let { shortestPackageName ->

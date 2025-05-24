@@ -43,6 +43,28 @@ public fun Data.getProperty(name: Property.Name): Property =
 
 /* === Templates for KotlinPoet addStatement === */
 
+public fun KotlinCodeBoxedBuilder.generateBoxed() {
+    generateImplementationClass()
+    generateProperty()
+    generateConstructor()
+    generateToString()
+    generateFork()
+    generateCompanion()
+}
+
+public fun KotlinCodeDataBuilder.generateData() {
+    generateImplementationClass()
+    generateProperties()
+    generateConstructor()
+
+
+}
+
+public fun KotlinCodeEntityBuilder.generateEntity() {
+    generateImplementationClass()
+}
+
+
 /**
  * 1. <CommonType>(src).let(::MyTypeImpl)
  * 2. <CommonType>.<deserialization static method>(src).let(::MyTypeImpl)
@@ -56,6 +78,7 @@ public typealias SimpleStatement = (String) -> Unit
 public typealias PropertyStatement = (String, Property) -> Unit
 /** KotlinPoet format, property index */
 public typealias IndexedStatement = (String, Int) -> Unit
+public typealias PropertyHolder = Pair<Property.Name, KdddType>
 
 public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexedStatement: IndexedStatement) {
     simpleStatement("val ret = ${Data.BUILDER_CLASS_NAME}().apply {⇥")
@@ -67,7 +90,7 @@ public fun Data.templateForkBody(simpleStatement: SimpleStatement, indexedStatem
 }
 
 public fun Data.templateBuilderBodyCheck(statement: PropertyStatement) {
-    properties.filter { it.isNullable.not() && it.isCollectionType.not() }.forEach { property ->
+    properties.filter { it.isNullable.not() && it.type is Property.PropertyType.PropertyElement }.forEach { property ->
         statement("""checkNotNull(%N) { "Property '%N.%N' must be initialized!" }""", property)
     }
 }
@@ -76,7 +99,7 @@ public fun Data.templateBuilderFunBuildReturn(simpleStatement: SimpleStatement, 
     simpleStatement("return %N(⇥")
     properties.forEachIndexed { i, property ->
         StringBuilder("%N = %N").apply {
-            "!!".takeUnless { property.isNullable || property.isCollectionType }?.let(::append)
+            "!!".takeIf { property.isNullable.not() && property.type is Property.PropertyType.PropertyElement }?.let(::append)
             ", ".takeIf { i < (properties.size - 1) }?.let(::append)
         }.also { propertyStatement(it.toString(), property) }
     }
@@ -92,6 +115,24 @@ public fun Data.templateToBuilderBody(statement: SimpleStatement) {
     }.also { statement(it.toString()) }
 }
 
+public fun Data.templateDslBuilder(
+    propertyHolders: List<PropertyHolder>,
+    collectionType: (Property.Name) -> Unit,
+    boxedType: (Property.Name) -> Unit,
+    dataType: (Property.Name) -> Unit
+) {
+    propertyHolders.forEach { holder ->
+        if (getProperty(holder.first).type is Property.PropertyType.PropertyCollection) {
+            collectionType(holder.first)
+        } else {
+            when(holder.second) {
+                is KdddType.ModelContainer -> dataType(holder.first)
+                is KdddType.Boxed -> boxedType(holder.first)
+            }
+        }
+    }
+}
+
 public fun Data.templateToDslBuilderBody(startStatement: SimpleStatement, endStatement: SimpleStatement, propertyStatement: PropertyStatement) {
     startStatement("val ret = %T()")
     properties.forEach { property ->
@@ -100,15 +141,12 @@ public fun Data.templateToDslBuilderBody(startStatement: SimpleStatement, endSta
     endStatement("return ret")
 }
 
-public val Property.isCollectionType: Boolean
-    get() = collectionType != null
-
 public infix fun Property.`get initializer for DSL Builder or canonical Builder`(isDsl: Boolean): String =
-    collectionType?.let { when(it) {
-        Property.CollectionType.SET  -> "mutableSetOf()".takeIf { isDsl } ?: "emptySet()"
-        Property.CollectionType.LIST -> "mutableListOf()".takeIf { isDsl } ?: "emptyList()"
-        Property.CollectionType.MAP  -> "mutableMapOf()".takeIf { isDsl } ?: "emptyMap()"
-    } } ?: "null"
+    if (type is Property.PropertyType.PropertyCollection) when(type) {
+        is Property.PropertyType.PropertyCollection.PropertySet -> "mutableSetOf()".takeIf { isDsl } ?: "emptySet()"
+        is Property.PropertyType.PropertyCollection.PropertyList -> "mutableListOf()".takeIf { isDsl } ?: "emptyList()"
+        is Property.PropertyType.PropertyCollection.PropertyMap  -> "mutableMapOf()".takeIf { isDsl } ?: "emptyMap()"
+    } else "null"
 
 
 //public fun
