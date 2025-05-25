@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.ksp
+package ru.it_arch.clean_ddd.core.data
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
@@ -9,12 +9,12 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
+import ru.it_arch.clean_ddd.core.data.model.TypeHolder
 import ru.it_arch.clean_ddd.domain.KotlinCodeBoxedBuilder
 import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithCommon
 import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.domain.templateParseBody
-import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 import ru.it_arch.kddd.ValueObject
 
 internal class KotlinPoetBoxedBuilder(

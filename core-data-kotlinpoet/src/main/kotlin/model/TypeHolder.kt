@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.ksp.model
+package ru.it_arch.clean_ddd.core.data.model
 
 import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.clean_ddd.domain.fullClassName
@@ -42,13 +42,4 @@ internal data class TypeHolder private constructor(
             return TypeHolder(kdddType!!, classType!!, propertyTypes)
         }
     }
-
-    /*
-    companion object {
-        operator fun invoke(
-            kdddType: KdddType,
-            classType: TypeName,
-            propertyTypes: Map<Property.Name, TypeName>
-        ): TypeHolder = TypeHolder(kdddType, classType, propertyTypes)
-    }*/
 }

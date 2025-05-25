@@ -40,9 +40,11 @@ internal class DddProcessor(
                     // Генерация класса имплементации
                     with(logger) { model.toTypeSpecBuilder(dslFile) }
 
+                        // --- test converting for dsl mode
                         .also {
                             it.typeSpecs.forEach { it.toBuilder() }
                         }
+                        // ---
 
                         .build().also { typeSpec ->
 

@@ -20,4 +20,11 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
-include(":kddd", ":kddd-domain", ":my-cool-domain", ":demo", ":ksp-processor")
+include(
+    ":kddd",
+    ":core-domain",
+    ":core-data-kotlinpoet",
+    ":my-cool-domain",
+    ":demo",
+    ":ksp-processor"
+)

@@ -41,6 +41,7 @@ context(typeCatalog: TypeCatalog, logger: ILogger)
 /**
  *
  * */
+// TODO: return abstract wrapper KotlinCodeBuilder
 internal fun KdddType.toTypeSpecBuilder(/*typeCatalog: TypeCatalog,*/ dslFile: ExtensionFile): TypeSpec.Builder =
     typeCatalog.getTypeHolderOrError(kddd.fullClassName).let { holder ->
         TypeSpec.classBuilder(impl.className.shortName).addSuperinterface(holder.classType).apply {

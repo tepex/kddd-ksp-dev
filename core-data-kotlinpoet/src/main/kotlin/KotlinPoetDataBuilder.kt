@@ -1,12 +1,12 @@
-package ru.it_arch.clean_ddd.ksp
+package ru.it_arch.clean_ddd.core.data
 
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import ru.it_arch.clean_ddd.core.data.model.TypeHolder
 import ru.it_arch.clean_ddd.domain.KotlinCodeDataBuilder
 import ru.it_arch.clean_ddd.domain.model.kddd.Data
-import ru.it_arch.clean_ddd.ksp.model.TypeHolder
 
 internal class KotlinPoetDataBuilder(
     private val implClassBuilder: TypeSpec.Builder,
