@@ -20,7 +20,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":kddd"))
+    implementation(project(":lib"))
     implementation(project(":core-domain"))
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)

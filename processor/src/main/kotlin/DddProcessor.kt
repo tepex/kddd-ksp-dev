@@ -1,16 +1,21 @@
 package ru.it_arch.clean_ddd.ksp
 
+import com.google.devtools.ksp.KspExperimental
+import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.squareup.kotlinpoet.FileSpec
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+
 import ru.it_arch.clean_ddd.domain.model.ILogger
 import ru.it_arch.clean_ddd.domain.model.Options
-import ru.it_arch.clean_ddd.domain.fullClassName
+import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.clean_ddd.domain.shortName
 import ru.it_arch.clean_ddd.ksp.model.StringBufferWriter
+import ru.it_arch.kddd.KDIgnore
 
 internal class DddProcessor(
     private val codeGenerator: CodeGenerator,
@@ -19,13 +24,24 @@ internal class DddProcessor(
     private val isTesting: Boolean
 ) : SymbolProcessor {
 
+    @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
         logger.log("options: $options, isTesting: $isTesting")
         val visitor = Visitor(resolver, options, logger)
 
+        // Collect all types
+
         resolver.getNewFiles().toList().mapNotNull { file ->
-            //logger.log("process $file")
-            with(options) { with(logger) { file `to OutputFile with` visitor } }
+            file.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .filter { it.classKind == ClassKind.INTERFACE && it.getAnnotationsByType(KDIgnore::class).count() == 0 }
+                .firstOrNull()
+                ?.let { declaration ->
+                    visitor.visitKDDeclaration(declaration, null).let { kdddType ->
+                        if (kdddType is KdddType.ModelContainer) OutputFile(kdddType, Dependencies(false, file))
+                        else null
+                    }
+                }
         }
 
             // application logic. Separate DSL, JSON
@@ -71,9 +87,10 @@ internal class DddProcessor(
         }
 
         //logger.log("type catalog: ${visitor.typeCatalog}")
+        /*
         visitor.typeCatalog.entries.forEach { pair ->
             logger.log("${pair.key} -> ${pair.value}")
-        }
+        }*/
 
         /*
         outputFiles.entries
@@ -84,8 +101,8 @@ internal class DddProcessor(
         return emptyList()
     }
 
-    /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак. */
+    /** Перехват выходного потока с построчной буферизацией. Нужно для подмены строк на выходе. Грязный хак.
     private fun FileSpec.replaceAndWrite(codeGenerator: CodeGenerator, dependencies: Dependencies) {
         codeGenerator.createNewFile(dependencies, packageName, name).also { StringBufferWriter(it).use(::writeTo) }
-    }
+    }*/
 }

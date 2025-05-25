@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.kddd.domain
 
 public interface KotlinCodeBoxedBuilder {
     public fun generateImplementationClass()

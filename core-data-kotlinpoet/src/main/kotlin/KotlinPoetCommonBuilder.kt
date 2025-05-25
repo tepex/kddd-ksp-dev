@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.core.data
+package ru.it_arch.kddd.core.data
 
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.FunSpec

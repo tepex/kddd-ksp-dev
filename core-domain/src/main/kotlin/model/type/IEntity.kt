@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.domain.model.kddd
+package ru.it_arch.kddd.domain.model.type
 
 import ru.it_arch.kddd.Kddd
 

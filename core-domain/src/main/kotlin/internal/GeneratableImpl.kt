@@ -1,9 +1,9 @@
-package ru.it_arch.clean_ddd.domain.internal
+package ru.it_arch.kddd.domain.internal
 
-import ru.it_arch.clean_ddd.domain.model.CompositeClassName
-import ru.it_arch.clean_ddd.domain.model.kddd.Generatable
-import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
 import ru.it_arch.kddd.Kddd
+import ru.it_arch.kddd.domain.model.CompositeClassName
+import ru.it_arch.kddd.domain.model.type.Generatable
+import ru.it_arch.kddd.domain.model.type.KdddType
 
 @ConsistentCopyVisibility
 internal data class GeneratableImpl private constructor(

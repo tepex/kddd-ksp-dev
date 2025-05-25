@@ -1,4 +1,4 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.kddd.domain
 
 import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.core.spec.style.FunSpec

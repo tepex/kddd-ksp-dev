@@ -1,9 +1,9 @@
-package ru.it_arch.clean_ddd.core.data.model
+package ru.it_arch.kddd.core.data.model
 
 import com.squareup.kotlinpoet.TypeName
-import ru.it_arch.clean_ddd.domain.fullClassName
-import ru.it_arch.clean_ddd.domain.model.Property
-import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
+import ru.it_arch.kddd.domain.fullClassName
+import ru.it_arch.kddd.domain.model.Property
+import ru.it_arch.kddd.domain.model.type.KdddType
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 

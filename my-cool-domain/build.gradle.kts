@@ -17,9 +17,9 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":kddd"))
+    implementation(project(":lib"))
     implementation(libs.kotlinx.serialization.json)
-    ksp(project(":ksp-processor"))
+    ksp(project(":processor"))
 }
 
 ksp {

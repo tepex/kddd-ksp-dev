@@ -1,6 +1,6 @@
-package ru.it_arch.clean_ddd.domain.model
+package ru.it_arch.kddd.domain.model
 
-import ru.it_arch.clean_ddd.domain.shortName
+import ru.it_arch.kddd.domain.shortName
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 

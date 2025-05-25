@@ -30,7 +30,7 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
-    implementation(project(":kddd"))
+    implementation(project(":lib"))
 
     testImplementation(libs.kotest)
     testImplementation(libs.kotest.assertions)

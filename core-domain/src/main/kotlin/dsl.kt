@@ -1,9 +1,9 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.kddd.domain
 
-import ru.it_arch.clean_ddd.domain.model.CompositeClassName
-import ru.it_arch.clean_ddd.domain.model.Context
-import ru.it_arch.clean_ddd.domain.model.Options
-import ru.it_arch.clean_ddd.domain.model.Property
+import ru.it_arch.kddd.domain.model.CompositeClassName
+import ru.it_arch.kddd.domain.model.Context
+import ru.it_arch.kddd.domain.model.Options
+import ru.it_arch.kddd.domain.model.Property
 
 /**
  *

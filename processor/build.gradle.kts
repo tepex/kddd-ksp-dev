@@ -22,5 +22,5 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ksp.api)
     implementation(project(":core-domain"))
-    implementation(project(":kddd"))
+    implementation(project(":lib"))
 }

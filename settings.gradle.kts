@@ -21,10 +21,10 @@ plugins {
 }
 
 include(
-    ":kddd",
+    ":lib",
     ":core-domain",
     ":core-data-kotlinpoet",
     ":my-cool-domain",
     ":demo",
-    ":ksp-processor"
+    ":processor"
 )

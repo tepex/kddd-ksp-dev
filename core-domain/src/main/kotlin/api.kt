@@ -1,17 +1,18 @@
-package ru.it_arch.clean_ddd.domain
+package ru.it_arch.kddd.domain
 
-import ru.it_arch.clean_ddd.domain.internal.hasDsl
-import ru.it_arch.clean_ddd.domain.internal.toGeneratable
-import ru.it_arch.clean_ddd.domain.internal.toBoxedTypeWith
-import ru.it_arch.clean_ddd.domain.model.CompositeClassName
-import ru.it_arch.clean_ddd.domain.model.kddd.BoxedWithCommon
-import ru.it_arch.clean_ddd.domain.model.kddd.Data
-import ru.it_arch.clean_ddd.domain.model.kddd.IEntity
-import ru.it_arch.clean_ddd.domain.model.Context
-import ru.it_arch.clean_ddd.domain.model.ILogger
-import ru.it_arch.clean_ddd.domain.model.Options
-import ru.it_arch.clean_ddd.domain.model.Property
-import ru.it_arch.clean_ddd.domain.model.kddd.KdddType
+import ru.it_arch.kddd.domain.internal.hasDsl
+import ru.it_arch.kddd.domain.internal.toGeneratable
+import ru.it_arch.kddd.domain.internal.toBoxedTypeWith
+import ru.it_arch.kddd.domain.model.CompositeClassName
+import ru.it_arch.kddd.domain.model.type.BoxedWithCommon
+import ru.it_arch.kddd.domain.model.type.Data
+import ru.it_arch.kddd.domain.model.type.IEntity
+import ru.it_arch.kddd.domain.model.type.KdddType
+import ru.it_arch.kddd.domain.model.Context
+import ru.it_arch.kddd.domain.model.ILogger
+import ru.it_arch.kddd.domain.model.Options
+import ru.it_arch.kddd.domain.model.Property
+
 
 public fun Map<String, String>.toOptions(): Options = options {
     subpackage = get(Options.OPTION_IMPLEMENTATION_SUBPACKAGE)
@@ -152,4 +153,4 @@ public infix fun Property.`get initializer for DSL Builder or canonical Builder`
 //public fun
 
 
-private fun `preserve imports for Android Studio, not used`(context: Context, logger: ILogger) {}
+private fun `preserve imports for Android Studio, not used`(context: Context, options: Options, logger: ILogger) {}
