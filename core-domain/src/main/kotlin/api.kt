@@ -23,13 +23,12 @@ public fun Map<String, String>.toOptions(): Options = options {
 }
 
 context(ctx: Context, _: Options, logger: ILogger)
-public fun String.toKDddType(): KdddType = ctx.toGeneratable().let { generatable ->
-    //val ctx: Context = Context
+public fun String.toKDddType(/*ctx: Context*/): Result<KdddType> = ctx.toGeneratable().let { generatable ->
     when(substringBefore('<')) {
-        Data::class.java.simpleName           -> Data(generatable, ctx.properties, ctx.hasDsl)
-        IEntity::class.java.simpleName        -> IEntity(Data(generatable, ctx.properties, ctx.hasDsl))
-        KdddType.Boxed::class.java.simpleName -> this toBoxedTypeWith generatable
-        else                                  -> error("Unknown type: $this")
+        Data::class.java.simpleName           -> Result.success(Data(generatable, ctx.properties, ctx.hasDsl))
+        IEntity::class.java.simpleName        -> Result.success(IEntity(Data(generatable, ctx.properties, ctx.hasDsl)))
+        KdddType.Boxed::class.java.simpleName -> Result.success(this toBoxedTypeWith generatable)
+        else                                  -> Result.failure(IllegalStateException("Unknown type: $this"))
     }
 }
 
