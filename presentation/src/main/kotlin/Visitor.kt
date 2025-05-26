@@ -30,7 +30,7 @@ public class Visitor(
 ) : KSDefaultVisitor<KdddType.ModelContainer, Unit>() {
 
     private val _typeCatalog = mutableMapOf<CompositeClassName.FullClassName, KspTypeHolder>()
-    private val typeCatalog: TypeCatalog
+    public val typeCatalog: TypeCatalog
         get() = _typeCatalog.toMap()
 
     override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KdddType.ModelContainer) {
@@ -55,7 +55,6 @@ public class Visitor(
                     packageName = CompositeClassName.PackageName(declaration.packageName.asString())
                     fullClassName = ksType.toString()
                 }
-                //val propertyHolders = with(logger) { declaration.toPropertyHolders() }
                 with(options) {
                     with(
                         kDddContext {
@@ -66,7 +65,7 @@ public class Visitor(
                                     declaration.getAnnotationsByType(KDParsable::class)
                                 ).toSet()
                             properties = utils.toProperties(declaration)
-                        }//.also { logger.log("context<$declaration, kddd: ${it.kddd} container: ${container?.kddd }>") }
+                        }
                     ) {
                         with(logger) {
                             declaration.superTypes.firstOrNull()?.toString()?.toKDddType() ?: run {

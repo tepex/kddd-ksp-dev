@@ -19,8 +19,10 @@ kotlin {
 }
 
 dependencies {
-    implementation(libs.kotlinx.serialization.json)
     implementation(libs.ksp.api)
-    implementation(project(":core-domain"))
     implementation(project(":lib"))
+    implementation(project(":presentation"))
+    implementation(project(":core-domain"))
+    implementation(project(":ksp-utils-api"))
+    runtimeOnly(project(":ksp-utils-impl"))
 }

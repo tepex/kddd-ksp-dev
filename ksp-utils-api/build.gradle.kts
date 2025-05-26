@@ -6,20 +6,14 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
+
     compilerOptions {
         apiVersion.set(KotlinVersion.KOTLIN_2_0)
-        freeCompilerArgs = freeCompilerArgs.get() + "-Xcontext-parameters"
     }
-    /*
-    sourceSets.all {
-        languageSettings.enableLanguageFeature("ExplicitBackingFields")
-    }*/
     explicitApi()
 }
 
 dependencies {
     implementation(libs.ksp.api)
     implementation(project(":core-domain"))
-    implementation(project(":lib"))
-    api(project(":ksp-utils-api"))
 }

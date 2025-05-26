@@ -22,6 +22,5 @@ kotlin {
 dependencies {
     implementation(project(":lib"))
     implementation(project(":core-domain"))
-    implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
 }

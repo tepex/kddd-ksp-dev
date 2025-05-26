@@ -7,7 +7,6 @@ import ru.it_arch.kddd.ValueObject
 import ru.it_arch.kddd.domain.model.Property
 import ru.it_arch.kddd.domain.model.type.KdddType
 
-@ConsistentCopyVisibility
 public data class KspTypeHolder(
     val kdddType: KdddType,
     val type: KSType,

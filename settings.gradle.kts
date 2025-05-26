@@ -22,8 +22,11 @@ plugins {
 
 include(
     ":lib",
+    ":ksp-utils-api",
+    ":ksp-utils-impl",
     ":core-domain",
     ":core-data-kotlinpoet",
+    ":presentation",
     ":my-cool-domain",
     ":demo",
     ":processor"

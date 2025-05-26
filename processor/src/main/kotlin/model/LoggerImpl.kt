@@ -1,7 +1,7 @@
 package ru.it_arch.clean_ddd.ksp.model
 
 import com.google.devtools.ksp.processing.KSPLogger
-import ru.it_arch.clean_ddd.domain.model.ILogger
+import ru.it_arch.kddd.domain.model.ILogger
 
 internal class LoggerImpl private constructor(private val kspLogger: KSPLogger) : ILogger {
 
