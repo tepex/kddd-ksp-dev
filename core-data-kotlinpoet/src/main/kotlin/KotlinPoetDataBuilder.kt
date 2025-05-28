@@ -6,12 +6,12 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import ru.it_arch.kddd.core.data.model.TypeHolder
 import ru.it_arch.kddd.domain.KotlinCodeDataBuilder
-import ru.it_arch.kddd.domain.model.type.Data
+import ru.it_arch.kddd.domain.model.type.DataClassImpl
 
 internal class KotlinPoetDataBuilder(
     private val implClassBuilder: TypeSpec.Builder,
     private val typeHolder: TypeHolder,
-    private val data: Data
+    private val data: DataClassImpl
 ) : KotlinCodeDataBuilder {
 
     private val parametersSpec =

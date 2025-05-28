@@ -2,14 +2,15 @@ package ru.it_arch.kddd.domain.model.type
 
 public sealed interface KdddType : Generatable {
 
-    public interface ModelContainer : KdddType {
+    // TODO: Дурное название. Переименовать.
+    public interface DataClass : KdddType {
         public val hasDsl: Boolean
         /*public val hasJson: Boolean*/
         public val nestedTypes: Set<KdddType>
         public fun addNestedType(kdddType: KdddType)
     }
 
-    public sealed interface Boxed : KdddType {
+    public sealed interface ValueClass : KdddType {
 
         public companion object {
             public const val PARAM_NAME: String = "boxed"

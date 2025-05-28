@@ -3,9 +3,9 @@ package ru.it_arch.kddd.domain.model.type
 import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility
-public data class IEntity private constructor(
-    private val data: Data
-) : KdddType.ModelContainer by data {
+public data class EntityImpl private constructor(
+    private val data: DataClassImpl
+) : KdddType.DataClass by data {
 
     private val id = data.properties.find { it.name.boxed == ID_NAME }
         ?: error("ID parameter not found for Entity ${kddd.className}")
@@ -19,8 +19,8 @@ public data class IEntity private constructor(
     public companion object {
         public const val ID_NAME: String = "id"
 
-        public operator fun invoke(data: Data): IEntity =
-            IEntity(data)
+        public operator fun invoke(data: DataClassImpl): EntityImpl =
+            EntityImpl(data)
     }
 }
 

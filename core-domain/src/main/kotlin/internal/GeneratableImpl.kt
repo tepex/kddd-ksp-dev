@@ -1,6 +1,7 @@
 package ru.it_arch.kddd.domain.internal
 
 import ru.it_arch.kddd.Kddd
+import ru.it_arch.kddd.domain.fullClassName
 import ru.it_arch.kddd.domain.model.CompositeClassName
 import ru.it_arch.kddd.domain.model.type.Generatable
 import ru.it_arch.kddd.domain.model.type.KdddType
@@ -9,7 +10,7 @@ import ru.it_arch.kddd.domain.model.type.KdddType
 internal data class GeneratableImpl private constructor(
     override val kddd: CompositeClassName,
     override val impl: CompositeClassName,
-    override val enclosing: KdddType.ModelContainer?
+    override val enclosing: KdddType.DataClass?
 ) : Generatable {
 
     override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
@@ -18,10 +19,16 @@ internal data class GeneratableImpl private constructor(
 
     override fun validate() {}
 
+    override fun toString(): String =
+        """Generatable(
+            |  kddd: ${kddd.fullClassName}
+            |  impl: ${impl.fullClassName}
+            |)""".trimMargin()
+
     class Builder {
         var kddd: CompositeClassName? = null
         var impl: CompositeClassName? = null
-        var enclosing: KdddType.ModelContainer? = null
+        var enclosing: KdddType.DataClass? = null
 
         fun build(): Generatable {
             checkNotNull(kddd) { "Property 'kddd' must be initialized!" }

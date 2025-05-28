@@ -23,7 +23,7 @@ public fun options(block: Options.Builder.() -> Unit): Options =
 
 context(options: Options)
 /**
- *
+ * @param options [Options] как Context Parameter
  * */
 public fun kDddContext(block: Context.Builder.() -> Unit): Context =
     Context.Builder().apply(block).build()

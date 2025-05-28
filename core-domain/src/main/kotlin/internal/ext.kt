@@ -5,8 +5,8 @@ import ru.it_arch.kddd.domain.model.CompositeClassName
 import ru.it_arch.kddd.domain.model.Context
 import ru.it_arch.kddd.domain.model.ILogger
 import ru.it_arch.kddd.domain.model.Options
-import ru.it_arch.kddd.domain.model.type.BoxedWithCommon
-import ru.it_arch.kddd.domain.model.type.BoxedWithPrimitive
+import ru.it_arch.kddd.domain.model.type.ValueClassWithCommon
+import ru.it_arch.kddd.domain.model.type.ValueClassWithPrimitive
 import ru.it_arch.kddd.domain.model.type.Generatable
 import ru.it_arch.kddd.domain.model.type.KdddType
 import ru.it_arch.kddd.domain.shortName
@@ -18,6 +18,9 @@ internal fun generatable(block: GeneratableImpl.Builder.() -> Unit): Generatable
     GeneratableImpl.Builder().apply(block).build()
 
 context(_: Options)
+/**
+ * @param _ [Options] как Context Parameter
+ * */
 internal fun Context.toGeneratable(): Generatable =
     generatable {
         kddd = this@toGeneratable.kddd
@@ -69,21 +72,21 @@ internal val CompositeClassName.PackageName.toImplementationPackage: CompositeCl
 
 context(ctx: Context)
 /**
- * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.Boxed] с соотвествующим
- * типом `boxed`: [BoxedWithPrimitive.PrimitiveClassName] или [BoxedWithCommon.CommonClassName].
+ * Преобразование параметризированного типа `BOXED` из [ValueObject.Boxed<BOXED>] в [KdddType.ValueClass] с соотвествующим
+ * типом `boxed`: [ValueClassWithPrimitive.PrimitiveClassName] или [ValueClassWithCommon.CommonClassName].
  *
  * @param generatable необходимый делегат [KdddType.Generatable].
  * @receiver имя параметризированного типа.
- * @return созданный [KdddType.Boxed].
+ * @return созданный [KdddType.ValueClass].
  * @see "src/test/kotlin/ClassNameTest.kt"
  * */
-internal infix fun String.toBoxedTypeWith(generatable: Generatable): KdddType.Boxed =
+internal infix fun String.toBoxedTypeWith(generatable: Generatable): KdddType.ValueClass =
     BOXED_INVARIANT_RE.find(this)?.groupValues?.getOrNull(1)?.uppercase().let { boxedType ->
-        BoxedWithPrimitive.PrimitiveClassName.entries.find { it.name == boxedType }
-            ?.let { BoxedWithPrimitive(generatable, it) }
-            ?: BoxedWithCommon(
+        ValueClassWithPrimitive.PrimitiveClassName.entries.find { it.name == boxedType }
+            ?.let { ValueClassWithPrimitive(generatable, it) }
+            ?: ValueClassWithCommon(
                 generatable,
-                BoxedWithCommon.CommonClassName(boxedType ?: error("Can't find boxed type for: `$this`")),
+                ValueClassWithCommon.CommonClassName(boxedType ?: error("Can't find boxed type for: `$this`")),
                 ctx.getAnnotation<KDParsable>() ?: KDParsable()
             )
     }

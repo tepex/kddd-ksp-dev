@@ -7,7 +7,7 @@ import ru.it_arch.kddd.ValueObject
 @ConsistentCopyVisibility
 public data class Context private constructor(
     val kddd: CompositeClassName,
-    val enclosing: KdddType.ModelContainer?,
+    val enclosing: KdddType.DataClass?,
     val annotations: Set<Annotation>,
     val properties: List<Property>
 ) : ValueObject.Data {
@@ -20,7 +20,7 @@ public data class Context private constructor(
 
     public class Builder {
         public var kddd: CompositeClassName? = null
-        public var enclosing: KdddType.ModelContainer? = null
+        public var enclosing: KdddType.DataClass? = null
         public var annotations: Set<Annotation> = emptySet()
         public var properties: List<Property>? = null
 

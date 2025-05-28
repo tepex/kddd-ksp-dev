@@ -4,13 +4,15 @@ import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
-import ru.it_arch.kddd.domain.model.Property
 import ru.it_arch.kddd.domain.model.type.KdddType
 
-public data class KspTypeHolder(
+/**
+ * */
+@ConsistentCopyVisibility
+public data class KspTypeHolder private constructor(
     val kdddType: KdddType,
     val type: KSType,
-    val propertyTypes: Map<Property.Name, KSPropertyDeclaration>
+    val propertyTypes: List<KSPropertyDeclaration>
 ) : ValueObject.Data {
 
     override fun validate() {}
@@ -19,10 +21,8 @@ public data class KspTypeHolder(
         TODO("Not yet implemented")
     }
 
-    /*
-    companion object {
-        operator fun invoke(kdddType: KdddType, type: KSType): Declarations {
-            type.declaration.
-        }
-    }*/
+    public companion object {
+        public operator fun invoke(kdddType: KdddType, type: KSType, propertyTypes: List<KSPropertyDeclaration>): KspTypeHolder =
+            KspTypeHolder(kdddType, type, propertyTypes)
+    }
 }

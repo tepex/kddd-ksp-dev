@@ -5,13 +5,13 @@ import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 
 @ConsistentCopyVisibility
-public data class BoxedWithCommon private constructor(
+public data class ValueClassWithCommon private constructor(
     private val generatable: Generatable,
     public val boxed: CommonClassName,
     public val serializationMethod: SerializationMethodName,
     public val deserializationMethod: DeserializationMethodName,
     public val isStringInDsl: Boolean
-) : Generatable by generatable, KdddType.Boxed {
+) : Generatable by generatable, KdddType.ValueClass {
 
     override fun validate() {}
 
@@ -67,7 +67,7 @@ public data class BoxedWithCommon private constructor(
             generatable: Generatable,
             boxed: CommonClassName,
             parsable: KDParsable
-        ): BoxedWithCommon = BoxedWithCommon(
+        ): ValueClassWithCommon = ValueClassWithCommon(
             generatable,
             boxed,
             SerializationMethodName(parsable.serialization),

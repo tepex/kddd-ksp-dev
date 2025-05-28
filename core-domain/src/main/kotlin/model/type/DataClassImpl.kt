@@ -4,12 +4,12 @@ import ru.it_arch.kddd.domain.model.Property
 import ru.it_arch.kddd.Kddd
 
 @ConsistentCopyVisibility
-public data class Data private constructor(
+public data class DataClassImpl private constructor(
     private val generatable: Generatable,
     // List, not Set! Fork method has indexed args
     public val properties: List<Property>,
     override val hasDsl: Boolean
-) : Generatable by generatable, KdddType.ModelContainer {
+) : Generatable by generatable, KdddType.DataClass {
 
     private val _nestedTypes = mutableSetOf<KdddType>()
     override val nestedTypes: Set<KdddType>
@@ -33,7 +33,7 @@ public data class Data private constructor(
         public const val TO_DSL_BUILDER_FUN: String = "toDslBuilder"
         public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
-        public operator fun invoke(generatable: Generatable, properties: List<Property>, hasDsl: Boolean): Data =
-            Data(generatable, properties, hasDsl)
+        public operator fun invoke(generatable: Generatable, properties: List<Property>, hasDsl: Boolean): DataClassImpl =
+            DataClassImpl(generatable, properties, hasDsl)
     }
 }

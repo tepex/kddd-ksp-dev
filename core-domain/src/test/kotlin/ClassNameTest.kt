@@ -6,8 +6,8 @@ import io.kotest.matchers.shouldBe
 import ru.it_arch.kddd.domain.internal.generatable
 import ru.it_arch.kddd.domain.internal.toBoxedTypeWith
 import ru.it_arch.kddd.domain.model.CompositeClassName
-import ru.it_arch.kddd.domain.model.type.BoxedWithCommon
-import ru.it_arch.kddd.domain.model.type.BoxedWithPrimitive
+import ru.it_arch.kddd.domain.model.type.ValueClassWithCommon
+import ru.it_arch.kddd.domain.model.type.ValueClassWithPrimitive
 import ru.it_arch.kddd.KDParsable
 import java.util.UUID
 
@@ -39,9 +39,9 @@ class ClassNameTest : FunSpec({
     context("""'"<INVARIANT Primitive>".toBoxedTypeWith()' must return appropriate """) {
         withData(
             nameFn = { (src, _) -> "'BoxedWithPrimitive(...${src.uppercase()})'" },
-            ts = BoxedWithPrimitive.PrimitiveClassName.entries
+            ts = ValueClassWithPrimitive.PrimitiveClassName.entries
                 .map { primitive ->
-                    "<INVARIANT ${primitive.name.lowercase().replaceFirstChar { it.uppercaseChar() }}>" to BoxedWithPrimitive(generatable, primitive)
+                    "<INVARIANT ${primitive.name.lowercase().replaceFirstChar { it.uppercaseChar() }}>" to ValueClassWithPrimitive(generatable, primitive)
                 }
         ) { (primitive, boxed) ->
             with(options) {
@@ -55,9 +55,9 @@ class ClassNameTest : FunSpec({
     pos("""'"INVARIANT <UUID>".toBoxedTypeWith()' must return 'BoxedWithCommon(boxed = CommonClassName("UUID"))'""") {
         with(options) {
             with(defaultContext) {
-                "<INVARIANT UUID>" toBoxedTypeWith generatable shouldBe BoxedWithCommon(
+                "<INVARIANT UUID>" toBoxedTypeWith generatable shouldBe ValueClassWithCommon(
                     generatable,
-                    BoxedWithCommon.CommonClassName(UUID::class.java.simpleName),
+                    ValueClassWithCommon.CommonClassName(UUID::class.java.simpleName),
                     KDParsable()
                 )
             }

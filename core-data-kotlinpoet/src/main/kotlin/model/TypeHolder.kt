@@ -20,9 +20,9 @@ internal data class TypeHolder private constructor(
 
     override fun validate() {
         when(kdddType) {
-            is KdddType.Boxed ->
+            is KdddType.ValueClass ->
                 check(propertyTypes.size == 1) { "Property types must for ${kdddType.kddd.fullClassName} must contain only one element!" }
-            is KdddType.ModelContainer ->
+            is KdddType.DataClass ->
                 check(propertyTypes.isNotEmpty()) { "Property types for ${kdddType.kddd.fullClassName} must not be empty!" }
         }
     }
