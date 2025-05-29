@@ -31,7 +31,7 @@ public fun String.toKDddType(/*ctx: Context*/): Result<KdddType> = ctx.toGenerat
     when(substringBefore('<')) {
         ValueObject.Data::class.java.simpleName           -> Result.success(DataClassImpl(generatable, ctx.properties, ctx.hasDsl))
         IEntity::class.java.simpleName        -> Result.success(EntityImpl(DataClassImpl(generatable, ctx.properties, ctx.hasDsl)))
-        ValueObject.Boxed::class.java.simpleName -> Result.success(this toBoxedTypeWith generatable)
+        ValueObject.Value::class.java.simpleName -> Result.success(this toBoxedTypeWith generatable)
         else                                  -> Result.failure(IllegalStateException("Unknown Kddd type: $this"))
     }
 }

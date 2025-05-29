@@ -29,12 +29,12 @@ public data class Options private constructor(
         TODO("Not yet implemented")
 
     @JvmInline
-    public value class Subpackage private constructor(override val boxed: String): ValueObject.Boxed<String> {
+    public value class Subpackage private constructor(override val boxed: String): ValueObject.Value<String> {
         init {
             validate()
         }
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T =
             TODO("Not yet implemented")
 
         // TODO: validate name
@@ -64,12 +64,12 @@ public data class Options private constructor(
      * ```
      * */
     @JvmInline
-    public value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
+    public value class ResultTemplate(override val boxed: String): ValueObject.Value<String> {
         init {
             validate()
         }
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T =
             TODO("Not yet implemented")
 
         override fun validate() {
@@ -99,12 +99,12 @@ public data class Options private constructor(
      * ```
      * */
     @JvmInline
-    public value class UseContextParameters private constructor(override val boxed: Boolean) : ValueObject.Boxed<Boolean> {
+    public value class UseContextParameters private constructor(override val boxed: Boolean) : ValueObject.Value<Boolean> {
         init {
             validate()
         }
 
-        override fun <T : ValueObject.Boxed<Boolean>> fork(boxed: Boolean): T =
+        override fun <T : ValueObject.Value<Boolean>> fork(boxed: Boolean): T =
             TODO("Not yet implemented")
 
         override fun validate() {}

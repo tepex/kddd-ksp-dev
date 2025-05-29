@@ -1,6 +1,5 @@
 package ru.it_arch.kddd
 
-
 /**
  * Общий тип KDDD-моделей.
  * */

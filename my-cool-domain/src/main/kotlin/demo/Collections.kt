@@ -20,7 +20,7 @@ public interface Collections : ValueObject.Data {
 
     }
 
-    public interface Size : ValueObject.Boxed<Int> {
+    public interface Size : ValueObject.Value<Int> {
         override fun validate() {
             require(boxed in 1..100) { "Property `size` must be in range 10..100" }
         }

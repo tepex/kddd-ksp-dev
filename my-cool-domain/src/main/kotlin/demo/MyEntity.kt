@@ -14,7 +14,7 @@ public interface MyEntity : IEntity {
 
     }
 
-    public interface Id : ValueObject.Boxed<Int> {
+    public interface Id : ValueObject.Value<Int> {
         override fun validate() {}
     }
 
@@ -26,11 +26,11 @@ public interface MyEntity : IEntity {
 
         }
 
-        public interface Name : ValueObject.Boxed<String> {
+        public interface Name : ValueObject.Value<String> {
             override fun validate() {}
         }
 
-        public interface SomeField : ValueObject.Boxed<Int> {
+        public interface SomeField : ValueObject.Value<Int> {
             override fun validate() {}
         }
     }

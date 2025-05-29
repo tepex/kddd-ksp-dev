@@ -25,11 +25,11 @@ public interface WithInner : ValueObject.Data {
 
         override fun validate() {}
 
-        public interface InnerLong : ValueObject.Boxed<Long> {
+        public interface InnerLong : ValueObject.Value<Long> {
             override fun validate() {}
         }
 
-        public interface InnerStr : ValueObject.Boxed<String> {
+        public interface InnerStr : ValueObject.Value<String> {
             override fun validate() {}
         }
     }

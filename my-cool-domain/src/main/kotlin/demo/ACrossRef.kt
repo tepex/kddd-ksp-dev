@@ -19,12 +19,12 @@ public interface ACrossRef : ValueObject.Data {
 
     override fun validate() {}
 
-    public interface MyCustomInnerType : ValueObject.Boxed<Int> {
-        override fun validate() {}
+    public interface MyCustomInnerType : ValueObject.Value<Int> {
+        override fun validate() {  }
     }
 
     @KDParsable(deserialization = "fromString")
-    public interface MyUUID : ValueObject.Boxed<UUID> {
+    public interface MyUUID : ValueObject.Value<UUID> {
         override fun validate() {}
     }
 
@@ -34,7 +34,7 @@ public interface ACrossRef : ValueObject.Data {
 
         override fun validate() {}
 
-        public interface SomeType : ValueObject.Boxed<String> {
+        public interface SomeType : ValueObject.Value<String> {
             override fun validate() {}
         }
 

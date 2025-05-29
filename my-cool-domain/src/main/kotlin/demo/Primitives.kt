@@ -7,9 +7,9 @@ import ru.it_arch.kddd.ValueObject
 /**
  * Демонстрация использования примитивов в качестве полей.
  *
- * Обертки над примитивными типами создаются путем наследования от [ValueObject.Boxed] с параметром соответствующего типа.
- * Сам примитивный тип содержится в свойстве [ValueObject.Boxed.boxed].
- * Перед созданием объекта обертки вызывается метод валидации [ValueObject.Boxed.validate], который в случае невалидности значения должен выкинуть исключение. Может быть пустым при отсутствии валидации.
+ * Обертки над примитивными типами создаются путем наследования от [ValueObject.Value] с параметром соответствующего типа.
+ * Сам примитивный тип содержится в свойстве [ValueObject.Value.boxed].
+ * Перед созданием объекта обертки вызывается метод валидации [ValueObject.Value.validate], который в случае невалидности значения должен выкинуть исключение. Может быть пустым при отсутствии валидации.
  * */
 @KDIgnore
 @KDGeneratable(json = true)
@@ -29,43 +29,43 @@ public interface Primitives : ValueObject.Data {
         require(str.boxed.length < size.boxed) { "`str` length must be < `size`" }
     }
 
-    public interface StringValue : ValueObject.Boxed<String> {
+    public interface StringValue : ValueObject.Value<String> {
         override fun validate() {
             require(boxed.isNotBlank()) { "Property `str` must not be blank!" }
         }
     }
 
-    public interface Size : ValueObject.Boxed<Int> {
+    public interface Size : ValueObject.Value<Int> {
         override fun validate() {
             require(boxed in 10..100) { "Property `size` must be in range 10..100" }
         }
     }
 
-    public interface BoolValue : ValueObject.Boxed<Boolean> {
+    public interface BoolValue : ValueObject.Value<Boolean> {
         override fun validate() { }
     }
 
-    public interface ByteValue : ValueObject.Boxed<Byte> {
+    public interface ByteValue : ValueObject.Value<Byte> {
         override fun validate() { }
     }
 
-    public interface CharValue : ValueObject.Boxed<Char> {
+    public interface CharValue : ValueObject.Value<Char> {
         override fun validate() { }
     }
 
-    public interface FloatValue : ValueObject.Boxed<Float> {
+    public interface FloatValue : ValueObject.Value<Float> {
         override fun validate() { }
     }
 
-    public interface DoubleValue : ValueObject.Boxed<Double> {
+    public interface DoubleValue : ValueObject.Value<Double> {
         override fun validate() { }
     }
 
-    public interface LongValue : ValueObject.Boxed<Long> {
+    public interface LongValue : ValueObject.Value<Long> {
         override fun validate() { }
     }
 
-    public interface ShortValue : ValueObject.Boxed<Short> {
+    public interface ShortValue : ValueObject.Value<Short> {
         override fun validate() { }
     }
 }

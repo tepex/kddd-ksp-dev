@@ -17,11 +17,11 @@ public data class CompositeClassName private constructor(
     }
 
     @JvmInline
-    public value class PackageName private constructor(override val boxed: String) : ValueObject.Boxed<String> {
+    public value class PackageName private constructor(override val boxed: String) : ValueObject.Value<String> {
 
         override fun validate() {}
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T {
             TODO("Not yet implemented")
         }
 
@@ -38,11 +38,11 @@ public data class CompositeClassName private constructor(
     }
 
     @JvmInline
-    public value class ClassName private constructor(override val boxed: String) : ValueObject.Boxed<String> {
+    public value class ClassName private constructor(override val boxed: String) : ValueObject.Value<String> {
 
         override fun validate() {}
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T {
             TODO("Not yet implemented")
         }
 
@@ -59,11 +59,11 @@ public data class CompositeClassName private constructor(
     }
 
     @JvmInline
-    public value class FullClassName private constructor(override val boxed: String) : ValueObject.Boxed<String> {
+    public value class FullClassName private constructor(override val boxed: String) : ValueObject.Value<String> {
 
         override fun validate() {}
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T {
             TODO("Not yet implemented")
         }
 

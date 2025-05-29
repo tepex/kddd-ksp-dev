@@ -56,7 +56,7 @@ internal class KotlinPoetBoxedBuilder(
     override fun generateFork() {
         TypeVariableName(
             "T",
-            ValueObject.Boxed::class.asTypeName().parameterizedBy(parameterSpec.type)
+            ValueObject.Value::class.asTypeName().parameterizedBy(parameterSpec.type)
         ).also { tvn ->
             FunSpec.builder(KdddType.ValueClass.FORK_METHOD)
                 .addTypeVariable(tvn)

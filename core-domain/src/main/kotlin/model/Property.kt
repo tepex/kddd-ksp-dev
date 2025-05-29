@@ -46,7 +46,7 @@ public data class Property private constructor(
         TODO("Must not used")
 
     @JvmInline
-    public value class Name(override val boxed: String): ValueObject.Boxed<String> {
+    public value class Name(override val boxed: String): ValueObject.Value<String> {
         init {
             validate()
         }
@@ -56,12 +56,12 @@ public data class Property private constructor(
         override fun toString(): String =
             boxed
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T =
             TODO("Must not used")
     }
 
     @JvmInline
-    public value class SerialName(override val boxed: String): ValueObject.Boxed<String> {
+    public value class SerialName(override val boxed: String): ValueObject.Value<String> {
         init {
             validate()
         }
@@ -71,7 +71,7 @@ public data class Property private constructor(
         override fun toString(): String =
             boxed
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T =
             TODO("Must not used")
     }
 
@@ -79,8 +79,8 @@ public data class Property private constructor(
         @JvmInline
         public value class PropertyElement(
             override val boxed: CompositeClassName.FullClassName
-        ): ValueObject.Boxed<CompositeClassName.FullClassName>, PropertyType {
-            override fun <T : ValueObject.Boxed<CompositeClassName.FullClassName>> fork(boxed: CompositeClassName.FullClassName): T {
+        ): ValueObject.Value<CompositeClassName.FullClassName>, PropertyType {
+            override fun <T : ValueObject.Value<CompositeClassName.FullClassName>> fork(boxed: CompositeClassName.FullClassName): T {
                 TODO("Not yet implemented")
             }
 
@@ -89,19 +89,19 @@ public data class Property private constructor(
 
         public sealed interface PropertyCollection : PropertyType {
             @JvmInline
-            public value class PropertySet(override val boxed: PropertyType) : ValueObject.Boxed<PropertyType>, PropertyCollection {
+            public value class PropertySet(override val boxed: PropertyType) : ValueObject.Value<PropertyType>, PropertyCollection {
 
                 override fun validate() {}
-                override fun <T : ValueObject.Boxed<PropertyType>> fork(boxed: PropertyType): T {
+                override fun <T : ValueObject.Value<PropertyType>> fork(boxed: PropertyType): T {
                     TODO("Not yet implemented")
                 }
             }
 
             @JvmInline
-            public value class PropertyList(override val boxed: PropertyType) : ValueObject.Boxed<PropertyType>, PropertyCollection {
+            public value class PropertyList(override val boxed: PropertyType) : ValueObject.Value<PropertyType>, PropertyCollection {
                 override fun validate() {}
 
-                override fun <T : ValueObject.Boxed<PropertyType>> fork(boxed: PropertyType): T {
+                override fun <T : ValueObject.Value<PropertyType>> fork(boxed: PropertyType): T {
                     TODO("Not yet implemented")
                 }
             }

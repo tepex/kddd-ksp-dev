@@ -22,7 +22,7 @@ public interface Point : ValueObject.Data {
     public operator fun times(other: Point): Point =
         fork(x * other.x, y * other.y)
 
-    public interface Coordinate : ValueObject.Boxed<Int> {
+    public interface Coordinate : ValueObject.Value<Int> {
         override fun validate() {}
 
         public operator fun plus(other: Coordinate): Coordinate =

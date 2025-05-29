@@ -11,7 +11,7 @@ import java.util.UUID
 /**
  * Демонстрация использования общих типов в качестве полей.
  *
- * Для типов, которые являются не примитивами и которые оборачиватся в [ValueObject.Boxed] необходима
+ * Для типов, которые являются не примитивами и которые оборачиватся в [ValueObject.Value] необходима
  * аннотация [KDParsable] которая определят какими методами этот тип сериализуется/десериализуется.
  *
  * Также необходимо указать способ инициализации типа в DSL/JSON, прописав статический метод в параметре аннотации
@@ -33,7 +33,7 @@ public interface CommonTypes : ValueObject.Data {
     // Параметр `deserialization` не указан — объект будет создаваться через констрктор со строковым аргументом со
     // значением из DSL/JSON: `File("<value>")`
     @KDParsable(useStringInDsl = true)
-    public interface MyFile : ValueObject.Boxed<File> {
+    public interface MyFile : ValueObject.Value<File> {
         override fun validate() {
             require(boxed.exists()) { "File `$boxed` not exists!" }
         }
@@ -41,12 +41,12 @@ public interface CommonTypes : ValueObject.Data {
 
     // Объект будет создаваться через `UUID.fromString("<value>")`
     @KDParsable(deserialization = "fromString")
-    public interface MyUUID : ValueObject.Boxed<UUID> {
+    public interface MyUUID : ValueObject.Value<UUID> {
         override fun validate() {}
     }
 
     @KDParsable(deserialization = "create", useStringInDsl = true)
-    public interface MyUri : ValueObject.Boxed<URI> {
+    public interface MyUri : ValueObject.Value<URI> {
         override fun validate() {}
     }
 

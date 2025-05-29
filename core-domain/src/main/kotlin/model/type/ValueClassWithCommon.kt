@@ -22,11 +22,11 @@ public data class ValueClassWithCommon private constructor(
     @JvmInline
     public value class CommonClassName private constructor(
         override val boxed: String
-    ) : ValueObject.Boxed<String> {
+    ) : ValueObject.Value<String> {
 
         override fun toString(): String = boxed
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T {
             TODO("Not yet implemented")
         }
 
@@ -39,10 +39,10 @@ public data class ValueClassWithCommon private constructor(
     }
 
     @JvmInline
-    public value class SerializationMethodName(override val boxed: String) : ValueObject.Boxed<String> {
+    public value class SerializationMethodName(override val boxed: String) : ValueObject.Value<String> {
         override fun toString(): String = boxed
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T {
             TODO("Not yet implemented")
         }
 
@@ -50,10 +50,10 @@ public data class ValueClassWithCommon private constructor(
     }
 
     @JvmInline
-    public value class DeserializationMethodName(override val boxed: String) : ValueObject.Boxed<String> {
+    public value class DeserializationMethodName(override val boxed: String) : ValueObject.Value<String> {
         override fun toString(): String = boxed
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T {
+        override fun <T : ValueObject.Value<String>> fork(boxed: String): T {
             TODO("Not yet implemented")
         }
 
