@@ -3,7 +3,7 @@ package ru.it_arch.kddd
 /**
  * Общий тип KDDD-моделей.
  * */
-public interface Kddd {
+public sealed interface Kddd {
     /**
      * Вызывается в процессе создания объекта для его валидации.
      *
