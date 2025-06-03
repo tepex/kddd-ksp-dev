@@ -48,14 +48,9 @@ KDDD (Kotlin DDD) — библиотека базовых типов, предн
 
 [#annotations]
 == Аннотации
-
-
-public annotation class KDGeneratable(
-val implementationName: String = "",
-val dsl: Boolean = true,
-val json: Boolean = false,
-)
-
+- `KDGeneratable`
+- `KDParsable`
+- `KDIgnore`
 
 [#regulation]
 == Регламент
@@ -68,7 +63,7 @@ IMPORTANT: Слова «*MUST*», «*MUST NOT*», «*REQUIRED*», «*SHALL*/*SHO
 
 Первый вариант крайне рекомендуется, т.к. разделение абстракции и имплементации удобно своей гибкостью, использованием _Dependency Injection_, юнит-тестированием и, самое главное, — возможностью кодогенерации имплементации.
 
-=== Интерфейс CDT
+=== Интерфейс *CDT*
 Тип <<cdt,*CDT*>> (`Cdt`):
 
 . Должен быть (*MUST*) `interface`.
@@ -112,15 +107,6 @@ override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
 [arabic]
 .. Должен быть (*MUST*) `value class`
 .. Свойство `boxed` должно быть (*MUST*) либо <<pt,*ПТ*>>, либо <<ct,*ТОН*>>.
-[arabic]
-... Если свойство `boxed` является <<ct,*ТОН*>>, то должен иметь (*MUST*) метод `parse()` в `companion object`, который десериализует объект <<ct,*ТОН*>>:
-+
-[source,kotlin]
-----
-public companion object {
-    public fun parse(src: String): CdtImpl =
-        CdtImpl(/* Создать объект 'ТОН' из строки `src` */)
-----
 .. Должен иметь (*MUST*) реализацию билдера в виде оператора `invoke()` в `companion object`:
 +
 [source,kotlin]
@@ -139,13 +125,38 @@ override fun <T : ValueObject.Value<BoxedType>> fork(boxed: BoxedType): T = CdtI
 ----
 . Должен (*SHOULD*) переопределять метод `validate()`, который будет вызываться перед созданием объекта. В нем пишется логика проверки валидности свойств и параметров и выкидывается IllegalStateException в случае непрохождения проверки. Может быть (*MAY*) пустым, если логика валидации не задана.
 
+=== DSL
+В режиме DSL предусмотрено два варианта инициализации свойств простых типов `ValueObject.Value<BOXED : Any>`, где `boxed` является <<ct,*ТОН*>>: непосредственно объектом типа `BOXED`, либо через десериализацию его строкового представления. Во втором случае в имплемениации <<cdt,*CDT*>> должен быть (*MUST*) реализован метод `parse()` в `companion object`, который десериализует объект <<ct,*ТОН*>> и возвращает (абстракцию) тип <<cdt,*CDT*>>:
+[source,kotlin]
+----
+public companion object {
+    public fun parse(src: String): Cdt =
+        CdtImpl(/* Создать объект 'ТОН' из строки `src` */)
+}
+----
+Для остальных типов — `ValueObject.Data` и `IEntity`, <<cdt,*CDT*>> должен иметь (*MUST*) сопутствующий класс `DslBuilder`, который:
+
+. Должен иметь (*MUST*) список свойств, соответствующий списку свойств <<cdt,*CDT*>>.
+. Свойства должны быть (*MUST*) мутабельными (`var`).
+[arabic]
+.. Свойства со скалярным типом (не коллекции) должны быть (*MUST*) нуллабельными и инициализированы значением `null`.
+.. Свойства с типом коллекций должны иметь (*MUST*) соответствущий мутабельный тип (`MutableSet`, `MutableList`, `MutableMap`) и инициализированы пустыми коллекциями (`emptySet()`, `emptyList()`, `emptyMap()`). Вложенные коллекции в качестве параметризованного типа также должны быть мутабельными.
+.. Свойства, у которых тип соответствующего свойства <<cdt,*CDT*>> является наследником `ValueObject.Value<BOXED : Any>` и `BOXED` является <<pt,*ПТ*>>, должны иметь (*MUST*) тип `BOXED`. Тоже относится и к параметризованым типам коллекций (С.м. пример).
+.. Свойства, у которых тип соответствующего свойства <<cdt,*CDT*>> является наследником `ValueObject.Value<BOXED : Any>` и `BOXED` является <<ct,*ТОН*>>, могут иметь (*MAY*) тип либо `BOXED`, либо `String`, в зависимости от варианта DSL. Тоже относится и к параметризованым типам коллекций (С.м. пример).
+
+. Должен иметь (*MUST*) метод `build()`, создающий и возвращающий (абстракцию) тип <<cdt,*CDT*>>.
+[arabic]
+.. Метод `build()` должен иметь (*MUST*) проверку на ненуллабельность для свойств с ненуллабельными типами.
+
+=== JSON
+
 == Примеры
 .Пример спроектированного <<cdt,*CDT*>> для моделирования точки с двумя координатами.
 [source,kotlin]
 ----
-public interface Point : ValueObject.Data {
-    public val x: Coordinate
-    public val y: Coordinate
+interface Point : ValueObject.Data {
+    val x: Coordinate
+    val y: Coordinate
 
     override fun validate() {
         // Здесь можно задать границы модели и провалидировать консистентность свойств.
@@ -153,26 +164,32 @@ public interface Point : ValueObject.Data {
         check(y.boxed in 0..1000)
     }
 
-    public operator fun plus(other: Point): Point =
+    operator fun plus(other: Point): Point =
         fork(x + other.x, y + other.y)
 
-    public operator fun minus(other: Point): Point =
+    operator fun minus(other: Point): Point =
         fork(x - other.x, y - other.y)
 
-    public operator fun times(other: Point): Point =
+    operator fun times(other: Point): Point =
         fork(x * other.x, y * other.y)
 
-    public interface Coordinate : ValueObject.Value<Int> {
+    interface Coordinate : ValueObject.Value<Int> {
         override fun validate() {}
 
-        public operator fun plus(other: Coordinate): Coordinate =
+        operator fun plus(other: Coordinate): Coordinate =
             fork(boxed + other.boxed)
 
-        public operator fun minus(other: Coordinate): Coordinate =
+        operator fun minus(other: Coordinate): Coordinate =
             fork(boxed - other.boxed)
 
-        public operator fun times(other: Coordinate): Coordinate =
+        operator fun times(other: Coordinate): Coordinate =
             fork(boxed * other.boxed)
+    }
+
+    interface Distance : ValueObject.Value<Double> {
+        override fun validate() {
+            check(boxed >= 0)
+        }
     }
 }
 ----
@@ -180,7 +197,7 @@ public interface Point : ValueObject.Data {
 [source,kotlin]
 ----
 @ConsistentCopyVisibility
-public data class PointImpl private constructor(
+data class PointImpl private constructor(
     override val x: Point.Coordinate,
     override val y: Point.Coordinate
 ) : Point {
@@ -189,59 +206,125 @@ public data class PointImpl private constructor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
-        val ret = Builder().apply {
+    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+        Builder().apply {
             x = args[0] as Point.Coordinate
             y = args[1] as Point.Coordinate
         }.build() as T
-        return ret
+
+    @JvmInline
+    value class CoordinateImpl private constructor(
+        override val boxed: Int,
+    ) : Point.Coordinate {
+        init {
+            validate()
+        }
+
+        override fun toString(): String =
+            boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Boxed<Int>> fork(boxed: Int): T =
+            CoordinateImpl(boxed) as T
+
+        companion object {
+            operator fun invoke(boxed: Int): Point.Coordinate = CoordinateImpl(boxed)
+        }
     }
 
-  public fun Point.toBuilder(): PointImpl.Builder {
-    val ret = PointImpl.Builder()
-    ret.x = x
-    ret.y = y
-    return ret
-  }
+    @JvmInline
+    value class DistanceImpl private constructor(
+        override val boxed: Double
+    ) : Point.Distance {
+        init {
+            validate()
+        }
 
-  @JvmInline
-  public value class CoordinateImpl private constructor(
-    override val boxed: Int,
-  ) : Point.Coordinate {
-    init {
-      validate()
+        override fun toString(): String =
+            boxed.toString()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Value<Double>> fork(boxed: Double): T =
+            DistanceImpl(boxed) as T
+
+        companion object {
+            operator fun invoke(value: Double): Point.Distance =
+                DistanceImpl(value)
+        }
     }
-    override fun toString(): String = boxed.toString()
 
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ValueObject.Boxed<Int>> fork(boxed: Int): T = CoordinateImpl(boxed) as T
+    class Builder {
+        var x: Point.Coordinate? = null
+        var y: Point.Coordinate? = null
 
-    public companion object {
-      public operator fun invoke(boxed: Int): Point.Coordinate = CoordinateImpl(boxed)
+        fun build(): Point {
+            checkNotNull(x) { "Property 'PointImpl.x' is not set!" }
+            checkNotNull(y) { "Property 'PointImpl.y' is not set!" }
+            return PointImpl(x!!, y!!)
+        }
     }
-  }
-
-  public class Builder {
-    public lateinit var x: Point.Coordinate
-
-    public lateinit var y: Point.Coordinate
-
-    public fun build(): PointImpl {
-      require(::x.isInitialized) { "Property 'PointImpl.x' is not set!" }
-      require(::y.isInitialized) { "Property 'PointImpl.y' is not set!" }
-      return PointImpl(x = x,y = y,)
-    }
-  }
 }
 ----
+.Функции-расширения.
+[source,kotlin]
+----
+fun Point.toBuilder(): PointImpl.Builder =
+    PointImpl.Builder().apply {
+        x = this@toBuilder.x
+        y = this@toBuilder.y
+    }
+
+fun Point.asString(): String =
+    "(${x.boxed},${y.boxed})"
+----
 Также в этом интерфейсе можно определить, например, метод расчета расстояния до другой точки или вынести такой функционал этой модели в функцию-расширение как _use case_ и покрыть юнит-тестом.
+
+.Use Case
+[source,kotlin]
+----
+infix fun Result<Point>.`distance to`(other: Result<Point>): Result<Point.Distance> =
+    mapCatching { src ->
+        (src - other.getOrThrow())
+            .let { it * it }
+            .let { it.x + it.y }
+            .let { sqrt(it.boxed.toDouble()) }
+            .let { PointImpl.DistanceImpl(it) }
+    }
+----
+.Применение
+[source,kotlin]
+----
+val point1 = runCatching {
+    PointImpl.Builder().apply {
+        x = PointImpl.CoordinateImpl(10)
+        y = PointImpl.CoordinateImpl(14)
+    }.build()
+}
+
+val point2 = runCatching {
+    PointImpl.Builder().apply {
+        x = PointImpl.CoordinateImpl(100)
+        y = PointImpl.CoordinateImpl(200)
+    }.build()
+}
+
+runCatching {
+    point1.getOrThrow().asString() to point2.getOrThrow().asString()
+}
+    .onSuccess { println("point1: ${it.first}, point2: ${it.second}") }
+    .onFailure { println("error: ${it.message}") }
+
+(point1 `distance to` point2)
+    .onSuccess { println("distance: $it") }
+    .onFailure { println("error: ${it.message}") }
+----
 
 [glossary]
 [#domain-model]
 == Термины и определения
 МПО:: Модель Предметной Области (Domain Model) — совокупность типов данных и их функционала. https://martinfowler.com/eaaCatalog/domainModel.html[Определение по М. Фаулеру].
 [#user]
-Пользователь:: Разработчик, использующий данную библиотеку для проектирования собственных типов (*CDT*) для некоторого своего домена.
+Пользователь:: Разработчик (бизнес-аналитик, архитектор), использующий данную библиотеку для проектирования собственных типов (*CDT*) для некоторого своего домена.
 [#fst]
 ФСТ:: Формальная система типов, построенная на заданной аксиоматике — постулатах, определяющих допустимые границы значений и операции над типами.
 [#pt]
