@@ -1,5 +1,7 @@
 package ru.it_arch.kddd.magic
 
+import io.kotest.matchers.doubles.plusOrMinus
+import io.kotest.matchers.shouldBe
 import ru.it_arch.kddd.magic.domain.asString
 import ru.it_arch.kddd.magic.domain.`distance to`
 import ru.it_arch.kddd.magic.impl.PointImpl
@@ -26,6 +28,6 @@ fun examplePoint() {
         .onFailure { println("error: $it") }
 
     (point1 `distance to` point2)
-        .onSuccess { println("distance: $it") }
+        .onSuccess { println("distance: ${it.boxed shouldBe 206.63.plusOrMinus(0.001)}") }
         .onFailure { println("error: $it") }
 }

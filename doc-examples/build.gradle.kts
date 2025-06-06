@@ -17,8 +17,7 @@ kotlin {
 dependencies {
     implementation(project(":lib"))
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlinpoet)
-    implementation(libs.kotlinpoet.ksp)
+    implementation(libs.kotest.assertions)
 }
 
 val MAIN_CLASS = "ru.it_arch.kddd.magic.MainKt"
