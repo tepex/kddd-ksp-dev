@@ -4,6 +4,9 @@ import ru.it_arch.kddd.ValueObject
 import java.io.File
 import java.util.UUID
 
+/**
+ * [qqqq](https://ya.ru/)
+ * */
 interface ExampleForDslMode : ValueObject.Data {
     val primitive: Primitive
     val anyUuid: CommonUuid

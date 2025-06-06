@@ -13,7 +13,8 @@ data class ExampleForDslModeImpl private constructor(
     override val anyFile: ExampleForDslMode.CommonFile,
     override val nested: ExampleForDslMode.SomeNestedType,
     override val simpleList: List<ExampleForDslMode.Primitive>,
-    override val simpleMap: Map<ExampleForDslMode.Primitive, ExampleForDslMode.CommonUuid?>
+    override val simpleMap: Map<ExampleForDslMode.Primitive, ExampleForDslMode.CommonUuid?>,
+    //override val complexCollection: Map<Set<ExampleForDslMode.Primitive>, Map<ExampleForDslMode.Primitive, ExampleForDslMode.CommonFile>>
 ) : ExampleForDslMode {
 
     init {
@@ -31,6 +32,7 @@ data class ExampleForDslModeImpl private constructor(
             nested = args[3] as ExampleForDslMode.SomeNestedType
             simpleList = args[4] as List<ExampleForDslMode.Primitive>
             simpleMap = args[5] as Map<ExampleForDslMode.Primitive, ExampleForDslMode.CommonUuid?>
+            //complexCollection = args[6]
         }.build() as T
 
     @JvmInline
