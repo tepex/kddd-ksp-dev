@@ -94,6 +94,8 @@ IMPORTANT: Слова «*MUST*», «*MUST NOT*», «*REQUIRED*», «*SHALL*/*SHO
 [#reg-iface-annotation,reftext="Регламент/Интерфейс CDT п.9"]
 . *Аннотируемость Kddd*. Может (*OPTIONAL*) предваряться `KDDD`-аннотациями.
 
+Пример применения регламента для модели link:../doc-examples/src/main/kotlin/domain/Point.kt[Point].
+
 === Имплементация *CDT*
 Имплементация *CDT* должна соответствовать следующим принципиальным положениям:
 
@@ -164,6 +166,8 @@ override fun <T : ValueObject.Value<BoxedType>> fork(boxed: BoxedType): T = CdtI
 .. *Валидируемость*. Должен (*SHOULD*) переопределять метод `validate()`, который будет вызываться перед созданием объекта. В нем пишется логика проверки валидности свойств и параметров и выкидывается IllegalStateException в случае непрохождения проверки. Может быть (*MAY*) пустым, если логика валидации не задана.
 [#reg-impl-to-builder,reftext="Регламент/Имплементация CDT п.II"]
 . *Конвертируемость в Builder*. Должен иметь (*MUST*) метод-расширение `Cdt.toBuilder(): CdtImpl.Builder`, создающий и возвращающий объект `Builder`.
+
+Пример применения регламента для имплементации модели link:../doc-examples/src/main/kotlin/impl/PointImpl.kt[PointImpl].
 
 === DSL
 В режиме DSL предусмотрено два варианта инициализации свойств простых типов `ValueObject.Value<BOXED : Any>`, где `BOXED` является <<ct,*ТОН*>>:
