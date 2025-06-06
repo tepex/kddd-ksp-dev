@@ -29,5 +29,6 @@ include(
     ":presentation",
     ":my-cool-domain",
     ":demo",
-    ":processor"
+    ":processor",
+    ":doc-examples"
 )
