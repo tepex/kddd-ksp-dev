@@ -3,15 +3,14 @@ package ru.it_arch.kddd.magic.impl
 import ru.it_arch.kddd.magic.domain.ExampleForDslMode
 import ru.it_arch.kddd.magic.domain.Point
 
+/** [Регламент/Имплементация CDT п.II](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-to-builder) */
 fun Point.toBuilder(): PointImpl.Builder =
     PointImpl.Builder().apply {
         x = this@toBuilder.x
         y = this@toBuilder.y
     }
 
-
-
-
+/** [Регламент/Имплементация CDT п.II](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-to-builder) */
 fun ExampleForDslMode.toBuilder(): ExampleForDslModeImpl.Builder =
     ExampleForDslModeImpl.Builder().apply {
         primitive = this@toBuilder.primitive
@@ -32,6 +31,7 @@ fun ExampleForDslMode.toDslBuilder(): ExampleForDslModeImpl.DslBuilder =
         simpleMap = this@toDslBuilder.simpleMap.entries.associate { it.key.boxed to it.value?.toString() }.toMutableMap()
     }
 
+/** [Регламент/Имплементация CDT п.II](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-to-builder) */
 fun ExampleForDslMode.SomeNestedType.toBuilder(): ExampleForDslModeImpl.SomeNestedTypeImpl.Builder =
     ExampleForDslModeImpl.SomeNestedTypeImpl.Builder().apply {
         simple = this@toBuilder.simple
