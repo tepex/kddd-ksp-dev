@@ -1,7 +1,7 @@
 package ru.it_arch.kddd
 
 /**
- * Определяет параметры генерируемой имплементации для [ValueObject] и [IEntity]
+ * Определяет параметры генерируемой имплементации для [ValueObject] и [Entity]
  *
  * @property implementationName имя генерируемой имплементации. Переопределяет опцию KSP.
  * @property dsl вкл/выкл генерацию DSL. По умолчанию — true

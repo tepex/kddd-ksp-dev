@@ -55,6 +55,7 @@ data class PointImpl private constructor(
             CoordinateImpl(boxed) as T
 
         companion object {
+            val IDENTITY: Point.Coordinate = CoordinateImpl(0)
             /** [Регламент/Имплементация CDT п.I.7.3](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-value-builder) */
             operator fun invoke(boxed: Int): Point.Coordinate = CoordinateImpl(boxed)
         }
@@ -107,5 +108,9 @@ data class PointImpl private constructor(
             checkNotNull(y) { "Property 'PointImpl.y' is not set!" }
             return PointImpl(x!!, y!!)
         }
+    }
+
+    companion object {
+        val IDENTITY: Point = PointImpl(CoordinateImpl.IDENTITY, CoordinateImpl.IDENTITY)
     }
 }

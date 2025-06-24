@@ -1,6 +1,6 @@
 package ru.it_arch.kddd.domain
 
-import ru.it_arch.kddd.IEntity
+import ru.it_arch.kddd.Entity
 import ru.it_arch.kddd.ValueObject
 import ru.it_arch.kddd.domain.internal.hasDsl
 import ru.it_arch.kddd.domain.internal.toGeneratable
@@ -30,7 +30,7 @@ context(ctx: Context, _: Options)
 public fun String.toKDddType(/*ctx: Context*/): Result<KdddType> = ctx.toGeneratable().let { generatable ->
     when(substringBefore('<')) {
         ValueObject.Data::class.java.simpleName           -> Result.success(DataClassImpl(generatable, ctx.properties, ctx.hasDsl))
-        IEntity::class.java.simpleName        -> Result.success(EntityImpl(DataClassImpl(generatable, ctx.properties, ctx.hasDsl)))
+        Entity::class.java.simpleName        -> Result.success(EntityImpl(DataClassImpl(generatable, ctx.properties, ctx.hasDsl)))
         ValueObject.Value::class.java.simpleName -> Result.success(this toBoxedTypeWith generatable)
         else                                  -> Result.failure(IllegalStateException("Unknown Kddd type: $this"))
     }

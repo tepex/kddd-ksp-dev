@@ -1,6 +1,6 @@
 package ru.it_arch.kddd
 
-public interface IEntity : Kddd {
+public interface Entity : Kddd {
     public val id: ValueObject
-    public val content: ValueObject.Data
+    public var content: ValueObject.Data
 }
