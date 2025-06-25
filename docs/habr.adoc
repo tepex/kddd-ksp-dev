@@ -56,7 +56,7 @@ Tepex <tepex@mail.ru>
 |Как разработчик я хочу |чтобы
 
 |Иметь ограничения в виде требований, норм, принципов
-|в результате получать чистый код.
+|в результате получать чистый код и, тем самым, снизить цену владения.
 
 |Иметь базовое основание ФСТ
 |проектировать собственную <<helix-model,УМ>>.
@@ -83,9 +83,19 @@ Tepex <tepex@mail.ru>
 
 
 === Цель
-Создание фреймворка методологии проектирования моделей. Создание инструмента
+Создание фреймворка, который включает методологию разработки <<helix-model,УМ>> и инструмент кодогенерации.
 
 === Задачи
+
+* Создать библиотеку базовой <<fts,ФСТ>> для тактических DDD-паттернов _Entity_ и _Value Object_.
+* Разработать методологию и регламент проектирования <<helix-model,УМ>>.
+* Разрабртать кодогенератор финального кода, включающего следующий функционал:
+** опции кодогенератора, позволяющие настраивать различные правила формирования выходного результата: имена классов, имена пакетов, и пр.,
+** кодогенерация:
+*** имплементирующих классов,
+*** классических билдеров (паттерн _Строитель_),
+*** DSL-билдеров,
+*** сериализации/десериализации
 
 === Технологии
 
@@ -99,91 +109,41 @@ TODO: Регламент построения интерфейсов
 TODO: Описание работы KSP, KotlinPoet, Domain, Builder, DslBuilder, Serialization
 Samples Point, Use Cases
 
+== Подвал
+
+TODO: сопоставить/разложить в таблицу
+
+=== Боль
+* неэффективное расходование ресурсов
+* высокая цена владения кодовой базы
+* добавление нового функционала с каждым разом все труднее
+* не тот результат
+* нехватка ресурсов
+* сроки
+* демотивация команды разработки
+
+* Растерянность. Потеря во времени и пространстве.
+
+=== Страх
+* Боль. Наступить на грабли.
+* Неизвестность. Негативный опыт. Молоко-вода.
+* Быть обманутым. Риски. Принять неправильное решение. Рождает карго-культ.
+* Недостичь результата / получить не тот.
+
+=== Причины
+* Кустарщина
+* Закостыленность кода
+* PoC в проде и необходимость его поддерживать
+* Иллюзии. Очковтирательство.
+* Карго-культ
 
 
+=== Рекомендации
 
-== First level heading
-
-This is a paragraph with a *bold* word and an _italicized_ word.
-
-.Image caption
-image::image-file-name.png[I am the image alt text.]
-
-This is another paragraph.footnote:[I am footnote text and will be displayed at the bottom of the article.]
-
-=== Second level heading 111
-
-.Unordered list title
-* list item 1
-** nested list item
-*** nested nested list item 1
-*** nested nested list item 2
-* list item 2
-
-This is a paragraph.
-
-.Example block title
-====
-Content in an example block is subject to normal substitutions.
-====
-
-.Sidebar title
-****
-Sidebars contain aside text and are subject to normal substitutions.
-****
-
-==== Third level heading
-
-[#id-for-listing-block]
-.Listing block title
-----
-Content in a listing block is subject to verbatim substitutions.
-Listing block content is commonly used to preserve code input.
-----
-
-===== Fourth level heading
-
-.Table title
-|===
-|Column heading 1 |Column heading 2
-
-|Column 1, row 1
-|Column 2, row 1
-
-|Column 1, row 2
-|Column 2, row 2
-|===
-
-====== Fifth level heading
-
-[quote,firstname lastname,movie title]
-____
-I am a block quote or a prose excerpt.
-I am subject to normal substitutions.
-____
-
-[verse,firstname lastname,poem title and more]
-____
-I am a verse block.
-  Indents and endlines are preserved in verse blocks.
-____
-
-== First level heading
-
-TIP: There are five admonition labels: Tip, Note, Important, Caution and Warning.
-
-// I am a comment and won't be rendered.
-
-. ordered list item
-.. nested ordered list item
-. ordered list item
-
-The text at the end of this sentence is cross referenced to <<_third_level_heading,the third level heading>>
-
-== First level heading
-
-This is a link to the https://docs.asciidoctor.org/home/[Asciidoctor documentation].
-This is an attribute reference {url-quickref}[that links this text to the AsciiDoc Syntax Quick Reference].
+=== Сообщество
+// Начальный уровень
+// Устав
+// Обозначить переход на следующий уровень.
 
 [glossary]
 == Понятия, термины и определения
