@@ -1,6 +1,5 @@
 package ru.it_arch.kddd.magic.impl
 
-import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 import ru.it_arch.kddd.magic.domain.Point
 
@@ -22,12 +21,12 @@ data class PointImpl private constructor(
         validate()
     }
 
-    override val distanceIdentity: Point.Distance
-        get() = DistanceImpl.ZERO
+    override val neutralDistance: Point.Distance
+        get() = DistanceImpl.DEFAULT
 
     /** [Регламент/Имплементация CDT п.I.6.3](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-data-fork) */
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+    override fun <T : ValueObject> fork(vararg args: Any?): T =
         Builder().apply {
             x = args[0] as Point.Coordinate
             y = args[1] as Point.Coordinate
@@ -51,11 +50,11 @@ data class PointImpl private constructor(
             boxed.toString()
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Value<Int>> fork(boxed: Int): T =
+        override fun <T : ValueObject.Value<Int>> apply(boxed: Int): T =
             CoordinateImpl(boxed) as T
 
         companion object {
-            val IDENTITY: Point.Coordinate = CoordinateImpl(0)
+            val DEFAULT: Point.Coordinate = CoordinateImpl(0)
             /** [Регламент/Имплементация CDT п.I.7.3](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-value-builder) */
             operator fun invoke(boxed: Int): Point.Coordinate = CoordinateImpl(boxed)
         }
@@ -76,11 +75,12 @@ data class PointImpl private constructor(
             boxed.toString()
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Value<Double>> fork(boxed: Double): T =
+        override fun <T : ValueObject.Value<Double>> apply(boxed: Double): T =
             DistanceImpl(boxed) as T
 
         companion object {
-            val ZERO: Point.Distance = DistanceImpl(0.0)
+            // TODO: generate
+            val DEFAULT: Point.Distance = DistanceImpl(0.0)
 
             /** [Регламент/Имплементация CDT п.I.7.3](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-value-builder) */
             operator fun invoke(value: Double): Point.Distance =
@@ -111,6 +111,7 @@ data class PointImpl private constructor(
     }
 
     companion object {
-        val IDENTITY: Point = PointImpl(CoordinateImpl.IDENTITY, CoordinateImpl.IDENTITY)
+        // TODO: регламени
+        val DEFAULT: Point = PointImpl(CoordinateImpl.DEFAULT, CoordinateImpl.DEFAULT)
     }
 }

@@ -9,16 +9,16 @@ interface Price : ValueObject.Value<BigDecimal> {
     }
 
     operator fun plus(other: Price): Price =
-        fork(boxed + other.boxed)
+        apply(boxed + other.boxed)
 
     operator fun minus(other: Price): Price =
-        fork(boxed - other.boxed)
+        apply(boxed - other.boxed)
 
     operator fun times(other: Price): Price =
-        fork(boxed * other.boxed)
+        apply(boxed * other.boxed)
 
     operator fun div(other: Price): Price =
-        fork(boxed / other.boxed)
+        apply(boxed / other.boxed)
 
     operator fun compareTo(other: Price): Int =
         boxed.compareTo(other.boxed)

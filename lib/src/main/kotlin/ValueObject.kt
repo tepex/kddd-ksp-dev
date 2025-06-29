@@ -4,7 +4,7 @@ public sealed interface ValueObject : Kddd {
 
     /** For `data class` */
     public interface Data : ValueObject {
-        public fun <T: Kddd, A: Kddd> fork(vararg args: A): T
+        public fun <T: ValueObject> fork(vararg args: Any?): T
     }
 
     /** For `value class` */
@@ -17,7 +17,7 @@ public sealed interface ValueObject : Kddd {
          * Имеет тот же смысл, что и метод `copy()` у `data class`. Обусловлен необходимостью создовать объект на
          * уровне абстракции, чтобы иметь возможность писать логику, еще до генерации имплементации.
          * */
-        public fun <T : Value<BOXED>> fork(boxed: BOXED): T
+        public fun <T : Value<BOXED>> apply(boxed: BOXED): T
     }
 
     /** For `enum class`, `sealed interface` */

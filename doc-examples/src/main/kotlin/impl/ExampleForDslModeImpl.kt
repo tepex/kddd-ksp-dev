@@ -1,6 +1,5 @@
 package ru.it_arch.kddd.magic.impl
 
-import ru.it_arch.kddd.Kddd
 import ru.it_arch.kddd.ValueObject
 import ru.it_arch.kddd.magic.domain.ExampleForDslMode
 import java.io.File
@@ -24,7 +23,7 @@ data class ExampleForDslModeImpl private constructor(
     override fun validate() {}
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+    override fun <T : ValueObject> fork(vararg args: Any?): T =
         Builder().apply {
             primitive = args[0] as ExampleForDslMode.Primitive
             anyUuid = args[1] as ExampleForDslMode.CommonUuid
@@ -39,7 +38,7 @@ data class ExampleForDslModeImpl private constructor(
     value class PrimitiveImpl private constructor(override val boxed: Int) : ExampleForDslMode.Primitive {
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Value<Int>> fork(boxed: Int): T =
+        override fun <T : ValueObject.Value<Int>> apply(boxed: Int): T =
             PrimitiveImpl(boxed) as T
 
         override fun toString(): String =
@@ -55,7 +54,7 @@ data class ExampleForDslModeImpl private constructor(
     value class CommonUuidImpl private constructor(override val boxed: UUID): ExampleForDslMode.CommonUuid {
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Value<UUID>> fork(boxed: UUID): T =
+        override fun <T : ValueObject.Value<UUID>> apply(boxed: UUID): T =
             CommonUuidImpl(boxed) as T
 
         override fun toString(): String =
@@ -74,7 +73,7 @@ data class ExampleForDslModeImpl private constructor(
     value class CommonFileImpl private constructor(override val boxed: File): ExampleForDslMode.CommonFile {
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Value<File>> fork(boxed: File): T =
+        override fun <T : ValueObject.Value<File>> apply(boxed: File): T =
             CommonFileImpl(boxed) as T
 
         override fun toString(): String =
@@ -97,7 +96,7 @@ data class ExampleForDslModeImpl private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : Kddd, A : Kddd> fork(vararg args: A): T = Builder().apply {
+        override fun <T : ValueObject> fork(vararg args: Any?): T = Builder().apply {
             simple = args[0] as ExampleForDslMode.SomeNestedType.SimpleType
             nullableSimple = args[1] as ExampleForDslMode.SomeNestedType.SimpleType?
         }.build() as T
@@ -115,7 +114,7 @@ data class ExampleForDslModeImpl private constructor(
                 boxed
 
             @Suppress("UNCHECKED_CAST")
-            override fun <T : ValueObject.Value<String>> fork(boxed: String): T =
+            override fun <T : ValueObject.Value<String>> apply(boxed: String): T =
                 SimpleTypeImpl(boxed) as T
 
             companion object {

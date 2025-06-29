@@ -1,5 +1,6 @@
 package ru.it_arch.kddd.magic.domain
 
+import ru.it_arch.kddd.Neutral
 import ru.it_arch.kddd.ValueObject
 
 /**
@@ -15,7 +16,9 @@ interface Point : ValueObject.Data {
     // dirty hack 3 варианта
     /** Нейтральный элемент [алгебра]. Необходим, чтобы иметь возможность оперировать объектом [Distance] на уровне
      * абстракций для написания use case.*/
-    val distanceIdentity: Distance
+
+    @Neutral
+    val neutralDistance: Distance
 
     /** [Регламент/Интерфейс CDT п.7](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-iface-validatable) */
     override fun validate() {}
@@ -39,15 +42,16 @@ interface Point : ValueObject.Data {
         override fun validate() {}
 
         operator fun plus(other: Coordinate): Coordinate =
-            fork(boxed + other.boxed)
+            apply(boxed + other.boxed)
 
         operator fun minus(other: Coordinate): Coordinate =
-            fork(boxed - other.boxed)
+            apply(boxed - other.boxed)
 
         operator fun times(other: Coordinate): Coordinate =
-            fork(boxed * other.boxed)
+            apply(boxed * other.boxed)
     }
 
+    //@ADT
     /** [Регламент/Интерфейс CDT п.5.3](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-iface-property-nested)
      * [Регламент/Интерфейс CDT п.6.1](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-iface-property-boxed)
      * */
@@ -58,5 +62,12 @@ interface Point : ValueObject.Data {
             val range = 0.0..300.0
             check(boxed in range) { "Distance not in range $range" }
         }
+
+        operator fun plus(other: Double): Distance =
+            apply(boxed + other)
+    }
+
+    sealed interface DistancceAdt {
+
     }
 }

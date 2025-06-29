@@ -10,7 +10,7 @@ kotlin {
     jvmToolchain(19)
     compilerOptions {
         apiVersion.set(KotlinVersion.KOTLIN_2_0)
-        //freeCompilerArgs = freeCompilerArgs.get() + "-Xcontext-rceivers"
+        freeCompilerArgs = freeCompilerArgs.get() + "-Xcontext-parameters"
     }
 }
 

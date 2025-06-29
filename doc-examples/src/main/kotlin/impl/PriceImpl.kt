@@ -15,7 +15,7 @@ value class PriceImpl private constructor(override val boxed: BigDecimal) : Pric
         boxed.toString()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ValueObject.Value<BigDecimal>> fork(boxed: BigDecimal): T =
+    override fun <T : ValueObject.Value<BigDecimal>> apply(boxed: BigDecimal): T =
         PriceImpl(boxed) as T
 
     companion object {

@@ -2,6 +2,7 @@ package ru.it_arch.kddd.magic.impl
 
 import ru.it_arch.kddd.magic.domain.ExampleForDslMode
 import ru.it_arch.kddd.magic.domain.Point
+import ru.it_arch.kddd.magic.domain.SandwichRecipe
 
 /** [Регламент/Имплементация CDT п.II](https://github.com/tepex/kddd-ksp-dev/blob/new-arch/docs/kddd.adoc#reg-impl-to-builder) */
 fun Point.toBuilder(): PointImpl.Builder =
@@ -20,6 +21,9 @@ fun ExampleForDslMode.toBuilder(): ExampleForDslModeImpl.Builder =
         simpleList = this@toBuilder.simpleList
         simpleMap = this@toBuilder.simpleMap
     }
+
+
+
 
 fun ExampleForDslMode.toDslBuilder(): ExampleForDslModeImpl.DslBuilder =
     ExampleForDslModeImpl.DslBuilder().apply {
@@ -49,3 +53,14 @@ fun exampleForDslMode(block: ExampleForDslModeImpl.DslBuilder.() -> Unit): Examp
 
 fun someNestedType(block: ExampleForDslModeImpl.SomeNestedTypeImpl.DslBuilder.() -> Unit): ExampleForDslMode.SomeNestedType =
     ExampleForDslModeImpl.SomeNestedTypeImpl.DslBuilder().apply(block).build()
+
+fun sandwichRecipe(
+    start: SandwichRecipe.StartNewSandwich,
+    add: SandwichRecipe.AddComponent,
+    finish: SandwichRecipe.Finish
+): SandwichRecipe =
+    SandwichRecipeImpl.Builder().apply {
+        this.start = start
+        this.add = add
+        this.finish = finish
+    }.build()
