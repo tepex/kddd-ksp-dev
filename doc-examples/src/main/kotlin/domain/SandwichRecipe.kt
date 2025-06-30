@@ -1,18 +1,11 @@
 package ru.it_arch.kddd.magic.domain
 
-import ru.it_arch.kddd.Neutral
 import ru.it_arch.kddd.ValueObject
 
 interface SandwichRecipe : ValueObject.Data {
     val start: StartNewSandwich
     val add: AddComponent
     val finish: Finish
-
-    /*
-    @Neutral
-    val neutralSandwich: Sandwich
-    @Neutral
-    val neutralSandwichBody: SandwichBody*/
 
     override fun validate() {}
 

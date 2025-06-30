@@ -1,8 +1,6 @@
 package ru.it_arch.kddd.magic.impl
 
 import ru.it_arch.kddd.ValueObject
-import ru.it_arch.kddd.magic.domain.Sandwich
-import ru.it_arch.kddd.magic.domain.SandwichBody
 import ru.it_arch.kddd.magic.domain.SandwichRecipe
 import ru.it_arch.kddd.magic.domain.SandwichRecipe.AddComponent
 import ru.it_arch.kddd.magic.domain.SandwichRecipe.Finish
@@ -19,13 +17,6 @@ data class SandwichRecipeImpl private constructor(
         validate()
     }
 
-    /*
-    override val neutralSandwich: Sandwich
-        get() = SandwichImpl.DEFAULT
-
-    override val neutralSandwichBody: SandwichBody
-        get() = SandwichBodyImpl.DEFAULT*/
-
     @Suppress("UNCHECKED_CAST")
     override fun <T : ValueObject> fork(vararg args: Any?): T =
         Builder().apply {
@@ -33,22 +24,6 @@ data class SandwichRecipeImpl private constructor(
             add = args[1] as AddComponent
             finish = args[2] as Finish
         }.build() as T
-
-    /* Interpreters
-    inner class StartNewSandwichImpl : StartNewSandwich {
-        override fun doIt(bread: Sandwich.Ingredient.Bread, component: Sandwich.Ingredient.Component): SandwichBody =
-            neutralSandwichBody.fork(bread, listOf(component))
-    }
-
-    inner class AddComponentImpl : AddComponent {
-        override fun doIt(sandwichBody: SandwichBody, component: Sandwich.Ingredient.Component): SandwichBody =
-            sandwichBody + component
-    }
-
-    inner class FinishImpl : Finish {
-        override fun doIt(sandwichBody: SandwichBody, mayBeBread: Sandwich.Ingredient.Bread?): Sandwich =
-            neutralSandwich.fork(sandwichBody.bread, mayBeBread, sandwichBody.components)
-    }*/
 
     class Builder {
         var start: StartNewSandwich? = null
@@ -66,9 +41,9 @@ data class SandwichRecipeImpl private constructor(
 
     companion object {
         val DEFAULT = SandwichRecipeImpl(
-            { bread, component -> SandwichBodyImpl.DEFAULT },
-            { sandwichBody, component -> SandwichBodyImpl.DEFAULT },
-            { sandwichBody, mayBeBread -> SandwichImpl.DEFAULT }
+            { _, _ -> SandwichBodyImpl.DEFAULT },
+            { _, _ -> SandwichBodyImpl.DEFAULT },
+            { _, _ -> SandwichImpl.DEFAULT }
         )
     }
 }

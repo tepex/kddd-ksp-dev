@@ -4,5 +4,6 @@ fun main() {
     //examplePoint()
     //examplePrice()
     //dslExample()
-    sandwichExample()
+    //sandwichExample()
+    sandwichFsmExample()
 }
