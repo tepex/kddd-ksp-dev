@@ -66,8 +66,4 @@ interface Point : ValueObject.Data {
         operator fun plus(other: Double): Distance =
             apply(boxed + other)
     }
-
-    sealed interface DistancceAdt {
-
-    }
 }
