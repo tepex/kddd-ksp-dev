@@ -15,12 +15,3 @@ infix fun Result<Point>.`distance to`(other: Result<Point>): Result<Point.Distan
     mapCatching { src ->
         src `distance to` other.getOrThrow()
     }
-
-fun interface DistanceFm {
-    fun invoke(p1: Point, p2: Point): Point.Distance
-}
-
-class DistanceGeom : DistanceFm {
-    override fun invoke(p1: Point, p2: Point): Point.Distance =
-        p1 `distance to` p2
-}
