@@ -11,8 +11,8 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.encoding.CompositeEncoder
-import ru.it_arch.kddd.KDParsable
-import ru.it_arch.kddd.ValueObject
+import ru.it_arch.k3dm.Parsable
+import ru.it_arch.k3dm.ValueObject
 
 /**
  * Основная модель фреймворка.
@@ -116,6 +116,7 @@ public sealed interface KDType {
             public const val BUILDER_CLASS_NAME: String = "Builder"
             public const val DSL_BUILDER_CLASS_NAME: String = "DslBuilder"
             public const val BUILDER_BUILD_METHOD_NAME: String = "build"
+            public const val FORK_METHOD: String = "fork"
             public const val APPLY_BUILDER: String = "%T().apply(%N).$BUILDER_BUILD_METHOD_NAME()"
 
             context(ctx: KDTypeContext)
@@ -127,7 +128,7 @@ public sealed interface KDType {
     /**
      * Определяет DDD сущность `Entity`
      * */
-    public class IEntity private constructor(private val data: Data) : Model by data {
+    public class Entity private constructor(private val data: Data) : Model by data {
 
         private val paramId = propertyHolders.find { it.name.simpleName == ID_NAME }
             ?: error("ID parameter not found for Entity $className")
@@ -175,24 +176,24 @@ public sealed interface KDType {
             public const val ID_NAME: String = "id"
 
             context(ctx: KDTypeContext)
-            public operator fun invoke(annotations: List<Annotation>): IEntity =
-                Data(annotations, true).let(KDType::IEntity)
+            public operator fun invoke(annotations: List<Annotation>): Entity =
+                Data(annotations, true).let(KDType::Entity)
         }
     }
 
     /**
      * Определяет котлиновскую класс-обертку `value class`
      * */
-    public class Boxed private constructor(
+    public class Value private constructor(
         private val forGeneration: KDTypeForGeneration,
         public val boxedType: TypeName,
     ) : Generatable by forGeneration, KDType {
 
         public val isUseStringInDsl: Boolean =
-            forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.useStringInDsl ?: false
+            forGeneration.annotations.filterIsInstance<Parsable>().firstOrNull()?.useStringInDsl ?: false
 
         public val isParsable: Boolean =
-            forGeneration.annotations.filterIsInstance<KDParsable>().isNotEmpty()
+            forGeneration.annotations.filterIsInstance<Parsable>().isNotEmpty()
 
         public val fabricMethod: String =
             FABRIC_PARSE_METHOD.takeIf { isParsable && isUseStringInDsl } ?: FABRIC_CREATE_METHOD
@@ -204,7 +205,7 @@ public sealed interface KDType {
         public fun asIsOrSerialize(variable: String, isNullable: Boolean): String =
             StringBuilder().apply {
                 append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
-                forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization
+                forGeneration.annotations.filterIsInstance<Parsable>().firstOrNull()?.serialization
                     .takeIf { isUseStringInDsl }?.also { append(".$it") }
             }.toString()
 
@@ -220,7 +221,7 @@ public sealed interface KDType {
         public fun asSerialize(variable: String, isNullable: Boolean): String =
             StringBuilder().apply {
                 append("$variable?.$PARAM_NAME".takeIf { isNullable } ?: "$variable.$PARAM_NAME")
-                forGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()?.serialization?.also { append(".$it") }
+                forGeneration.annotations.filterIsInstance<Parsable>().firstOrNull()?.serialization?.also { append(".$it") }
             }.toString()
 
         public fun asDeserialize(variable: String, isNullable: Boolean): String =
@@ -233,15 +234,15 @@ public sealed interface KDType {
             public const val PARAM_NAME: String = "boxed"
             public const val FABRIC_CREATE_METHOD: String = "create"
             public const val FABRIC_PARSE_METHOD: String = "parse"
-            public const val CREATE_METHOD: String = "fork"
+            public const val APPLY_METHOD: String = "apply"
 
             context(ctx: KDTypeContext)
-            public operator fun invoke(annotations: List<Annotation>, superInterfaceName: TypeName): Boxed = run {
+            public operator fun invoke(annotations: List<Annotation>, superInterfaceName: TypeName): Value = run {
                 require(superInterfaceName is ParameterizedTypeName && superInterfaceName.typeArguments.size == 1) {
                     "Class name `$superInterfaceName` expected type parameter"
                 }
                 superInterfaceName.typeArguments.first()
-                    .let { Boxed(KDTypeForGeneration(ctx, annotations, it), it) }
+                    .let { Value(KDTypeForGeneration(ctx, annotations, it), it) }
             }
         }
     }

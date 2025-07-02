@@ -7,8 +7,8 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.asTypeName
-import ru.it_arch.kddd.Kddd
-import ru.it_arch.kddd.ValueObject
+import ru.it_arch.k3dm.Fts
+import ru.it_arch.k3dm.ValueObject
 
 @ConsistentCopyVisibility
 public data class KDOutputFile private constructor(
@@ -55,7 +55,7 @@ public data class KDOutputFile private constructor(
 
     override fun validate() {}
 
-    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T {
+    override fun <T : Fts, A : Fts> fork(vararg args: A): T {
         TODO("Not yet implemented")
     }
 

@@ -15,7 +15,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":kddd"))
+    implementation(libs.k3dm)
     implementation(project(":my-cool-domain"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinpoet)

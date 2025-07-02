@@ -20,9 +20,8 @@ import kotlin.Suppress
 import kotlin.Unit
 import kotlin.jvm.JvmInline
 import ru.it_arch.clean_ddd.domain.demo.WithInner
-import ru.it_arch.clean_ddd.domain.demo.impl.WithInnerImpl.MyInnerImpl.Builder
-import ru.it_arch.kddd.Kddd
-import ru.it_arch.kddd.ValueObject
+import ru.it_arch.k3dm.Fts
+import ru.it_arch.k3dm.ValueObject
 
 @ConsistentCopyVisibility
 @Serializable(with = WithInnerCustomImpl.Companion::class)
@@ -36,7 +35,7 @@ public data class WithInnerCustomImpl private constructor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+    override fun <T : Fts, A : Fts> fork(vararg args: A): T  =
         Builder().apply {
             myInner = args[0] as WithInner.MyInner
             myOptionalInner = args[1] as WithInner.MyInner?
@@ -67,7 +66,7 @@ public data class WithInnerCustomImpl private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : Kddd, A : Kddd> fork(vararg args: A): T =
+        override fun <T : Fts, A : Fts> fork(vararg args: A): T  =
             Builder().apply {
                 innerLong = args[0] as WithInner.MyInner.InnerLong
                 innerStr = args[1] as WithInner.MyInner.InnerStr
@@ -97,7 +96,7 @@ public data class WithInnerCustomImpl private constructor(
             override fun toString(): String = boxed.toString()
 
             @Suppress("UNCHECKED_CAST")
-            override fun <T : ValueObject.Boxed<Long>> fork(boxed: Long): T = InnerLongImpl(boxed) as T
+            override fun <T : ValueObject.Value<Long>> apply(boxed: Long): T = InnerLongImpl(boxed) as T
 
             public companion object {
                 public fun create(boxed: Long): InnerLongImpl = InnerLongImpl(boxed)
@@ -114,7 +113,7 @@ public data class WithInnerCustomImpl private constructor(
             override fun toString(): String = boxed.toString()
 
             @Suppress("UNCHECKED_CAST")
-            override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T = InnerStrImpl(boxed) as T
+            override fun <T : ValueObject.Value<String>> apply(boxed: String): T = InnerStrImpl(boxed) as T
 
             public companion object {
                 public fun create(boxed: String): InnerStrImpl = InnerStrImpl(boxed)

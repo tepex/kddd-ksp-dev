@@ -2,15 +2,14 @@ package ru.it_arch.clean_ddd.ksp.model
 
 import com.squareup.kotlinpoet.ClassName
 import kotlinx.serialization.ExperimentalSerializationApi
-import ru.it_arch.kddd.ValueObject
+import ru.it_arch.k3dm.ValueObject
 import kotlin.OptIn
 
 /**
  * Опции KSP.
  * */
 @ConsistentCopyVisibility
-public data class KDOptions @OptIn(ExperimentalSerializationApi::class)
-private constructor(
+public data class KDOptions @OptIn(ExperimentalSerializationApi::class) private constructor(
     private val subpackage: Subpackage?,
     private val generatedClassNameRe: Regex,
     private val generatedClassNameResult: ResultTemplate,
@@ -53,16 +52,17 @@ private constructor(
         toImplementationName(src).let(ClassName::bestGuess)
 
     public fun getBuilderFunctionName(src: String): BuilderFunctionName =
-        src.replaceFirstChar { it.lowercaseChar() }.let(BuilderFunctionName.Companion::create)
+        src.replaceFirstChar { it.lowercaseChar() }.let { BuilderFunctionName(it) }
 
     @JvmInline
-    public value class PackageName(override val boxed: String): ValueObject.Boxed<String> {
+    public value class PackageName private constructor(override val boxed: String): ValueObject.Value<String> {
         init {
             validate()
         }
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            fork(boxed) as T
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Value<String>> apply(boxed: String): T =
+            PackageName(boxed) as T
 
         override fun validate() {}
 
@@ -70,39 +70,41 @@ private constructor(
             boxed
 
         public companion object {
-            public fun create(boxed: String): PackageName =
+            public operator fun invoke(boxed: String): PackageName =
                 PackageName(boxed)
         }
     }
 
     @JvmInline
-    public value class BuilderFunctionName(override val boxed: String): ValueObject.Boxed<String> {
+    public value class BuilderFunctionName private constructor(override val boxed: String): ValueObject.Value<String> {
         init {
             validate()
         }
 
         override fun validate() {}
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            fork(boxed) as T
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Value<String>> apply(boxed: String): T =
+            BuilderFunctionName(boxed) as T
 
         override fun toString(): String =
             boxed
 
         public companion object {
-            public fun create(boxed: String): BuilderFunctionName =
+            public operator fun invoke(boxed: String): BuilderFunctionName =
                 BuilderFunctionName(boxed)
         }
     }
 
     @JvmInline
-    private value class Subpackage(override val boxed: String): ValueObject.Boxed<String> {
+    private value class Subpackage private constructor(override val boxed: String): ValueObject.Value<String> {
         init {
             validate()
         }
 
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            fork(boxed) as T
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Value<String>> apply(boxed: String): T =
+            Subpackage(boxed) as T
 
         // TODO: validate name
         override fun validate() { }
@@ -111,19 +113,21 @@ private constructor(
             boxed
 
         companion object {
-            fun create(boxed: String): Subpackage =
+            operator fun invoke(boxed: String): Subpackage =
                 Subpackage(boxed)
         }
     }
 
     @JvmInline
-    private value class ResultTemplate(override val boxed: String): ValueObject.Boxed<String> {
-        override fun <T : ValueObject.Boxed<String>> fork(boxed: String): T =
-            fork(boxed) as T
+    private value class ResultTemplate private constructor(override val boxed: String): ValueObject.Value<String> {
 
         init {
             validate()
         }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Value<String>> apply(boxed: String): T =
+            ResultTemplate(boxed) as T
 
         override fun validate() {
             require(boxed.contains("\\$\\d+".toRegex())) { "ksp arg $OPTION_GENERATED_CLASS_NAME_RESULT: \"$this\" must contain patterns '$<N>'" }
@@ -133,20 +137,21 @@ private constructor(
             boxed
 
         companion object {
-            fun create(boxed: String): ResultTemplate =
+            operator fun invoke(boxed: String): ResultTemplate =
                 ResultTemplate(boxed)
         }
     }
 
     @JvmInline
-    public value class UseContextParameters private constructor(override val boxed: Boolean) : ValueObject.Boxed<Boolean> {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ValueObject.Boxed<Boolean>> fork(boxed: Boolean): T =
-            UseContextParameters(boxed) as T
+    public value class UseContextParameters private constructor(override val boxed: Boolean) : ValueObject.Value<Boolean> {
 
         init {
             validate()
         }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ValueObject.Value<Boolean>> apply(boxed: Boolean): T =
+            UseContextParameters(boxed) as T
 
         override fun validate() {}
 
@@ -178,9 +183,9 @@ private constructor(
 
         public operator fun invoke(src: Map<String, String>): KDOptions =
             KDOptions(
-                src[OPTION_SUBPACKAGE]?.let(Subpackage.Companion::create),
+                src[OPTION_SUBPACKAGE]?.let { Subpackage(it) },
                 (src[OPTION_GENERATED_CLASS_NAME_RE] ?: DEFAULT_RE).toRegex(),
-                (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let(ResultTemplate.Companion::create),
+                (src[OPTION_GENERATED_CLASS_NAME_RESULT] ?: DEFAULT_RESULT).let { ResultTemplate(it) },
                 UseContextParameters((src[OPTION_CONTEXT_PARAMETERS]?.toBooleanStrictOrNull() ?: false)),
                 JsonNamingStrategy.entries.find { it.key == src[OPTION_JSON_NAMING_STRATEGY] }
             )

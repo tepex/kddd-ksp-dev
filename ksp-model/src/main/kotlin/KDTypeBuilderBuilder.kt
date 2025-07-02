@@ -59,7 +59,7 @@ public class KDTypeBuilderBuilder private constructor(
 
                     if (kdType is KDType.Model && isDsl) createDslBuilder(property.name.simpleName, kdType).also(innerBuilder::addFunction)
 
-                    if (kdType is KDType.Boxed && isDsl) (nestedType.first as KDType.Boxed).rawTypeName else property.typeName
+                    if (kdType is KDType.Value && isDsl) (nestedType.first as KDType.Value).rawTypeName else property.typeName
                 }.let {
                     if (!isDsl && !property.typeName.isNullable) PropertySpec.builder(property.name.simpleName, it).addModifiers(KModifier.LATEINIT)
                     else PropertySpec.builder(property.name.simpleName, it.toNullable()).initializer("null")
@@ -84,9 +84,9 @@ public class KDTypeBuilderBuilder private constructor(
         +Chunk("%N = ", property.name)
         val element =
             holder.getKDType(property.typeName).let { DSLType.Element(it, property.typeName.isNullable) }
-        if (element.kdType is KDType.Boxed && isDsl) {
+        if (element.kdType is KDType.Value && isDsl) {
             // Builder.build return statement
-            val parse = if (element.kdType.isParsable && element.kdType.isUseStringInDsl) ".${KDType.Boxed.FABRIC_PARSE_METHOD}" else ""
+            val parse = if (element.kdType.isParsable && element.kdType.isUseStringInDsl) ".${KDType.Value.FABRIC_PARSE_METHOD}" else ""
             if (element.typeName.isNullable) +Chunk("%N?.let { %T$parse(it) }, ", property.name, element.kdType.className)
             else +Chunk("%T$parse(%N!!), ", element.kdType.className, property.name)
             //logger.log("$property isParsable: ${element.kdType.isParsable} bozedType: ${element.kdType.boxedType} ")
@@ -208,7 +208,7 @@ public class KDTypeBuilderBuilder private constructor(
 
         private fun StringBuilder.commonTypeOrNot(isNullable: Boolean, isCommonType: Boolean) {
             if (isNullable) append('?')
-            append(".${KDType.Boxed.PARAM_NAME}")
+            append(".${KDType.Value.PARAM_NAME}")
             if (isCommonType) {
                 if (isNullable) append('?')
                 append(".toString()")

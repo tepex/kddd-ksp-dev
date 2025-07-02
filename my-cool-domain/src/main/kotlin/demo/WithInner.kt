@@ -1,13 +1,13 @@
 package ru.it_arch.clean_ddd.domain.demo
 
-import ru.it_arch.kddd.KDGeneratable
-import ru.it_arch.kddd.ValueObject
+import ru.it_arch.k3dm.Generatable
+import ru.it_arch.k3dm.ValueObject
 
 /**
  * Демонстрация использования вложенных типов в качестве полей.
  *
  */
-@KDGeneratable(json = true)
+@Generatable(json = true)
 public interface WithInner : ValueObject.Data {
     public val myInner: MyInner
     public val myOptionalInner: MyInner?
@@ -16,18 +16,18 @@ public interface WithInner : ValueObject.Data {
 
     }
 
-    @KDGeneratable(json = true)
+    @Generatable(json = true)
     public interface MyInner : ValueObject.Data {
         public val innerLong: InnerLong
         public val innerStr: InnerStr
 
         override fun validate() {}
 
-        public interface InnerLong : ValueObject.Boxed<Long> {
+        public interface InnerLong : ValueObject.Value<Long> {
             override fun validate() {}
         }
 
-        public interface InnerStr : ValueObject.Boxed<String> {
+        public interface InnerStr : ValueObject.Value<String> {
             override fun validate() {}
         }
     }

@@ -1,9 +1,9 @@
 package ru.it_arch.clean_ddd.domain.demo
 
-import ru.it_arch.kddd.KDGeneratable
-import ru.it_arch.kddd.ValueObject
+import ru.it_arch.k3dm.Generatable
+import ru.it_arch.k3dm.ValueObject
 
-@KDGeneratable(json = false, dsl = false)
+@Generatable(json = false, dsl = false)
 public interface Point : ValueObject.Data {
     public val x: Coordinate
     public val y: Coordinate
@@ -22,16 +22,16 @@ public interface Point : ValueObject.Data {
     public operator fun times(other: Point): Point =
         fork(x * other.x, y * other.y)
 
-    public interface Coordinate : ValueObject.Boxed<Int> {
+    public interface Coordinate : ValueObject.Value<Int> {
         override fun validate() {}
 
         public operator fun plus(other: Coordinate): Coordinate =
-            fork(boxed + other.boxed)
+            apply(boxed + other.boxed)
 
         public operator fun minus(other: Coordinate): Coordinate =
-            fork(boxed - other.boxed)
+            apply(boxed - other.boxed)
 
         public operator fun times(other: Coordinate): Coordinate =
-            fork(boxed * other.boxed)
+            apply(boxed * other.boxed)
     }
 }

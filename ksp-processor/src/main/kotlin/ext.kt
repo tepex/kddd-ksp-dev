@@ -15,14 +15,14 @@ import ru.it_arch.clean_ddd.ksp.model.KDProperty
 import ru.it_arch.clean_ddd.ksp.model.KDType
 import ru.it_arch.clean_ddd.ksp.model.KDTypeContext
 import ru.it_arch.clean_ddd.ksp.model.KDTypeContext.PackageName
-import ru.it_arch.kddd.KDGeneratable
-import ru.it_arch.kddd.KDParsable
-import ru.it_arch.kddd.KDSerialName
+import ru.it_arch.k3dm.Generatable
+import ru.it_arch.k3dm.Parsable
+import ru.it_arch.k3dm.SerialName
 
 context(_: KDTypeContext)
 @OptIn(KspExperimental::class)
 internal fun KSClassDeclaration.kdTypeOrNull(logger: KDLogger): Result<KDType?> {
-    val annotations = getAnnotationsByType(KDGeneratable::class) + getAnnotationsByType(KDParsable::class)
+    val annotations = getAnnotationsByType(Generatable::class) + getAnnotationsByType(Parsable::class)
     //logger.log("$this ${annotations.toList()}")
     superTypes.forEach { item -> item.kdTypeOrNull(annotations)?.also { return it } }
     // Not found
@@ -34,8 +34,8 @@ private fun KSTypeReference.kdTypeOrNull(annotations: Sequence<Annotation>): Res
     when(toString().substringBefore('<')) {
         KDType.Sealed::class.java.simpleName  -> Result.success(KDType.Sealed())
         KDType.Data::class.java.simpleName    -> Result.success(KDType.Data(annotations.toList(), false))
-        KDType.IEntity::class.java.simpleName -> Result.success(KDType.IEntity(annotations.toList()))
-        KDType.Boxed::class.java.simpleName   -> runCatching { KDType.Boxed(annotations.toList(), toTypeName()) }
+        KDType.Entity::class.java.simpleName -> Result.success(KDType.Entity(annotations.toList()))
+        KDType.Value::class.java.simpleName   -> runCatching { KDType.Value(annotations.toList(), toTypeName()) }
         else -> null
     }
 
@@ -66,7 +66,7 @@ internal fun typeContext(
         KDProperty(
             toBeGenerated.member(it.simpleName.asString()),
             it.type.toTypeName(),
-            it.getAnnotationsByType(KDSerialName::class).firstOrNull()
+            it.getAnnotationsByType(SerialName::class).firstOrNull()
         )
     }.toList()
 )

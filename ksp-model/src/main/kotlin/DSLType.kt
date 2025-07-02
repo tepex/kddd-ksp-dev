@@ -23,7 +23,7 @@ internal sealed interface DSLType {
         companion object {
             operator fun invoke(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
                 Element(
-                    (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawTypeName
+                    (if (kdTypeSearchResult.first is KDType.Value) (kdTypeSearchResult.first as KDType.Value).rawTypeName
                     else kdTypeSearchResult.first.kDddTypeName).toNullable(isNullable),
                     kdTypeSearchResult.first,
                     kdTypeSearchResult.second,
@@ -61,7 +61,7 @@ internal sealed interface DSLType {
                             toDslArgs += "$localIt${newArg.toDslMapper}"
                         }
                         is Element ->
-                            if (newArg.kdType is KDType.Boxed) {
+                            if (newArg.kdType is KDType.Value) {
                                 fromDslArgs += newArg.kdType.asDeserialize(localIt, arg.isNullable)
                                 toDslArgs += newArg.kdType.asIsOrSerialize(localIt, arg.isNullable)
                             } else {
@@ -72,9 +72,9 @@ internal sealed interface DSLType {
                 }
             }
 
-            val hasNotContainsBoxed = args.all { it is Element && it.kdType !is KDType.Boxed }
-            fromDslMapper = fromDslArgs.createMapper(collectionType, false, hasNotContainsBoxed)
-            toDslMapper = toDslArgs.createMapper(collectionType, true, hasNotContainsBoxed)
+            val hasNotContainsValue = args.all { it is Element && it.kdType !is KDType.Value }
+            fromDslMapper = fromDslArgs.createMapper(collectionType, false, hasNotContainsValue)
+            toDslMapper = toDslArgs.createMapper(collectionType, true, hasNotContainsValue)
             isSubstituted = true
         }
 

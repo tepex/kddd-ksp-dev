@@ -127,7 +127,7 @@ internal abstract class KDVisitor(
                     ?: logger.error("Unsupported type declaration", nestedDeclaration)
             }
 
-        if (data is KDType.IEntity) data.generateBaseContract()
+        if (data is KDType.Entity) data.generateBaseContract()
     }
 
     override fun defaultHandler(node: KSNode, data: KDType.Generatable) {}

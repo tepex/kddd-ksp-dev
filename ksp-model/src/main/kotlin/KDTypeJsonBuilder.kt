@@ -109,7 +109,7 @@ public class KDTypeJsonBuilder private constructor(
             if (isNullable) sb.append(", isOptional = true")
             sb.append(")\n")
             args += MemberName("kotlinx.serialization.descriptors", "element")
-            val param = if (kdType is KDType.Boxed) {
+            val param = if (kdType is KDType.Value) {
                 if (kdType.isPrimitive) kdType.boxedType
                 else if (kdType.isParsable) STRING
                 else error("Property `$name` type must have parameterized type primitive or parsable")
@@ -161,7 +161,7 @@ public class KDTypeJsonBuilder private constructor(
                             args += valueParam
                             // ```encodeNullableSerializableElement(descriptor, <index>, ```
                             "encodeNullableSerializableElement(%N, $i, " + when(jsonType.kdType) {
-                                is KDType.Boxed -> if (jsonType.kdType.isPrimitive)
+                                is KDType.Value -> if (jsonType.kdType.isPrimitive)
                                     // ```<Primitive>.serializer(), value.<param name>?.boxed[.<serialization fun>()])```
                                     "${jsonType.kdType.asSimplePrimitive()}.%M(), %N.${jsonType.kdType.asSerialize(el.first, true)})"
                                     else
@@ -177,7 +177,7 @@ public class KDTypeJsonBuilder private constructor(
                             }
                         } else { // Non nullable
                             when(jsonType.kdType) {
-                                is KDType.Boxed -> {
+                                is KDType.Value -> {
                                     args += valueParam
                                     if (jsonType.kdType.isPrimitive)
                                         // ```encode<Primitive>Element(descriptor, <index>, value.<param name>.boxed)```
@@ -244,7 +244,7 @@ public class KDTypeJsonBuilder private constructor(
                             if (jsonType.typeName.isNullable) {
                                 args += MemberName("kotlinx.serialization.builtins", "serializer")
                                 "$prefix decodeNullableSerializableElement(%N, $i, " + when(jsonType.kdType) {
-                                    is KDType.Boxed ->
+                                    is KDType.Value ->
                                         if (jsonType.kdType.isPrimitive)
                                             // ```<Primitive>.serializer())?.let...```
                                             "${jsonType.kdType.asSimplePrimitive()}.%M())?${jsonType.kdType.asDeserialize(jsonType.isInner)}"
@@ -266,7 +266,7 @@ public class KDTypeJsonBuilder private constructor(
                                 }
                             } else { // Non nullable
                                 when(jsonType.kdType) {
-                                    is KDType.Boxed ->
+                                    is KDType.Value ->
                                         // ```decode<Primitive>Element(descriptor, <index>).let...```
                                         "$prefix ${jsonType.decodePrimitiveElement()}(%N, $i)${jsonType.kdType.asDeserialize(jsonType.isInner)}"
                                             .takeIf { jsonType.kdType.isPrimitive } ?:

@@ -24,5 +24,5 @@ dependencies {
     implementation(libs.kotlinpoet)
     implementation(libs.kotlinpoet.ksp)
     implementation(project(":ksp-model"))
-    implementation(project(":kddd"))
+    implementation(libs.k3dm)
 }

@@ -20,19 +20,19 @@ internal sealed interface JsonType {
     ): JsonType {
 
         override fun asString(): String =
-            if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive()
+            if (kdType is KDType.Value && kdType.isPrimitive) kdType.asSimplePrimitive()
             else "String?".takeIf { typeName.isNullable } ?: "String"
 
         override fun encodePrimitiveElement(): String =
-            "encode${if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
+            "encode${if (kdType is KDType.Value && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
 
         override fun decodePrimitiveElement(): String =
-            "decode${if (kdType is KDType.Boxed && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
+            "decode${if (kdType is KDType.Value && kdType.isPrimitive) kdType.asSimplePrimitive() else "String"}Element"
 
         companion object {
             fun create(kdTypeSearchResult: KDTypeSearchResult, isNullable: Boolean): Element =
                 Element(
-                    (if (kdTypeSearchResult.first is KDType.Boxed) (kdTypeSearchResult.first as KDType.Boxed).rawTypeName
+                    (if (kdTypeSearchResult.first is KDType.Value) (kdTypeSearchResult.first as KDType.Value).rawTypeName
                     else kdTypeSearchResult.first.kDddTypeName).toNullable(isNullable),
                     kdTypeSearchResult.first,
                     kdTypeSearchResult.second
@@ -74,27 +74,27 @@ internal sealed interface JsonType {
             val localIt = type.getItArgName(i)
             // .map { it.map { it.boxed }.toSet() })
             serializationMappers += when(node) {
-                is Element -> if (node.kdType is KDType.Boxed) node.kdType.asSerialize(localIt, node.typeName.isNullable) else localIt
+                is Element -> if (node.kdType is KDType.Value) node.kdType.asSerialize(localIt, node.typeName.isNullable) else localIt
                 is Collection -> "$localIt${node.serializationMapper}"
             }
             // .map { it.map { it.let(NameImpl::create) }.toSet() }
             // for deserializer
             deserializationMappers += when(node) {
                 is Element ->
-                    if (node.kdType is KDType.Boxed) "${localIt}${"?".takeIf { node.typeName.isNullable } ?: ""}${node.kdType.asDeserialize(node.isInner)}" else "XXXImpl.serializer()"
+                    if (node.kdType is KDType.Value) "${localIt}${"?".takeIf { node.typeName.isNullable } ?: ""}${node.kdType.asDeserialize(node.isInner)}" else "XXXImpl.serializer()"
                 is Collection -> "$localIt${node.deserializationMapper}"
             }
         }
 
         fun finish() {
-            val hasNotContainsBoxed = args.all { it is Element && it.kdType !is KDType.Boxed }
-            serializationMapper = serializationMappers.toList().createMapper(type, false, hasNotContainsBoxed)
-            deserializationMapper = deserializationMappers.toList().createMapper(type, false, hasNotContainsBoxed)
+            val hasNotContainsValue = args.all { it is Element && it.kdType !is KDType.Value }
+            serializationMapper = serializationMappers.toList().createMapper(type, false, hasNotContainsValue)
+            deserializationMapper = deserializationMappers.toList().createMapper(type, false, hasNotContainsValue)
         }
 
         private fun serializerReplacement(node: JsonType): String = when(node) {
             is Element -> {
-                val primitiveType = if (node.kdType is KDType.Boxed && node.kdType.isPrimitive) node.kdType.asSimplePrimitive() else "String"
+                val primitiveType = if (node.kdType is KDType.Value && node.kdType.isPrimitive) node.kdType.asSimplePrimitive() else "String"
                 _serializerVarargs += MemberName("kotlinx.serialization.builtins", "serializer")
                 "$primitiveType.%M().%M".takeIf { node.typeName.isNullable }
                     ?.also { _serializerVarargs += MemberName("kotlinx.serialization.builtins", "nullable") }

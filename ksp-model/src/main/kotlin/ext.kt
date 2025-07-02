@@ -15,8 +15,7 @@ import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import ru.it_arch.clean_ddd.ksp.model.CollectionType.MAP
 import ru.it_arch.clean_ddd.ksp.model.CollectionType.SET
-import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed.Companion.FABRIC_CREATE_METHOD
-import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed.Companion.FABRIC_PARSE_METHOD
+import ru.it_arch.clean_ddd.ksp.model.KDType.Value.Companion.FABRIC_PARSE_METHOD
 import java.util.Locale
 
 internal fun TypeName.toNullable(nullable: Boolean = true) =
@@ -32,7 +31,7 @@ internal fun ParameterizedTypeName.toCollectionType(): CollectionType =
     CollectionType.entries.find { it.classNames.contains(rawType) }
         ?: error("Not supported collection type $this")
 
-internal val KDType.Boxed.isPrimitive: Boolean get() =
+internal val KDType.Value.isPrimitive: Boolean get() =
     boxedType == STRING ||
         boxedType == BOOLEAN ||
         boxedType == BYTE ||
@@ -43,15 +42,15 @@ internal val KDType.Boxed.isPrimitive: Boolean get() =
         boxedType == LONG ||
         boxedType == SHORT
 
-internal val KDType.Boxed.isString: Boolean get() =
+internal val KDType.Value.isString: Boolean get() =
     boxedType == STRING
 
-internal fun KDType.Boxed.asSimplePrimitive(): String {
+internal fun KDType.Value.asSimplePrimitive(): String {
     check(isPrimitive)
     return rawTypeName.toString().substringAfterLast('.')
 }
 
-internal fun KDType.Boxed.asDeserialize(isInner: Boolean): String =
+internal fun KDType.Value.asDeserialize(isInner: Boolean): String =
     if (isParsable) ".let($classNameRef::$FABRIC_PARSE_METHOD)" else ".let { $classNameRef(it) }"
         //(FABRIC_PARSE_METHOD.takeIf { isParsable } ?: FABRIC_CREATE_METHOD).let { ".let($classNameRef::$it)" }
 //    else "xxx"//TODO()

@@ -13,21 +13,20 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.Serializable
-import ru.it_arch.clean_ddd.ksp.model.KDType.Boxed
-import ru.it_arch.clean_ddd.ksp.model.KDType.Generatable
-import ru.it_arch.kddd.KDGeneratable
-import ru.it_arch.kddd.KDParsable
-import ru.it_arch.kddd.Kddd
-import ru.it_arch.kddd.ValueObject
+import ru.it_arch.clean_ddd.ksp.model.KDType.Value
+import ru.it_arch.k3dm.Fts
+import ru.it_arch.k3dm.Parsable
+import ru.it_arch.k3dm.ValueObject
+import ru.it_arch.k3dm.Generatable as AGeneratable
 
 internal class KDTypeForGeneration(
     private val context: KDTypeContext,
     val annotations: List<Annotation>,
     boxedType: TypeName? = null,
     isEntity: Boolean = false
-) : Generatable {
+) : KDType.Generatable {
 
-    override val className = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.implementationName
+    override val className = annotations.filterIsInstance<AGeneratable>().firstOrNull()?.implementationName
         ?.takeIf { it.isNotBlank() }?.let(ClassName::bestGuess) ?: context.toBeGenerated
     // TODO: add case for inner types
     override val classNameRef: String = className.simpleName
@@ -39,8 +38,8 @@ internal class KDTypeForGeneration(
     override val nestedTypes: Map<TypeName, KDType>
         get() = _nestedTypes.toMap()
 
-    override val hasDsl = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.dsl != false
-    override val hasJson = annotations.filterIsInstance<KDGeneratable>().firstOrNull()?.json == true
+    override val hasDsl = annotations.filterIsInstance<AGeneratable>().firstOrNull()?.dsl != false
+    override val hasJson = annotations.filterIsInstance<AGeneratable>().firstOrNull()?.json == true
 
     var isParsable: Boolean = false
         private set
@@ -48,7 +47,7 @@ internal class KDTypeForGeneration(
     init {
         propertyHolders = boxedType?.let {
             boxedType(boxedType)
-            listOf(KDProperty(className.member(Boxed.PARAM_NAME), boxedType))
+            listOf(KDProperty(className.member(Value.PARAM_NAME), boxedType))
         } ?: run {
             // not Boxed
             if (!isEntity) {
@@ -72,38 +71,38 @@ internal class KDTypeForGeneration(
         builder.addModifiers(KModifier.VALUE)
         builder.addAnnotation(JvmInline::class)
 
-        val boxedParam = ParameterSpec.builder(Boxed.PARAM_NAME, boxedType).build()
+        val valueParam = ParameterSpec.builder(Value.PARAM_NAME, boxedType).build()
         FunSpec.builder("toString").apply {
             addModifiers(KModifier.OVERRIDE)
             returns(String::class)
-            addStatement("return %N.toString()", boxedParam)
+            addStatement("return %N.toString()", valueParam)
         }.build().also(builder::addFunction)
 
-        // override fun <T : ValueObject.Boxed<Int>> fork(boxed: Int): T = CoordinateImpl(boxed) as T
+        // override fun <T : ValueObject.Value<Int>> apply(boxed: Int): T = CoordinateImpl(boxed) as T
         TypeVariableName(
             "T",
-            ValueObject.Boxed::class.asTypeName().parameterizedBy(boxedType)
+            ValueObject.Value::class.asTypeName().parameterizedBy(boxedType)
         ).also { tvn ->
-            FunSpec.builder(Boxed.CREATE_METHOD).apply {
+            FunSpec.builder(Value.APPLY_METHOD).apply {
                 addTypeVariable(tvn)
-                addParameter(boxedParam)
+                addParameter(valueParam)
                 addModifiers(KModifier.OVERRIDE)
                 addUncheckedCast()
                 returns(tvn)
-                addStatement("return %T(%N) as %T", className, boxedParam, tvn)
+                addStatement("return %T(%N) as %T", className, valueParam, tvn)
             }.build().also(builder::addFunction)
         }
 
 
-        /* ValueObject.Boxed companion object */
+        /* ValueObject.Value companion object */
         TypeSpec.companionObjectBuilder().apply {
             FunSpec.builder("invoke").apply {
                 addModifiers(KModifier.OPERATOR)
-                addParameter(boxedParam)
+                addParameter(valueParam)
                 returns(context.typeName)
-                addStatement("return %T(%N)", className, boxedParam)
+                addStatement("return %T(%N)", className, valueParam)
             }.build().let(::addFunction)
-            this@KDTypeForGeneration.annotations.filterIsInstance<KDParsable>().firstOrNull()
+            this@KDTypeForGeneration.annotations.filterIsInstance<Parsable>().firstOrNull()
                 ?.also {
                     createParseFun(boxedType, it).let(::addFunction)
                     isParsable = true
@@ -113,9 +112,9 @@ internal class KDTypeForGeneration(
     }
 
     private fun createForkFun(properties: List<KDProperty>) {
-        FunSpec.builder(Boxed.CREATE_METHOD).apply {
-            val typeT = TypeVariableName("T", Kddd::class)
-            val typeA = TypeVariableName("A", Kddd::class)
+        FunSpec.builder(KDType.Data.FORK_METHOD).apply {
+            val typeT = TypeVariableName("T", Fts::class)
+            val typeA = TypeVariableName("A", Fts::class)
 
             addTypeVariable(typeT)
             addTypeVariable(typeA)
@@ -132,8 +131,8 @@ internal class KDTypeForGeneration(
         }.build().also(builder::addFunction)
     }
 
-    private fun createParseFun(boxedType: TypeName, parsable: KDParsable): FunSpec =
-        FunSpec.builder(Boxed.FABRIC_PARSE_METHOD).apply {
+    private fun createParseFun(boxedType: TypeName, parsable: Parsable): FunSpec =
+        FunSpec.builder(Value.FABRIC_PARSE_METHOD).apply {
             val srcParam = ParameterSpec.builder("src", String::class).build()
             addParameter(srcParam)
             returns(className)
