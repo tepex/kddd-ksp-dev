@@ -1,15 +1,14 @@
 [versions]
 # plugins
-kotlin = "2.1.20"
-#kotlin = "1.9.0"
-ksp = "2.1.20-2.0.0"
-#ksp = "1.9.0-1.0.13"
+kotlin = "2.2.0"
+ksp = "2.2.0-2.0.2"
 kotlinpoet = "2.1.0"
 
 # libs
 kotlinx-coroutines = "1.9.0"
 ktlint = "0.50.0"
 serialization-json = "1.8.1"
+k3dm = "2.0.1"
 
 # test
 junit = "4.13.2"
@@ -26,10 +25,12 @@ auto-service = { module = "com.google.auto.service:auto-service", version="1.1.1
 
 javax-inject = { module = "javax.inject:javax.inject", version = "1" }
 
-kddd = { module = "ru.it-arch:kddd", version = "7.2.3" }
 kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
 kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
 kotlin-compile-testing-ksp = { module = "com.github.tschuchortdev:kotlin-compile-testing-ksp", version = "1.6.0" }
+
+# my
+k3dm = { group = "ru.it-arch", name = "k3dm", version.ref = "k3dm" }
 
 # test
 junit = { group = "junit", name = "junit", version.ref = "junit" }
