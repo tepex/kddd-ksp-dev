@@ -26,7 +26,7 @@ public interface CommonTypes : ValueObject.Data {
 
     override fun validate() {}
 
-    // Параметр `deserialization` не указан — объект будет создаваться через констрктор со строковым аргументом со
+    // Параметр `deserialization` не указан — объект будет создаваться через конструктор со строковым аргументом со
     // значением из DSL/JSON: `File("<value>")`
     @Parsable(useStringInDsl = true)
     public interface MyFile : ValueObject.Value<File> {
