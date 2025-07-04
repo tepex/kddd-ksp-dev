@@ -62,7 +62,7 @@ Tepex <tepex@mail.ru>
 |Иметь базовое основание ФСТ
 |проектировать собственную <<helix-model,УМ>>.
 
-|Создавать концептуальные доменные модели в виде собственной строгой иерархии ФСТ и компилируемого кода
+|Моделировать концептуальные доменные модели в виде собственной строгой иерархии ФСТ и компилируемого кода
 |писать функционал (бизнес-логику) в парадигме ФП и тестировать их юнит-тестами на самой ранней стадии.
 
 |Иметь разделение доменных моделей на абстракцию и имплементацию
@@ -106,7 +106,7 @@ Tepex <tepex@mail.ru>
 
 == Реализация
 
-// Сага
+// User Story
 Допустим, требуется создать некоторую модель (тип данных) с определенными свойствами (_Value Object_), которую можно реализовать таким образом:
 [source,Kotlin]
 ----
@@ -147,10 +147,59 @@ val myType = MyType(
 ----
 // Проектируемая разработчиком абстракция
 
+@Generatable(json = true, dsl = true) // Сгенерировать билдеры для DSL и JSON опций
+public interface MyType : ValueObject.Data {
+    public val name: Name
+    public val count: Count
+    public val components: Map<MyUuid, Name>
+
+    override fun validate() {}
+
+    public interface Name : ValueObject.Value<String> {
+        override fun validate() {
+            // Полагается бизнес-правило, что имя не должно содержать символы `_, -, .`
+            """[_\-.]""".also { require(boxed.contains(it.toRegex()).not()) }
+        }
+    }
+
+    public interface Count : ValueObject.Value<Int> {
+        // Полагается бизнес-правило, что значение счетчика находится в диапазоне 0...100
+        override fun validate() {
+            require(boxed in 0..100)
+        }
+    }
+
+    // Объект будет создаваться через `UUID.fromString("<value>")`
+    @Parsable(deserialization = "fromString")
+    public interface MyUuid : ValueObject.Value<UUID> {
+        override fun validate() {}
+    }
+
+    @Generatable(json = true)
+    public interface NestedType : ValueObject.Data {
+        public val myFile: MyFile
+        public val desc: Desc
+
+        override fun validate() {}
+
+        // Параметр `deserialization` не указан — объект будет создаваться через конструктор со строковым аргументом со
+        // значением из DSL/JSON: `File("<value>")`
+        @Parsable(useStringInDsl = true)
+        public interface MyFile : ValueObject.Value<File> {
+            override fun validate() {}
+        }
+
+        public interface Desc : ValueObject.Value<String> {
+            override fun validate() {}
+        }
+    }
+}
 ----
 [source,Kotlin]
+Пример использования
 ----
-// Проектируемый разработчиком функционал
+// Приме
+
 ----
 
 

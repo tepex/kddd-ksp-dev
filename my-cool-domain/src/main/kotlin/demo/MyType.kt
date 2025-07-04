@@ -5,12 +5,13 @@ import ru.it_arch.k3dm.Parsable
 import ru.it_arch.k3dm.ValueObject
 import java.io.File
 import java.util.UUID
+import kotlin.apply
 
 @Generatable(json = true, dsl = true)
 public interface MyType : ValueObject.Data {
     public val name: Name
     public val count: Count
-    //public val components: Map<MyUuid, NestedType>
+    public val components: Map<MyUuid, Name>
 
     override fun validate() {}
 
@@ -52,9 +53,11 @@ public interface MyType : ValueObject.Data {
             override fun validate() {}
         }
     }
-
-    /*
-    public companion object {
-        public val NAME_RULE: Regex = """[_\-.]""".toRegex()
-    }*/
 }
+
+public fun MyType.Count.increment(): MyType.Count =
+    apply(boxed + 1)
+
+/*
+public fun MyType.incrementCount(): MyType =
+    fork(name, count.increment(), components as ValueObject.Value<out Any>)*/
