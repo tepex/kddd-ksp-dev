@@ -2,7 +2,6 @@ package ru.it_arch.clean_ddd.app
 
 import ru.it_arch.clean_ddd.domain.demo.NullablePrimitives
 import ru.it_arch.clean_ddd.domain.demo.impl.NullablePrimitivesImpl
-import ru.it_arch.clean_ddd.domain.demo.impl.json
 import ru.it_arch.clean_ddd.domain.demo.impl.nullablePrimitives
 
 fun testNullables() {

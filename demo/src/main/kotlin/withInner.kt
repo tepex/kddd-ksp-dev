@@ -2,10 +2,10 @@ package ru.it_arch.clean_ddd.app
 
 import ru.it_arch.clean_ddd.domain.demo.WithInner
 import ru.it_arch.clean_ddd.domain.demo.impl.WithInnerImpl
-import ru.it_arch.clean_ddd.domain.demo.impl.json
 import ru.it_arch.clean_ddd.domain.demo.impl.withInner
 
 fun testWithInner() {
+
     withInner {
         myInner = myInner {
             innerLong = 22
@@ -13,7 +13,7 @@ fun testWithInner() {
         }
     }.apply {
         println("\ninner types demo: $this")
-        json.encodeToString(this).also { println("json: $it") }
+        json.encodeToString(this as WithInnerImpl).also { println("json: $it") }
     }
 
     """{
@@ -25,9 +25,10 @@ fun testWithInner() {
         "inner-long": 11,
         "inner-str": "optional string"
     }
-}""".apply {
+}"""
+        .apply {
         json.decodeFromString<WithInnerImpl>(this).also { obj: WithInner ->
-            // Можете пользоваться
+            // Можно пользоваться
             println("deserialize: $obj")
         }
     }

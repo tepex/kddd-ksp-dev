@@ -4,7 +4,6 @@ import ru.it_arch.clean_ddd.domain.demo.NullablePrimitives
 import ru.it_arch.clean_ddd.domain.demo.Primitives
 import ru.it_arch.clean_ddd.domain.demo.impl.NullablePrimitivesImpl
 import ru.it_arch.clean_ddd.domain.demo.impl.PrimitivesImpl
-import ru.it_arch.clean_ddd.domain.demo.impl.json
 import ru.it_arch.clean_ddd.domain.demo.impl.primitives
 
 fun testPrimitives() {

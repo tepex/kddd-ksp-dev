@@ -200,14 +200,25 @@ public interface MyType : ValueObject.Data {
 Пример логики:
 [source,Kotlin]
 ----
-// Приме
 public fun MyType.Count.increment(): MyType.Count =
     apply(boxed + 1)
 
 public fun MyType.incrementCount(): MyType =
     fork(name, count.increment(), components)
 ----
-
+Пример использования:
+[source,Kotlin]
+----
+    // Создание через DSL
+    val myType = myType {
+        name = "my name"
+        count = 3
+        components += UUID.randomUUID() to "another name"
+    }
+    println("myType: $myType")
+    myType.incrementCount().also { println("Incremented MyType: $it") }
+----
+Примеры для фреймворка можно посмотреть в подпроекте link:../demo/src/main/kotlin/[demo]. Сгенерированная имплементация для типа link:../my-cool-domain/src/main/kotlin/habr/impl/MyTypeImpl.kt[`MyType`]
 
 
 Кроме того, хотелось бы иметь
