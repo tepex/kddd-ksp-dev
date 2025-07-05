@@ -195,11 +195,17 @@ public interface MyType : ValueObject.Data {
     }
 }
 ----
+Теперь можно задать бизнес-логику и написать юнит-тесты в которых определить или замокать имплементацию.
+
+Пример логики:
 [source,Kotlin]
-Пример использования
 ----
 // Приме
+public fun MyType.Count.increment(): MyType.Count =
+    apply(boxed + 1)
 
+public fun MyType.incrementCount(): MyType =
+    fork(name, count.increment(), components)
 ----
 
 

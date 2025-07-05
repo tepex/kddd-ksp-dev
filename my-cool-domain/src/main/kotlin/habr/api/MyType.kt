@@ -1,11 +1,10 @@
-package ru.it_arch.clean_ddd.domain.demo
+package ru.it_arch.clean_ddd.domain.habr.api
 
 import ru.it_arch.k3dm.Generatable
 import ru.it_arch.k3dm.Parsable
 import ru.it_arch.k3dm.ValueObject
 import java.io.File
 import java.util.UUID
-import kotlin.apply
 
 @Generatable(json = true, dsl = true)
 public interface MyType : ValueObject.Data {
@@ -54,10 +53,3 @@ public interface MyType : ValueObject.Data {
         }
     }
 }
-
-public fun MyType.Count.increment(): MyType.Count =
-    apply(boxed + 1)
-
-/*
-public fun MyType.incrementCount(): MyType =
-    fork(name, count.increment(), components as ValueObject.Value<out Any>)*/

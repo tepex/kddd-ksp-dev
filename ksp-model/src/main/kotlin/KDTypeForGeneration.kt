@@ -1,5 +1,6 @@
 package ru.it_arch.clean_ddd.ksp.model
 
+import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
@@ -113,11 +114,13 @@ internal class KDTypeForGeneration(
 
     private fun createForkFun(properties: List<KDProperty>) {
         FunSpec.builder(KDType.Data.FORK_METHOD).apply {
-            val typeT = TypeVariableName("T", Fts::class)
-            val typeA = TypeVariableName("A", Fts::class)
+            //val typeT = TypeVariableName("T", Fts::class)
+            val typeT = TypeVariableName("T", ValueObject.Data::class)
+            //val typeA = TypeVariableName("A", Any::class).toNullable()
+            val typeA = ANY.toNullable()
 
             addTypeVariable(typeT)
-            addTypeVariable(typeA)
+            //addTypeVariable(typeA)
             addParameter(ParameterSpec.builder("args", typeA, KModifier.VARARG).build())
             addModifiers(KModifier.OVERRIDE)
             addUncheckedCast()

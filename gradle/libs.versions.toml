@@ -8,7 +8,7 @@ kotlinpoet = "2.1.0"
 kotlinx-coroutines = "1.9.0"
 ktlint = "0.50.0"
 serialization-json = "1.8.1"
-k3dm = "2.0.1"
+k3dm = "2.1.0"
 
 # test
 junit = "4.13.2"

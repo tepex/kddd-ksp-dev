@@ -35,7 +35,7 @@ public data class WithInnerCustomImpl private constructor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Fts, A : Fts> fork(vararg args: A): T  =
+    override fun <T : ValueObject.Data> fork(vararg args: Any?): T  =
         Builder().apply {
             myInner = args[0] as WithInner.MyInner
             myOptionalInner = args[1] as WithInner.MyInner?
@@ -66,7 +66,7 @@ public data class WithInnerCustomImpl private constructor(
         }
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T : Fts, A : Fts> fork(vararg args: A): T  =
+        override fun <T : ValueObject.Data> fork(vararg args: Any?): T =
             Builder().apply {
                 innerLong = args[0] as WithInner.MyInner.InnerLong
                 innerStr = args[1] as WithInner.MyInner.InnerStr

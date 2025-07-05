@@ -52,12 +52,11 @@ public data class KDOutputFile private constructor(
         }
     }
 
-
-    override fun validate() {}
-
-    override fun <T : Fts, A : Fts> fork(vararg args: A): T {
+    override fun <T : ValueObject.Data> fork(vararg args: Any?): T {
         TODO("Not yet implemented")
     }
+
+    override fun validate() {}
 
     public companion object {
         private const val FILE_HEADER_STUB: String = """
