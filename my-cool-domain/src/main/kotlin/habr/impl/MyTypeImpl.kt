@@ -320,5 +320,3 @@ public data class MyTypeImpl private constructor(
         }
     }
 }
-
-public fun myType(block: MyTypeImpl.DslBuilder.() -> Unit): MyType = MyTypeImpl.DslBuilder().apply(block).build()
