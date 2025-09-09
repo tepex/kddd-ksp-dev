@@ -4,6 +4,7 @@
  * 
  * You can edit, run, and share this code.
  * play.kotlinlang.org
+ * https://pl.kotl.in/EbCUGHzcO
  */
 fun main() {
     interpreter()
