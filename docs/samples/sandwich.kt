@@ -1,8 +1,9 @@
-
 /**
  * Портирование на Котлин примера из статьи
  * https://github.com/graninas/functional-declarative-design-methodology?tab=readme-ov-file
  * 
+ * https://pl.kotl.in/qd_jQLT5f
+ *
  * You can edit, run, and share this code.
  * play.kotlinlang.org
  */
