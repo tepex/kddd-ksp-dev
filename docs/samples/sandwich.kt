@@ -2,7 +2,7 @@
  * Портирование на Котлин примера из статьи
  * https://github.com/graninas/functional-declarative-design-methodology?tab=readme-ov-file
  * 
- * https://pl.kotl.in/6Iq5aucmf
+ * https://pl.kotl.in/qd_jQLT5f
  *
  * You can edit, run, and share this code.
  * play.kotlinlang.org
@@ -14,28 +14,27 @@ fun main() {
 
 /** Нормальная интерпретация */
 fun interpreter() {
-    SandwichTechnology(
-        { b, c -> 
+    sandwichTechnology {
+        startNewSandwich = { b: Ingredient.Bread, c: Ingredient.Component -> 
             sandwichBody {
                 bottom = b
                 components += c
             }
-        },
-        { b, c -> b + c },
-        { b, t -> 
+        }
+        addComponent = { b, c -> b + c }
+        finishSandwich = { b, t -> 
             sandwichReady {
                 body = b
                 top = t
             }
         }  
-    ).myRecipe
-    .also { println("sandwich: $it") }
+    }.myRecipe
+        .also { println("sandwich: $it") }
 }
 
 // ----------------------------------------
 // Модуль `api` содержащий eDSL и Use Case
 // ----------------------------------------
-
 sealed interface Ingredient {
     enum class Bread : Ingredient {
         BAGUETTE, TOAST
@@ -122,11 +121,11 @@ sealed interface Op {
 }
 
 /** Описание технологии */
-data class SandwichTechnology(
-    val startNewSandwich: Op.StartNewSandwich,
-    val addComponent: Op.AddComponent,
+interface SandwichTechnology {
+    val startNewSandwich: Op.StartNewSandwich
+    val addComponent: Op.AddComponent
     val finishSandwich: Op.FinishSandwich
-)
+}
 
 /* Рецепт моего сэндвича: 
  * 1. Взять вид хлеба тост и компонент помидор как основу.
@@ -142,9 +141,33 @@ val SandwichTechnology.myRecipe: Sandwich get() =
     { addComponent(it, Ingredient.Component.CHEESE) } next
     { addComponent(it, Ingredient.Component.SALT) } next
     { finishSandwich(it, null) }
-
+    
+    
 // ----------------------------
 // Молуль имплементации `impl`
 // ----------------------------
 
-//@ConsistentCopyVisibility
+@ConsistentCopyVisibility
+data class SandwichTechnologyImpl private constructor(
+    override val startNewSandwich: Op.StartNewSandwich,
+    override val addComponent: Op.AddComponent,
+    override val finishSandwich: Op.FinishSandwich
+) : SandwichTechnology {
+    
+    class Builder {
+        var startNewSandwich: ((Ingredient.Bread, Ingredient.Component) -> Sandwich)? = null
+        var addComponent: ((Sandwich.Body, Ingredient.Component) -> Sandwich)? = null
+        var finishSandwich: ((Sandwich.Body, Ingredient.Bread?) -> Sandwich)? = null
+
+        fun build(): SandwichTechnology {
+            requireNotNull(startNewSandwich) { "`startNewSandwich` must be initialized!" }
+            requireNotNull(addComponent) { "`addComponent` must be initialized!" }
+            requireNotNull(finishSandwich) { "`finishSandwich` must be initialized!" }
+            return SandwichTechnologyImpl(startNewSandwich!!, addComponent!!, finishSandwich!!)
+        }
+    }
+}
+
+fun sandwichTechnology(block: SandwichTechnologyImpl.Builder.() -> Unit): SandwichTechnology =
+    SandwichTechnologyImpl.Builder().apply { block() }.build()
+    
