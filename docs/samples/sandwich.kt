@@ -1,40 +1,20 @@
 /**
  * Портирование на Котлин примера из статьи
  * https://github.com/graninas/functional-declarative-design-methodology?tab=readme-ov-file
- * 
- * https://pl.kotl.in/qd_jQLT5f
  *
- * You can edit, run, and share this code.
- * play.kotlinlang.org
+ * https://pl.kotl.in/ki9TpN0nd
+ * @version 1.0.0
+ * @author Tepex
  */
 
-fun main() {
-    interpreter()
-}
+// ***************************************************
+// Layer 1. Interfaces (Hierarchical Free Monad eDSLs)
+// ***************************************************
 
-/** Нормальная интерпретация */
-fun interpreter() {
-    sandwichTechnology {
-        startNewSandwich = { b: Ingredient.Bread, c: Ingredient.Component -> 
-            sandwichBody {
-                bottom = b
-                components += c
-            }
-        }
-        addComponent = { b, c -> b + c }
-        finishSandwich = { b, t -> 
-            sandwichReady {
-                body = b
-                top = t
-            }
-        }  
-    }.myRecipe
-        .also { println("sandwich: $it") }
-}
+// -------------------
+// Модуль `api`. eDSL
 
-// ----------------------------------------
-// Модуль `api` содержащий eDSL и Use Case
-// ----------------------------------------
+/** Ресурсы */
 sealed interface Ingredient {
     enum class Bread : Ingredient {
         BAGUETTE, TOAST
@@ -75,7 +55,7 @@ sealed interface Sandwich {
     data class Ready private constructor(
         val body: Body,
         val top: Ingredient.Bread?
-    ) : Sandwich by body {
+    ) : Sandwich by body { // Вместо наследования применяется композиция (Composition over inheritance)
         
         class Builder {
             var body: Body? = null
@@ -89,76 +69,92 @@ sealed interface Sandwich {
     }
 }
 
+/** `pure` for Sandwich.Body */
 fun sandwichBody(block: Sandwich.Body.Builder.() -> Unit): Sandwich.Body =
     Sandwich.Body.Builder().apply { block () }.build()
-    
+
+/** `pure` for Sandwich.Ready */
 fun sandwichReady(block: Sandwich.Ready.Builder.() -> Unit): Sandwich.Ready =
     Sandwich.Ready.Builder().apply { block () }.build()
     
 /** bind/flatMap */
-infix fun Sandwich.next(op: (Sandwich.Body) -> Sandwich): Sandwich = when(this) {
-    is Sandwich.Body -> op(this)
-    else -> this
-}
-
-/**
- * Технологические операции.
- * 
- * Interpretable Free Monadic Interfaces.
- */
-sealed interface Op {
-    fun interface StartNewSandwich : Op {
-        operator fun invoke(bottom: Ingredient.Bread, component: Ingredient.Component): Sandwich
-    }
+infix fun Sandwich.Body.next(op: (Sandwich.Body) -> Sandwich.Body): Sandwich.Body =
+    op(this)
     
-    fun interface AddComponent : Op {
-        operator fun invoke(sandwich: Sandwich.Body, component: Ingredient.Component): Sandwich
-    }
-    
-    fun interface FinishSandwich : Op {
-        operator fun invoke(sandwich: Sandwich.Body, top: Ingredient.Bread?): Sandwich
-    }
-}
+/** bind/flatMap */
+infix fun Sandwich.Body.finish(op: (Sandwich.Body) -> Sandwich.Ready): Sandwich.Ready =
+    op(this)
 
-/** Описание технологии */
+/** Технология производства сэндвича */
 interface SandwichTechnology {
-    val startNewSandwich: Op.StartNewSandwich
-    val addComponent: Op.AddComponent
-    val finishSandwich: Op.FinishSandwich
+    val `start new sandwich`: Op.StartNewSandwich
+    val `add component`: Op.AddComponent
+    val `finish sandwich`: Op.FinishSandwich
+    
+    /**
+     * Технологические операции.
+     * 
+     * Interpretable Free monadic interfaces.
+     */
+    sealed interface Op {
+        fun interface StartNewSandwich : Op {
+            operator fun invoke(bottom: Ingredient.Bread, component: Ingredient.Component): Sandwich.Body
+        }
+    
+        fun interface AddComponent : Op {
+            operator fun invoke(sandwich: Sandwich.Body, component: Ingredient.Component): Sandwich.Body
+        }
+    
+        fun interface FinishSandwich : Op {
+            operator fun invoke(sandwich: Sandwich.Body, top: Ingredient.Bread?): Sandwich.Ready
+        }
+    }
 }
+
+
+// ********************************
+// Layer 2. Domain & Business Logic
+// ********************************
+
+// Рецепты. Можно создать библиотеку рецептов.
 
 /* Рецепт моего сэндвича: 
- * 1. Взять вид хлеба тост и компонент помидор как основу.
+ * 1. Начало: взять вид хлеба тост и компонент помидор как основу.
  * 2. Добавить сыр
  * 3. Добавить соль
- * 4. Сверху хлеб не добавлять и мой сэндвич готов.
+ * 4. Завершение: сверху хлеб не добавлять.
  * 
- * Скрипт (Use Case) на созданном выше eDSL.
- * Бизнес-логика пишется только на абстракциях из модуля `api`.
+ * Скрипт (Use Case) на созданном в Layer 1 eDSL.
+ * Бизнес-логика пишется только на абстракциях из Layer 1.
  */
-val SandwichTechnology.myRecipe: Sandwich get() = 
-    startNewSandwich(Ingredient.Bread.TOAST, Ingredient.Component.TOMATO) next
-    { addComponent(it, Ingredient.Component.CHEESE) } next
-    { addComponent(it, Ingredient.Component.SALT) } next
-    { finishSandwich(it, null) }
-    
-    
-// ----------------------------
-// Молуль имплементации `impl`
-// ----------------------------
+fun SandwichTechnology.myRecipe(): Sandwich.Ready = 
+    `start new sandwich`(Ingredient.Bread.TOAST, Ingredient.Component.TOMATO) next
+    { `add component`(it, Ingredient.Component.CHEESE) } next
+    { `add component`(it, Ingredient.Component.SALT) } finish 
+    { `finish sandwich`(it, null) }
 
+
+// *********************************
+// Layer 3. Implementation & Runtime
+// *******************************
+
+// --------------------------------------
+// Модуль `impl`. Имплементации. Runtime.
+
+/**
+ *  Autogenerated 
+ */
 @ConsistentCopyVisibility
 data class SandwichTechnologyImpl private constructor(
-    override val startNewSandwich: Op.StartNewSandwich,
-    override val addComponent: Op.AddComponent,
-    override val finishSandwich: Op.FinishSandwich
+    override val `start new sandwich`: SandwichTechnology.Op.StartNewSandwich,
+    override val `add component`: SandwichTechnology.Op.AddComponent,
+    override val `finish sandwich`: SandwichTechnology.Op.FinishSandwich
 ) : SandwichTechnology {
     
     class Builder {
-        var startNewSandwich: ((Ingredient.Bread, Ingredient.Component) -> Sandwich)? = null
-        var addComponent: ((Sandwich.Body, Ingredient.Component) -> Sandwich)? = null
-        var finishSandwich: ((Sandwich.Body, Ingredient.Bread?) -> Sandwich)? = null
-
+        var startNewSandwich: ((Ingredient.Bread, Ingredient.Component) -> Sandwich.Body)? = null
+        var addComponent: ((Sandwich.Body, Ingredient.Component) -> Sandwich.Body)? = null
+        var finishSandwich: ((Sandwich.Body, Ingredient.Bread?) -> Sandwich.Ready)? = null
         fun build(): SandwichTechnology {
             requireNotNull(startNewSandwich) { "`startNewSandwich` must be initialized!" }
             requireNotNull(addComponent) { "`addComponent` must be initialized!" }
@@ -170,4 +166,48 @@ data class SandwichTechnologyImpl private constructor(
 
 fun sandwichTechnology(block: SandwichTechnologyImpl.Builder.() -> Unit): SandwichTechnology =
     SandwichTechnologyImpl.Builder().apply { block() }.build()
+
+
+// ----------------------
+// Модуль `app`. Runtime.
     
+/** Нормальная интерпретация */
+fun realInterpreter(): SandwichTechnology =
+    sandwichTechnology {
+        startNewSandwich = { bread, component -> 
+            sandwichBody {
+                bottom = bread
+                components += component
+            }
+        }
+        addComponent = { body, component -> body + component }
+        finishSandwich = { _body, _top -> 
+            sandwichReady {
+                body = _body
+                top = _top
+            }
+        }  
+    }
+    
+fun crazyInterpreter(): SandwichTechnology =
+    sandwichTechnology {
+        startNewSandwich = { bread, component -> 
+            sandwichBody {
+                bottom = bread
+                components += component
+            }
+        }
+        addComponent = { body, component -> body + component }
+        finishSandwich = { _body, _top -> 
+            sandwichReady {
+                body = _body
+                top = _top
+            }
+        }  
+    }
+    
+fun main() {
+    realInterpreter()
+        .myRecipe()
+        .also { println("sandwich: $it") }
+}
